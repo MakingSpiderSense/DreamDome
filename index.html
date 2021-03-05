@@ -1,0 +1,228 @@
+<!doctype html>
+<html>
+<head>
+    <title>Synthwave Nights</title>
+    <link rel="icon" type="image/png" href="assets/favicon-512.png">
+	<script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://unpkg.com/aframe-environment-component@1.2.0/dist/aframe-environment-component.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
+    <script src="https://unpkg.com/aframe-event-set-component@5.0.0/dist/aframe-event-set-component.min.js"></script>
+</head>
+
+<body>
+	<!-- <a-scene vr-mode-ui="enabled: false"> -->
+    <a-scene stats>
+
+        <!-- Asset Management System -->
+        <a-assets>
+            <img id="neon-sky" src="assets/neon-sky-2.jpg">
+            <img id="moon" src="assets/moon-3.png">
+            <img id="speaker" src="assets/metal_dotted_2-specular.jpg">
+        	<audio id="ghosthustlers" src="assets/ghosthustlers--some-elses-ride.mp3"></audio>
+            <img id="billboard-front" src="assets/billboard-front.png">
+        </a-assets>
+
+		<!-- Camera Rig -->
+		<a-entity class="user" position="0 0 6" movement-controls="speed: 0.5;">
+			<!-- Camera -->
+			<a-entity camera position="0 1.6 0"
+					  look-controls="pointerLockEnabled: false"
+                      wasd-controls="acceleration: 50">
+                    <!-- Cursor -->
+                    <a-entity cursor position="0 0 -1"
+                                geometry="primitive: sphere; radius: 0.005"
+                                material="color: #FFFFFF; shader: flat; opacity: 0.5"
+                                raycaster="objects: .clickable">
+                    </a-entity>
+			</a-entity>
+            <!-- Controllers -->
+            <a-entity class="controllers">
+                <a-entity oculus-touch-controls="hand: left"></a-entity>
+                <a-entity oculus-touch-controls="hand: right"></a-entity>
+            </a-entity>
+        </a-entity>
+        
+        <!-- Environment -->
+        <a-entity class="env-dream" environment="preset: dream; groundColor: #445; grid: cross; fog: 0"></a-entity>
+
+        <!-- Sky -->
+        <a-sky src="#neon-sky" rotation="0 -90 0"></a-sky>
+
+        <!-- Moon -->
+        <a-image class-"moon" src="#moon" position="0 6 -440" scale="450 450 1"></a-image>
+
+        <!-- Billboard -->
+        <a-entity class="billboard" position="80 9.5 -16">
+            <!-- Poles -->
+            <a-entity>
+                <a-cylinder color="#333" radius="0.1" position="0 0 -1" scale="2 20 1" rotation="0 90 0"></a-cylinder>
+                <a-cylinder color="#333" radius="0.1" position="0 0 0" scale="2 20 1" rotation="0 90 0"></a-cylinder>
+                <a-cylinder color="#333" radius="0.1" position="0 0 1" scale="2 20 1" rotation="0 90 0"></a-cylinder>
+            </a-entity>
+            <!-- Canvas -->
+            <a-box color="#fff" width="2.33" scale="9.75 9.75 1" depth=".8" position="0 7.5 0" rotation="0 90 0"></a-box>
+            <!-- Poster Front -->
+            <a-image src="#billboard-front" scale="10 10 1" width="2.33" rotation="0 -90 0" position="-.75 7.42 0"></a-image>
+        </a-entity>
+
+        <!-- Speaker -->
+        <a-entity class="speaker" position="7 0 8" animation="property: rotation; to: 0 -360 0; loop: true; dur: 30000;">
+            <!-- Speaker Body -->
+            <a-cylinder color="#333" height="10" scale="1 1 1" rotation="0 0 0" material="src: #speaker; repeat: 9 9; roughness: .7;">
+            </a-cylinder>
+            <!-- Attached Rings -->
+            <a-entity class="rings-attached">
+                <a-sphere color="#53e4e1" position="0 4.75 0" radius="1.2" scale="1 .1 1" rotation="10 0 0"></a-sphere>
+            </a-entity>
+            <!-- Loose Rings -->
+            <a-entity class="rings-loose" rotation="90 0 0" position="0 4.3 0">
+                <a-entity geometry="primitive: torus; radius: 2; radiusTubular: 0.05;" rotation="20 0 0" scale="1 1 .4" material="color: #53e4e1;"></a-entity>
+                <a-entity geometry="primitive: torus; radius: 1.6; radiusTubular: 0.05;" rotation="-30 0 0" scale="1 1 .4" material="color: #fc20e2;"
+                    animation="property: rotation; to: 0 0 0; loop: true; dur: 10000; easing: linear; dir: alternate;">
+                </a-entity>
+            </a-entity>
+        </a-entity>
+        <!-- Power Switch -->
+        <a-entity class="power-switch" position="7 0 8">
+            <!-- Base -->
+            <a-sphere class="ps-base" color="#1a1a1a" radius="1.4" scale="1 .4 1"></a-sphere>
+            <!-- Button -->
+            <a-entity class="ps-btn" rotation="39.7 51.4 122.8" position="-1.01 .2 -.79" scale=".2 .2 .2">
+                <a-entity id="ps-torus" geometry="primitive: torus; radius: .5; radiusTubular: 0.05; arc: 300" material="color: #53e4e1; opacity: .2;"></a-entity>
+                <a-entity id="ps-cone" geometry="primitive: cone; height: .8; radiusBottom: .05; radiusTop: .2;" material="color: #53e4e1; opacity: .2;" scale=".7 .7 1" rotation="0 0 -120" 
+                    position=".285 -.16 0">
+                </a-entity>
+                <a-sphere id="ps-btn-hitbox" class="clickable" material="opacity: 0;" sound="src: #ghosthustlers; volume: 3; refDistance: 5; rolloffFactor: .3">
+                </a-sphere>
+            </a-entity>
+        </a-entity>
+
+        <!-- Dance Floor Lights -->
+        <!-- <a-entity class="floor-lights" position="0 4 1">
+            <a-entity light="type: spot; target: #follow1; color: #6100c2; angle: 15; castShadow: false; penumbra: 0.1;">
+            </a-entity>
+            <a-box id="follow1" position="1 -3 -1" visible="false" animation="property: position; to: -1 -3 1; loop: true; dur: 5000; easing: easeInOutCubic; dir: alternate;"></a-box>
+        </a-entity> -->
+
+        <a-entity class="floor-lights">
+            <a-box id="follow1" position="1 1 2" scale="0.5 0.5 0.5" visible="false"
+                    shadow="cast: true"
+                    animation__2="property: position;
+                                to: 1 1 -2;
+                                loop: true;
+                                dir: alternate;
+                                dur: 1775;
+                                easing: easeInOutCubic">
+            </a-box>
+            <a-entity light="type: spot; intensity: .3;
+                    target: #follow1;
+                    color: #6100c2;
+                    angle: 30;
+                    castShadow: false"
+                    position="0 8 1">
+            </a-entity>
+            
+            <a-box id="follow2" position="5 0 2.5" scale="0.5 0.5 0.5" visible="false"
+                    shadow="cast: true"
+                    animation__2="property: position;
+                                to: -7.5 0 3.5;
+                                loop: true;
+                                dir: alternate;
+                                dur: 3550;
+                                easing: easeInOutCubic">
+            </a-box>
+            <a-entity light="type: spot; intensity: .3;
+                    target: #follow2;
+                    color: #f54295;
+                    angle: 15;
+                    castShadow: false"
+                    position="0 8 1">
+            </a-entity>
+        </a-entity>
+
+        <!-- Fake Lighting -->
+        <a-circle color="#5a71e7" radius="3" opacity=".2" rotation="-90 0 0" position="1 .015 -6"
+            animation__2="property: position;
+                    to: 1 .015 -2;
+                    loop: true;
+                    dir: alternate;
+                    dur: 1775;
+                    easing: easeInOutCubic">
+        </a-circle>
+
+        <a-circle color="#990581" radius="3" opacity=".3" rotation="-90 0 0" position="3 .015 4.5"
+            animation__2="property: position;
+                    to: -7.5 .015 6;
+                    loop: true;
+                    dir: alternate;
+                    dur: 3550sd;
+                    easing: easeInOutCubic">
+        </a-circle>
+
+        <!-- <a-box id="orange-box"
+                color="#FF5722" scale="0.5 0.5 0.5" position="1 1 0"
+                shadow="cast: true"
+                animation__1="property: rotation;
+                            to: 0 360 0;
+                            loop: true;
+                            dur: 5000;
+                            easing: linear"
+                animation__2="property: position;
+                            to: 1 1 -2;
+                            loop: true;
+                            dir: alternate;
+                            dur: 5000;
+                            easing: easeInOutCubic">
+        </a-box>
+
+        <a-entity light="type: spot;
+                target: #orange-box;
+                color: #C40070;
+                angle: 30;
+                penumbra: 0.1;
+                castShadow: true"
+        position="0 3 1">
+        </a-entity> -->
+
+    </a-scene>
+    
+    <script>
+        // Init
+        window.addEventListener('load', function() {
+             // Remove default sky
+            const defaultSky = document.querySelector("a-entity a-sky.environment");
+            defaultSky.remove();
+
+            // // Dim the lights
+            // const defaultLights2 = document.querySelector("a-entity.env-dream a-entity.environment:nth-child(2)");
+            // defaultLights2.setAttribute("visible", false);
+
+            // Reset Local Storage
+            localStorage.setItem('soundState', 'paused');
+            localStorage.removeItem('soundState');
+        });
+
+        // Speaker - Play/Pause Toggle
+        const soundSwitchBtn = document.querySelector('#ps-btn-hitbox');
+        soundSwitchBtn.addEventListener('click', playPauseToggle);
+        function playPauseToggle() {
+            const soundState = localStorage.getItem('soundState');
+            const torus = document.querySelector('#ps-torus');
+            const cone = document.querySelector('#ps-cone');
+            if (soundState == "playing") {
+                console.log('was playing');
+                soundSwitchBtn.components.sound.pauseSound();
+                torus.setAttribute("material", "color: #53e4e1; opacity: .5;");
+                cone.setAttribute("material", "color: #53e4e1; opacity: .5;");
+                localStorage.setItem('soundState', 'paused');
+            } else {
+                console.log('was paused');
+                soundSwitchBtn.components.sound.playSound();
+                torus.setAttribute("material", "color: #53e4e1; opacity: 1;");
+                cone.setAttribute("material", "color: #53e4e1; opacity: 1;");
+                localStorage.setItem('soundState', 'playing');
+            }
+        }
+    </script>
+</body>
+</html>

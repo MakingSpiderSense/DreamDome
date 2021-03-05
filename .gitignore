@@ -1,0 +1,39 @@
+# Images
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.ai
+*.svg
+*.psd
+
+# Video
+*.mp4
+*.avi
+*.webm
+*.mkv
+*.flv
+*.ogv
+*.ogg
+*.wmv
+*.mpg
+*.mpeg
+
+# Audio
+*.mp3
+*.wav
+
+# Objects
+*.gltf
+*.glb
+*.obj
+*.mtl
+
+# Folders
+**/.sass-cache
+**/node_modules
+**/.git
+**/no-upload
+
+# Files
+style.css.map
