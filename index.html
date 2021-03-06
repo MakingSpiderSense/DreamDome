@@ -7,11 +7,12 @@
     <script src="https://unpkg.com/aframe-environment-component@1.2.0/dist/aframe-environment-component.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
     <script src="https://unpkg.com/aframe-event-set-component@5.0.0/dist/aframe-event-set-component.min.js"></script>
+    <script src="js/components.js"></script>
 </head>
 
 <body>
 	<!-- <a-scene vr-mode-ui="enabled: false"> -->
-    <a-scene stats>
+    <a-scene remove-env-sky stats>
 
         <!-- Asset Management System -->
         <a-assets>
@@ -92,7 +93,7 @@
                 <a-entity id="ps-cone" geometry="primitive: cone; height: .8; radiusBottom: .05; radiusTop: .2;" material="color: #53e4e1; opacity: .2;" scale=".7 .7 1" rotation="0 0 -120" 
                     position=".285 -.16 0">
                 </a-entity>
-                <a-sphere id="ps-btn-hitbox" class="clickable" material="opacity: 0;" sound="src: #ghosthustlers; volume: 3; refDistance: 5; rolloffFactor: .3">
+                <a-sphere id="ps-btn-hitbox" class="clickable" music-toggle material="opacity: 0;" sound="src: #ghosthustlers; volume: 3; refDistance: 5; rolloffFactor: .3">
                 </a-sphere>
             </a-entity>
         </a-entity>
@@ -185,44 +186,6 @@
         </a-entity> -->
 
     </a-scene>
-    
-    <script>
-        // Init
-        window.addEventListener('load', function() {
-             // Remove default sky
-            const defaultSky = document.querySelector("a-entity a-sky.environment");
-            defaultSky.remove();
 
-            // // Dim the lights
-            // const defaultLights2 = document.querySelector("a-entity.env-dream a-entity.environment:nth-child(2)");
-            // defaultLights2.setAttribute("visible", false);
-
-            // Reset Local Storage
-            localStorage.setItem('soundState', 'paused');
-            localStorage.removeItem('soundState');
-        });
-
-        // Speaker - Play/Pause Toggle
-        const soundSwitchBtn = document.querySelector('#ps-btn-hitbox');
-        soundSwitchBtn.addEventListener('click', playPauseToggle);
-        function playPauseToggle() {
-            const soundState = localStorage.getItem('soundState');
-            const torus = document.querySelector('#ps-torus');
-            const cone = document.querySelector('#ps-cone');
-            if (soundState == "playing") {
-                console.log('was playing');
-                soundSwitchBtn.components.sound.pauseSound();
-                torus.setAttribute("material", "color: #53e4e1; opacity: .5;");
-                cone.setAttribute("material", "color: #53e4e1; opacity: .5;");
-                localStorage.setItem('soundState', 'paused');
-            } else {
-                console.log('was paused');
-                soundSwitchBtn.components.sound.playSound();
-                torus.setAttribute("material", "color: #53e4e1; opacity: 1;");
-                cone.setAttribute("material", "color: #53e4e1; opacity: 1;");
-                localStorage.setItem('soundState', 'playing');
-            }
-        }
-    </script>
 </body>
 </html>
