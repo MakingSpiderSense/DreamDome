@@ -21,7 +21,7 @@ AFRAME.registerComponent('dim-lights', {
 
 
 // Toggle Music
-AFRAME.registerComponent('music-toggle', {
+AFRAME.registerComponent('toggle-music', {
     init: function () {
         const el = this.el;
         // Reset Local Storage
