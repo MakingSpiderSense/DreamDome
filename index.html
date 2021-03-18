@@ -6,7 +6,7 @@
 	<script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://unpkg.com/aframe-environment-component@1.2.0/dist/aframe-environment-component.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
-    <script src="https://unpkg.com/aframe-event-set-component@5.0.0/dist/aframe-event-set-component.min.js"></script>
+    <!-- <script src="https://unpkg.com/aframe-event-set-component@5.0.0/dist/aframe-event-set-component.min.js"></script> -->
     <script src="js/components.js"></script>
 </head>
 
@@ -22,26 +22,6 @@
         	<audio id="ghosthustlers" src="assets/ghosthustlers--some-elses-ride.mp3"></audio>
             <img id="billboard-front" src="assets/billboard-front.png">
         </a-assets>
-
-		<!-- Camera Rig -->
-		<a-entity class="user" position="0 0 6" movement-controls="speed: 0.5;">
-			<!-- Camera -->
-			<a-entity camera position="0 1.6 0"
-					  look-controls="pointerLockEnabled: false"
-                      wasd-controls="acceleration: 50">
-                    <!-- Cursor -->
-                    <a-entity cursor position="0 0 -1"
-                                geometry="primitive: sphere; radius: 0.005"
-                                material="color: #FFFFFF; shader: flat; opacity: 0.5"
-                                raycaster="objects: .clickable">
-                    </a-entity>
-			</a-entity>
-            <!-- Controllers -->
-            <a-entity class="controllers">
-                <a-entity oculus-touch-controls="hand: left"></a-entity>
-                <a-entity oculus-touch-controls="hand: right"></a-entity>
-            </a-entity>
-        </a-entity>
         
         <!-- Environment -->
         <a-entity class="env-dream" environment="preset: dream; groundColor: #445; grid: cross; fog: 0"></a-entity>
@@ -64,6 +44,15 @@
             <a-box color="#fff" width="2.33" scale="9.75 9.75 1" depth=".8" position="0 7.5 0" rotation="0 90 0"></a-box>
             <!-- Poster Front -->
             <a-image src="#billboard-front" scale="10 10 1" width="2.33" rotation="0 -90 0" position="-.75 7.42 0"></a-image>
+        </a-entity>
+
+        <!-- Elevator -->
+        <a-entity class="elevator">
+            <a-entity class="el-glass">
+                <a-cylinder class="el-mainbody" position="0 2.5 0" color="white" height="5" opacity=".2" radius="3" geometry="thetaLength: 300; thetaStart: 30;" material="side: double" open-ended="true" material="roughness: 0"></a-cylinder>
+                <a-cylinder class="el-door-arc" position="0 4.5 0" color="white" height="1" opacity=".2" radius="3" geometry="thetaLength: 60; thetaStart: -30;" material="side: double" open-ended="true" material="roughness: 0"></a-cylinder>
+                <a-cylinder class="el-door" position="0 2.1 0" color="white" height="4.2" opacity=".4" radius="2.9" geometry="thetaLength: 70; thetaStart: -35;" material="side: double" open-ended="true" material="roughness: 0"></a-cylinder>
+            </a-entity>
         </a-entity>
 
         <!-- Speaker -->
@@ -95,6 +84,26 @@
                 </a-entity>
                 <a-sphere id="ps-btn-hitbox" class="clickable" toggle-music material="opacity: 0;" sound="src: #ghosthustlers; volume: 3; refDistance: 5; rolloffFactor: .3">
                 </a-sphere>
+            </a-entity>
+        </a-entity>
+
+		<!-- Camera Rig -->
+		<a-entity class="user" position="0 0 6" movement-controls="speed: 0.5;">
+			<!-- Camera -->
+			<a-entity camera position="0 1.6 0"
+					  look-controls="pointerLockEnabled: false"
+                      wasd-controls="acceleration: 50">
+                    <!-- Cursor -->
+                    <a-entity cursor position="0 0 -1"
+                                geometry="primitive: sphere; radius: 0.005"
+                                material="color: #FFFFFF; shader: flat; opacity: 0.5"
+                                raycaster="objects: .clickable">
+                    </a-entity>
+			</a-entity>
+            <!-- Controllers -->
+            <a-entity class="controllers">
+                <a-entity oculus-touch-controls="hand: left"></a-entity>
+                <a-entity oculus-touch-controls="hand: right"></a-entity>
             </a-entity>
         </a-entity>
 
