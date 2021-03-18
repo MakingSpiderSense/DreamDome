@@ -1,15 +1,6 @@
 // A-frame Components
 
 
-// Remove sky element from environment component
-AFRAME.registerComponent('remove-env-sky', {
-    init: function () {
-        const defaultSky = document.querySelector("a-entity a-sky.environment");
-        defaultSky.remove();
-    }
-});
-
-
 // Dim the lights
 // Note: This is specifically for the "Dreams" environment.
 AFRAME.registerComponent('dim-lights', {

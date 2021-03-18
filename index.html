@@ -12,7 +12,7 @@
 
 <body>
 	<!-- <a-scene vr-mode-ui="enabled: false"> -->
-    <a-scene remove-env-sky stats>
+    <a-scene stats>
 
         <!-- Asset Management System -->
         <a-assets>
@@ -24,7 +24,7 @@
         </a-assets>
         
         <!-- Environment -->
-        <a-entity class="env-dream" environment="preset: dream; groundColor: #445; grid: cross; fog: 0"></a-entity>
+        <a-entity class="env-dream" environment="preset: dream; groundColor: #445; grid: cross; fog: 0; skyType: none;"></a-entity>
 
         <!-- Sky -->
         <a-sky src="#neon-sky" rotation="0 -90 0"></a-sky>
