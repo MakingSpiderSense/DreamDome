@@ -19,6 +19,7 @@
             <img id="neon-sky" src="assets/neon-sky-2.jpg">
             <img id="moon" src="assets/moon-3.png">
             <img id="speaker" src="assets/metal_dotted_2-specular.jpg">
+            <img id="cpanel" src="assets/cpanel.jpg">
         	<audio id="ghosthustlers" src="assets/ghosthustlers--some-elses-ride.mp3"></audio>
             <img id="billboard-front" src="assets/billboard-front.png">
         </a-assets>
@@ -47,12 +48,23 @@
         </a-entity>
 
         <!-- Elevator -->
-        <a-entity class="elevator">
+        <a-entity class="elevator" position="-16 0 -14">
             <a-entity class="el-glass">
-                <a-cylinder class="el-mainbody" position="0 2.5 0" color="white" height="5" opacity=".2" radius="3" geometry="thetaLength: 300; thetaStart: 30;" material="side: double" open-ended="true" material="roughness: 0"></a-cylinder>
-                <a-cylinder class="el-door-arc" position="0 4.5 0" color="white" height="1" opacity=".2" radius="3" geometry="thetaLength: 60; thetaStart: -30;" material="side: double" open-ended="true" material="roughness: 0"></a-cylinder>
-                <a-cylinder class="el-door" position="0 2.1 0" color="white" height="4.2" opacity=".4" radius="2.9" geometry="thetaLength: 70; thetaStart: -35;" material="side: double" open-ended="true" material="roughness: 0"></a-cylinder>
+                <a-circle class="el-ceiling" position="0 5 0" color="white" opacity=".2" radius="3" material="roughness: 0;" rotation="90 0 0"></a-circle>
+                <a-cylinder class="el-mainbody" position="0 2.5 0" color="white" height="5" opacity=".2" radius="3" geometry="thetaLength: 300; thetaStart: 30;" material="side: double; roughness: 0;" open-ended="true"></a-cylinder>
+                <a-cylinder class="el-door-arc" position="0 4.5 0" color="white" height="1" opacity=".2" radius="3" geometry="thetaLength: 60; thetaStart: -30;" material="side: double; roughness: 0;" open-ended="true"></a-cylinder>
+                <a-cylinder class="el-door" position="0 2.1 0" color="white" height="4.2" opacity=".4" radius="2.9" geometry="thetaLength: 70; thetaStart: -35;" material="side: double; roughness: 0;" open-ended="true"></a-cylinder>
             </a-entity>
+            <!-- Control Panel -->
+            <a-entity class="cpanel" position="-2.7 1 1">
+                <a-entity class="cp-plate" rotation="-8 105 -2">
+                    <a-box material="src: #cpanel;" depth=".026" height=".25" width=".33"></a-box>
+                    <a-sphere material="color: #9a1516;" radius=".02" position="-.13 .092 .01" opacity=".8"></a-sphere>
+                </a-entity>
+                <a-cylinder color="#333" radius="0.01" height=".925" position="0 -.4375 0" scale="1 1 2" rotation="0 15.3 0"></a-cylinder>
+            </a-entity>
+            <!-- Floor -->
+            <a-cylinder class="el-floor" material="src: #speaker; repeat: 5 5;" position="0 .05 0" color="gray" height=".1" radius="2.99"></a-cylinder>
         </a-entity>
 
         <!-- Speaker -->
