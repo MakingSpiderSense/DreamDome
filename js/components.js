@@ -40,3 +40,25 @@ AFRAME.registerComponent('toggle-music', {
         }
     }
 });
+  
+AFRAME.registerComponent('open-door', {
+    init: function () {
+        const elDoor = document.querySelector('.el-door');
+        this.openElevatorDoor = function (evt) {
+            elDoor.setAttribute('animation__theta', 'property: geometry.thetaStart; dur: 1000;');
+            // If the collided object is the trigger
+            if (evt.target.components["aabb-collider"].closestIntersectedEl.id == "elevator-door-trigger") {
+                elDoor.setAttribute('animation__theta', 'to', 35);
+                elDoor.components.animation__theta.play();
+            }
+        };
+        this.closeElevatorDoor = function (evt) {
+            if (evt.target.components["aabb-collider"].hitClosestEventDetail.el.id == "elevator-door-trigger") {
+                elDoor.setAttribute('animation__theta', 'to', -35);
+                elDoor.components.animation__theta.play();
+            }
+        };
+        this.el.addEventListener('hitstart', this.openElevatorDoor);
+        this.el.addEventListener('hitend', this.closeElevatorDoor);
+    }
+});

@@ -6,6 +6,7 @@
 	<script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="js/environments.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
+    <script src="https://unpkg.com/aframe-aabb-collider-component@3.1.0/dist/aframe-aabb-collider-component.min.js"></script>
     <!-- <script src="https://unpkg.com/aframe-event-set-component@5.0.0/dist/aframe-event-set-component.min.js"></script> -->
     <script src="js/components.js"></script>
 </head>
@@ -53,7 +54,7 @@
                 <a-circle class="el-ceiling" position="0 5 0" color="white" opacity=".2" radius="3" material="roughness: 0;" rotation="90 0 0"></a-circle>
                 <a-cylinder class="el-mainbody" position="0 2.5 0" color="white" height="5" opacity=".2" radius="3" geometry="thetaLength: 300; thetaStart: 30;" material="side: double; roughness: 0;" open-ended="true"></a-cylinder>
                 <a-cylinder class="el-door-arc" position="0 4.5 0" color="white" height="1" opacity=".2" radius="3" geometry="thetaLength: 60; thetaStart: -30;" material="side: double; roughness: 0;" open-ended="true"></a-cylinder>
-                <a-cylinder class="el-door" position="0 2.1 0" color="white" height="4.2" opacity=".4" radius="2.9" geometry="thetaLength: 70; thetaStart: -35;" material="side: double; roughness: 0;" open-ended="true"></a-cylinder>
+                <a-cylinder class="el-door" position="0 2.1 0" color="blue" height="4.2" opacity=".4" radius="2.9" geometry="thetaLength: 70; thetaStart: -35;" material="side: double; roughness: 0;" open-ended="true"></a-cylinder>
             </a-entity>
             <!-- Control Panel -->
             <a-entity class="cpanel" position="-2.7 1 1">
@@ -65,6 +66,8 @@
             </a-entity>
             <!-- Floor -->
             <a-cylinder class="el-floor" material="src: #speaker; repeat: 5 5;" position="0 .05 0" color="gray" height=".1" radius="2.99"></a-cylinder>
+            <!-- Door Opening Mechanism -->
+            <a-box id="elevator-door-trigger" class="elevator-door-trigger" position="0 2 3.7" scale="3 4 4" opacity=".2" visible="true"></a-box>
         </a-entity>
 
         <!-- Speaker -->
@@ -104,7 +107,10 @@
 			<!-- Camera -->
 			<a-entity camera position="0 1.6 0"
 					  look-controls="pointerLockEnabled: false"
-                      wasd-controls="acceleration: 50">
+                      wasd-controls="acceleration: 50"
+                      aabb-collider="objects: #elevator-door-trigger"
+                      id="cameraRig"
+                      open-door>
                     <!-- Cursor -->
                     <a-entity cursor position="0 0 -1"
                                 geometry="primitive: sphere; radius: 0.005"
