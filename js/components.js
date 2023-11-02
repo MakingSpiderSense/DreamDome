@@ -41,6 +41,7 @@ AFRAME.registerComponent('toggle-music', {
     }
 });
   
+// Open/close the elevator door
 AFRAME.registerComponent('open-door', {
     init: function () {
         const elDoor = document.querySelector('.el-door');
