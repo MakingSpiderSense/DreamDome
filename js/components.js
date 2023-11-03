@@ -41,25 +41,34 @@ AFRAME.registerComponent('toggle-music', {
     }
 });
   
-// Open/close the elevator door
+// Open/close the elevator door and play sound
 AFRAME.registerComponent('open-door', {
     init: function () {
         const elDoor = document.querySelector('.el-door');
+        const soundEntity = document.querySelector('#elevator-door-trigger');
+        // Play the sound using the sound component of the A-Frame entity
+        this.playDoorSound = function () {
+            soundEntity.components.sound.playSound();
+        };
+        // Open the door
         this.openElevatorDoor = function (evt) {
             elDoor.setAttribute('animation__theta', 'property: geometry.thetaStart; dur: 1000;');
-            // If the collided object is the trigger
             if (evt.target.components["aabb-collider"].closestIntersectedEl.id == "elevator-door-trigger") {
+                this.playDoorSound(); // Play the door sound
                 elDoor.setAttribute('animation__theta', 'to', 35);
                 elDoor.components.animation__theta.play();
             }
         };
+        // Close the door
         this.closeElevatorDoor = function (evt) {
             if (evt.target.components["aabb-collider"].hitClosestEventDetail.el.id == "elevator-door-trigger") {
+                this.playDoorSound(); // Play the door sound
                 elDoor.setAttribute('animation__theta', 'to', -35);
                 elDoor.components.animation__theta.play();
             }
         };
-        this.el.addEventListener('hitstart', this.openElevatorDoor);
-        this.el.addEventListener('hitend', this.closeElevatorDoor);
+        // Add collision event listeners
+        this.el.addEventListener('hitstart', this.openElevatorDoor.bind(this));
+        this.el.addEventListener('hitend', this.closeElevatorDoor.bind(this));
     }
 });
