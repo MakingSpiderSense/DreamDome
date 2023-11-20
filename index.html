@@ -3,17 +3,19 @@
 <head>
     <title>Synthwave Nights</title>
     <link rel="icon" type="image/png" href="assets/favicon-512.png">
-	<script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+	<script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://unpkg.com/aframe-environment-component@1.3.3/dist/aframe-environment-component.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.1.0/dist/aframe-extras.min.js"></script>
     <script src="https://unpkg.com/aframe-aabb-collider-component@3.1.0/dist/aframe-aabb-collider-component.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/MozillaReality/ammo.js@8bbc0ea/builds/ammo.wasm.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-physics-system@v4.2.2/dist/aframe-physics-system.js"></script>
     <!-- <script src="https://unpkg.com/aframe-event-set-component@5.0.0/dist/aframe-event-set-component.min.js"></script> -->
     <script src="js/components.js"></script>
 </head>
 
 <body>
 	<!-- <a-scene vr-mode-ui="enabled: false"> -->
-    <a-scene stats>
+    <a-scene stats physics="driver: ammo; debug: true;">
 
         <!-- Asset Management System -->
         <a-assets>
@@ -29,6 +31,8 @@
         
         <!-- Environment -->
         <a-entity class="env-dream" environment="preset: dream; groundColor: #445; grid: cross; fog: 0; skyType: none; seed: 3;"></a-entity>
+        <!-- Add a fake floor - this is temporary until I can work out the floor physics with environment component -->
+        <a-box width="200" height="0.1" depth="200" ammo-body="type: static" ammo-shape visible="false"></a-box>
 
         <!-- Sky -->
         <a-sky src="#neon-sky" rotation="0 -90 0"></a-sky>
@@ -54,7 +58,7 @@
         <a-entity class="elevator" position="-16 0 -14">
             <a-entity class="el-glass">
                 <a-circle class="el-ceiling" position="0 5 0" color="white" opacity=".2" radius="3" material="roughness: 0;" rotation="90 0 0"></a-circle>
-                <a-cylinder class="el-mainbody" position="0 2.5 0" color="white" height="5" opacity=".2" radius="3" geometry="thetaLength: 300; thetaStart: 30;" material="side: double; roughness: 0;" open-ended="true"></a-cylinder>
+                <a-cylinder ammo-body="type: static" ammo-shape class="el-mainbody" position="0 2.5 0" color="blue" height="5" opacity=".2" radius="3" geometry="thetaLength: 300; thetaStart: 30;" material="side: double; roughness: 0;" open-ended="true"></a-cylinder>
                 <a-cylinder class="el-door-arc" position="0 4.5 0" color="white" height="1" opacity=".2" radius="3" geometry="thetaLength: 60; thetaStart: -30;" material="side: double; roughness: 0;" open-ended="true"></a-cylinder>
                 <a-cylinder class="el-door" position="0 2.1 0" color="white" height="4.2" opacity=".4" radius="2.9" geometry="thetaLength: 70; thetaStart: -35;" material="side: double; roughness: 0;" open-ended="true"></a-cylinder>
             </a-entity>
@@ -72,10 +76,13 @@
             <a-box id="elevator-door-trigger" class="elevator-door-trigger" sound="src: #door-moving" position="0 2 3.7" scale="3 4 4" opacity="0"></a-box>
         </a-entity>
 
+        <!-- Ball: To be added between the Speaker and Elevator -->
+        <a-sphere class="ball" position="-2.2 2 -4.75" radius=".5" color="#53e4e1" ammo-body="type: dynamic; restitution: 1000; mass: 1;" ammo-shape="type: sphere; fit: manual; sphereRadius: 0.5"></a-sphere>
+
         <!-- Speaker -->
         <a-entity class="speaker" position="7 0 8" animation="property: rotation; to: 0 -360 0; loop: true; dur: 30000;">
             <!-- Speaker Body -->
-            <a-cylinder color="#333" height="10" scale="1 1 1" rotation="0 0 0" material="src: #speaker; repeat: 9 9; roughness: .7;">
+            <a-cylinder ammo-body="type: static" ammo-shape color="#333" height="10" scale="1 1 1" rotation="0 0 0" material="src: #speaker; repeat: 9 9; roughness: .7;">
             </a-cylinder>
             <!-- Attached Rings -->
             <a-entity class="rings-attached">
@@ -112,7 +119,9 @@
                       wasd-controls="acceleration: 50"
                       aabb-collider="objects: #elevator-door-trigger"
                       id="cameraRig"
-                      open-door>
+                      open-door
+                      ammo-body="type: kinematic" ammo-shape="type: box; fit: manual; sphereRadius:0.5"
+                      >
                     <!-- Cursor -->
                     <a-entity cursor position="0 0 -1"
                                 geometry="primitive: sphere; radius: 0.005"
