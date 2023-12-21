@@ -27,12 +27,16 @@
         	<audio id="door-moving" src="assets/door-moving.mp3"></audio>
         	<audio id="elevator-moving" src="assets/elevator-moving.mp3"></audio>
             <img id="billboard-front" src="assets/billboard-front.png">
+			<a-asset-item id="my-nav-mesh" src="assets/navmesh.gltf"></a-asset-item>
         </a-assets>
         
         <!-- Environment -->
         <a-entity class="env-dream" environment="preset: dream; groundColor: #445; grid: cross; fog: 0; skyType: none; seed: 3;"></a-entity>
         <!-- Add a fake floor - this is temporary until I can work out the floor physics with environment component -->
         <a-box width="200" height="0.1" depth="200" ammo-body="type: static" ammo-shape visible="false"></a-box>
+		<!-- Navigation Mesh -->
+		<a-entity gltf-model="#my-nav-mesh" nav-mesh position="0 -0.1 0" visible="false">
+		</a-entity>
 
         <!-- Sky -->
         <a-sky src="#neon-sky" rotation="0 -90 0"></a-sky>
@@ -58,7 +62,7 @@
         <a-entity class="elevator" position="-16 0 -14">
             <a-entity class="el-glass">
                 <a-circle class="el-ceiling" position="0 5 0" color="white" opacity=".2" radius="3" material="roughness: 0;" rotation="90 0 0"></a-circle>
-                <a-cylinder ammo-body="type: static" ammo-shape class="el-mainbody" position="0 2.5 0" color="blue" height="5" opacity=".2" radius="3" geometry="thetaLength: 300; thetaStart: 30;" material="side: double; roughness: 0;" open-ended="true"></a-cylinder>
+                <a-cylinder ammo-body="type: static" ammo-shape class="el-mainbody" position="0 2.5 0" color="white" height="5" opacity=".2" radius="3" geometry="thetaLength: 300; thetaStart: 30;" material="side: double; roughness: 0;" open-ended="true"></a-cylinder>
                 <a-cylinder class="el-door-arc" position="0 4.5 0" color="white" height="1" opacity=".2" radius="3" geometry="thetaLength: 60; thetaStart: -30;" material="side: double; roughness: 0;" open-ended="true"></a-cylinder>
                 <a-cylinder class="el-door" position="0 2.1 0" color="white" height="4.2" opacity=".4" radius="2.9" geometry="thetaLength: 70; thetaStart: -35;" material="side: double; roughness: 0;" open-ended="true"></a-cylinder>
             </a-entity>
@@ -112,11 +116,10 @@
         </a-entity>
 
 		<!-- Camera Rig -->
-		<a-entity class="user" position="0 0 6" movement-controls="speed: 0.5;">
+		<a-entity class="user" position="0 0 6" movement-controls="speed: 1; constrainToNavMesh: true;">
 			<!-- Camera -->
 			<a-entity camera position="0 1.6 0"
 					  look-controls="pointerLockEnabled: false"
-                      wasd-controls="acceleration: 50"
                       aabb-collider="objects: #elevator-door-trigger"
                       id="cameraRig"
                       open-door
