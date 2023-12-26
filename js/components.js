@@ -7,6 +7,7 @@ AFRAME.registerComponent('reset-storage', {
     }
 });
 
+
 // Dim the lights
 // Note: This is specifically for the "Dreams" environment.
 AFRAME.registerComponent('dim-lights', {
@@ -46,6 +47,7 @@ AFRAME.registerComponent('toggle-music', {
         }
     }
 });
+
   
 // Open/close the elevator door and play sound
 AFRAME.registerComponent('open-door', {
@@ -78,6 +80,7 @@ AFRAME.registerComponent('open-door', {
         this.el.addEventListener('hitend', this.closeElevatorDoor.bind(this));
     }
 });
+
 
 // Elevator trip - Inspired by the Great Glass Elevator from Charlie and the Chocolate Factory
 AFRAME.registerComponent('elevator-trip', {
