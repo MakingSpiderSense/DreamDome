@@ -82,19 +82,50 @@ AFRAME.registerComponent('open-door', {
 });
 
 
-// Elevator trip - Inspired by the Great Glass Elevator from Charlie and the Chocolate Factory
 AFRAME.registerComponent('elevator-trip', {
     init: function () {
         const el = this.el;
-        el.addEventListener('click', initElevatorTrip);
-        // Initialize the elevator trip
-        function initElevatorTrip() {
-            const movementState = localStorage.getItem('movementState');
-            console.log({ movementState });
-            if (movementState != "active") {
-                localStorage.setItem('movementState', 'active');
-                console.log('starting elevator trip');
-            }
-        }
+        const elevatorEl = document.querySelector('#elevator');
+        const cameraEl = document.querySelector('.user'); // Assuming the camera has a 'camera' attribute
+
+        el.addEventListener('click', () => {
+            // Start the elevator trip
+            this.startElevatorTrip(elevatorEl, cameraEl);
+        });
+    },
+
+    startElevatorTrip: function (elevatorEl, cameraEl) {
+        // Animate elevator going up
+        elevatorEl.setAttribute('animation', {
+            property: 'position',
+            to: { x: -16, y: 20, z: -14 },
+            dur: 5000,
+            easing: 'linear'
+        });
+        // Animation for camera going up
+        cameraEl.setAttribute('animation', {
+            property: 'position',
+            to: { y: 20 },
+            dur: 5000,
+            easing: 'linear'
+        });
+
+        // After reaching the top, animate going back down
+        setTimeout(() => {
+            // Animate elevator going down
+            elevatorEl.setAttribute('animation', {
+                property: 'position',
+                to: { x: -16, y: 0, z: -14 },
+                dur: 5000,
+                easing: 'linear'
+            });
+            // Animation for camera going down
+            cameraEl.setAttribute('animation', {
+                property: 'position',
+                to: { y: 0 },
+                dur: 5000,
+                easing: 'linear'
+            });
+        }, 5000); // This timeout should match the duration of the up animation
     }
 });
