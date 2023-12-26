@@ -1,5 +1,11 @@
 // A-frame Components
 
+// Reset Local Storage
+AFRAME.registerComponent('reset-storage', {
+    init: function () {
+        localStorage.setItem('movementState', 'inactive');
+    }
+});
 
 // Dim the lights
 // Note: This is specifically for the "Dreams" environment.
@@ -70,5 +76,22 @@ AFRAME.registerComponent('open-door', {
         // Add collision event listeners
         this.el.addEventListener('hitstart', this.openElevatorDoor.bind(this));
         this.el.addEventListener('hitend', this.closeElevatorDoor.bind(this));
+    }
+});
+
+// Elevator trip - Inspired by the Great Glass Elevator from Charlie and the Chocolate Factory
+AFRAME.registerComponent('elevator-trip', {
+    init: function () {
+        const el = this.el;
+        el.addEventListener('click', initElevatorTrip);
+        // Initialize the elevator trip
+        function initElevatorTrip() {
+            const movementState = localStorage.getItem('movementState');
+            console.log({ movementState });
+            if (movementState != "active") {
+                localStorage.setItem('movementState', 'active');
+                console.log('starting elevator trip');
+            }
+        }
     }
 });

@@ -15,7 +15,7 @@
 
 <body>
 	<!-- <a-scene vr-mode-ui="enabled: false"> -->
-    <a-scene stats physics="driver: ammo; debug: true;">
+    <a-scene stats physics="driver: ammo; debug: true;" reset-storage>
 
         <!-- Asset Management System -->
         <a-assets>
@@ -70,7 +70,7 @@
             <a-entity class="cpanel" position="-2.7 1 1">
                 <a-entity class="cp-plate" rotation="-8 105 -2">
                     <a-box material="src: #cpanel;" depth=".026" height=".25" width=".33"></a-box>
-                    <a-sphere material="color: #9a1516;" radius=".02" position="-.13 .092 .01" opacity=".8"></a-sphere>
+                    <a-sphere class="clickable" elevator-trip material="color: #9a1516;" radius=".02" position="-.13 .092 .01" opacity=".8"></a-sphere>
                 </a-entity>
                 <a-cylinder color="#333" radius="0.01" height=".925" position="0 -.4375 0" scale="1 1 2" rotation="0 15.3 0"></a-cylinder>
             </a-entity>
