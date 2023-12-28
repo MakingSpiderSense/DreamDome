@@ -106,11 +106,17 @@ AFRAME.registerComponent('elevator-trip', {
     },
 
     startElevatorTrip: function (elevatorEl, cameraEl) {
+        const elevatorDoorTriggerEl = document.querySelector('#elevator-door-trigger');
         const elevatorElX = elevatorEl.getAttribute('position').x;
         const elevatorElY = elevatorEl.getAttribute('position').y;
         const elevatorElZ = elevatorEl.getAttribute('position').z;
         // Move user to center of elevator. Since they can't move, this is just for a consistent starting point.
         cameraEl.setAttribute('position', { x: elevatorElX, y: elevatorElY, z: elevatorElZ });
+        // Move elevator door trigger a little bit forward it's less sensitive during the trip
+        const elevatorDoorTriggerElX = elevatorDoorTriggerEl.getAttribute('position').x;
+        const elevatorDoorTriggerElY = elevatorDoorTriggerEl.getAttribute('position').y;
+        const elevatorDoorTriggerElZ = elevatorDoorTriggerEl.getAttribute('position').z;
+        elevatorDoorTriggerEl.setAttribute('position', { x: elevatorDoorTriggerElX, y: elevatorDoorTriggerElY, z: 8 });
         // Define the sequence of movements
         const movements = [
             { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ }, // Up
@@ -125,6 +131,8 @@ AFRAME.registerComponent('elevator-trip', {
 
         const moveElevator = () => {
             if (movementIndex >= movements.length) {
+                // Restore elevator door trigger position
+                elevatorDoorTriggerEl.setAttribute('position', { x: elevatorDoorTriggerElX, y: elevatorDoorTriggerElY, z: elevatorDoorTriggerElZ });
                 return; // End of trip
             }
 
