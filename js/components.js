@@ -82,11 +82,11 @@ AFRAME.registerComponent('open-door', {
 });
 
 
-AFRAME.registerComponent('elevator-trip', {
+AFRAME.registerComponent('elevator-trip-2', {
     init: function () {
         const el = this.el;
         const elevatorEl = document.querySelector('#elevator');
-        const cameraEl = document.querySelector('.user'); // Assuming the camera has a 'camera' attribute
+        const cameraEl = document.querySelector('.user');
 
         el.addEventListener('click', () => {
             // Start the elevator trip
@@ -95,10 +95,13 @@ AFRAME.registerComponent('elevator-trip', {
     },
 
     startElevatorTrip: function (elevatorEl, cameraEl) {
+        const elevatorElX = elevatorEl.getAttribute('position').x;
+        const elevatorElY = elevatorEl.getAttribute('position').y;
+        const elevatorElZ = elevatorEl.getAttribute('position').z;
         // Animate elevator going up
         elevatorEl.setAttribute('animation', {
             property: 'position',
-            to: { x: -16, y: 20, z: -14 },
+            to: { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ },
             dur: 5000,
             easing: 'linear'
         });
@@ -115,7 +118,7 @@ AFRAME.registerComponent('elevator-trip', {
             // Animate elevator going down
             elevatorEl.setAttribute('animation', {
                 property: 'position',
-                to: { x: -16, y: 0, z: -14 },
+                to: { x: elevatorElX, y: elevatorElY, z: elevatorElZ },
                 dur: 5000,
                 easing: 'linear'
             });
@@ -127,5 +130,170 @@ AFRAME.registerComponent('elevator-trip', {
                 easing: 'linear'
             });
         }, 5000); // This timeout should match the duration of the up animation
+    }
+});
+
+AFRAME.registerComponent('elevator-trip-3', {
+    init: function () {
+        const el = this.el;
+        const elevatorEl = document.querySelector('#elevator');
+        const cameraEl = document.querySelector('.user');
+
+        el.addEventListener('click', () => {
+            // Start the elevator trip
+            this.startElevatorTrip(elevatorEl, cameraEl);
+        });
+    },
+
+    startElevatorTrip: function (elevatorEl, cameraEl) {
+        const elevatorElX = elevatorEl.getAttribute('position').x;
+        const elevatorElY = elevatorEl.getAttribute('position').y;
+        const elevatorElZ = elevatorEl.getAttribute('position').z;
+        // Define the sequence of movements
+        const movements = [
+            { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ }, // Up
+            { x: elevatorElX + 20, y: elevatorElY + 20, z: elevatorElZ }, // Right
+            { x: elevatorElX + 20, y: elevatorElY + 20, z: elevatorElZ + 20  }, // Back
+            { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ + 20  }, // Left
+            { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ  }, // Forward
+            { x: elevatorElX, y: elevatorElY, z: elevatorElZ  } // Down
+        ];
+
+        let movementIndex = 0;
+
+        const moveElevator = () => {
+            if (movementIndex >= movements.length) {
+                return; // End of trip
+            }
+
+            const targetPos = movements[movementIndex];
+            const duration = 5000; // Duration for each movement
+
+            // Move Elevator
+            elevatorEl.setAttribute('animation', {
+                property: 'position',
+                to: targetPos,
+                dur: duration,
+                easing: 'linear'
+            });
+
+            movementIndex++;
+            setTimeout(moveElevator, duration);
+        };
+
+        moveElevator();
+    }
+});
+
+
+// Version with camera as child of elevator
+AFRAME.registerComponent('elevator-trip', {
+    init: function () {
+        const el = this.el;
+        const elevatorEl = document.querySelector('#elevator');
+        const cameraEl = document.querySelector('.user');
+        const mainCameraEl = cameraEl.querySelector('#cameraRig');
+
+        el.addEventListener('click', () => {
+            const secondCameraEl = document.querySelector('.user-2 #cameraRig2');
+            console.log(mainCameraEl.getAttribute('rotation'));
+            console.log(secondCameraEl.getAttribute('rotation'));
+            // Set the position and direction of the second camera to match the main camera
+            secondCameraEl.setAttribute('position', {
+                x: cameraEl.getAttribute('position').x - elevatorEl.getAttribute('position').x,
+                y: 1.7,
+                z: cameraEl.getAttribute('position').z - elevatorEl.getAttribute('position').z
+            });
+            setTimeout(() => {
+                secondCameraEl.setAttribute('camera', 'active', true);
+                // Start the elevator trip
+                this.startElevatorTrip(elevatorEl, cameraEl);
+            }, 500);
+        });
+    },
+
+    startElevatorTrip: function (elevatorEl, cameraEl) {
+        const mainCameraEl = cameraEl.querySelector('#cameraRig');
+        const elevatorElX = elevatorEl.getAttribute('position').x;
+        const elevatorElY = elevatorEl.getAttribute('position').y;
+        const elevatorElZ = elevatorEl.getAttribute('position').z;
+        // Define the sequence of movements
+        const movements = [
+            { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ }, // Up
+            { x: elevatorElX + 20, y: elevatorElY + 20, z: elevatorElZ }, // Right
+            { x: elevatorElX + 20, y: elevatorElY + 20, z: elevatorElZ + 20  }, // Back
+            { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ + 20  }, // Left
+            { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ  }, // Forward
+            { x: elevatorElX, y: elevatorElY, z: elevatorElZ  } // Down
+        ];
+
+        let movementIndex = 0;
+
+        const moveElevator = () => {
+            if (movementIndex >= movements.length) {
+                var secondCameraEl = document.querySelector('.user-2 #cameraRig2');
+        
+                // Get the final position and rotation of the second camera
+                const secondCameraPos = secondCameraEl.getAttribute('position');
+                // Set the position and direction of the main camera to match the second camera
+                const newCameraPos = {
+                    x: secondCameraPos.x + elevatorEl.getAttribute('position').x,
+                    y: .1,
+                    z: secondCameraPos.z + elevatorEl.getAttribute('position').z
+                };
+                // Set the position and rotation of the main camera to match the second camera
+                cameraEl.setAttribute('position', newCameraPos);
+                console.log(mainCameraEl.getAttribute('rotation'));
+                console.log(secondCameraEl.getAttribute('rotation'));
+                mainCameraEl.setAttribute('rotation', secondCameraEl.getAttribute('rotation'));
+                // Reset camera controls back to original camera
+                // FIX THIS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                // The mainCameraEl rotation always ends up being the starting rotation before the trip! Needs to update to whatever the second camera's rotation is at the end of the trip.
+                setTimeout(() => {
+                    mainCameraEl.object3D.rotation.set(
+                        THREE.MathUtils.degToRad(secondCameraEl.getAttribute('rotation').x),
+                        THREE.MathUtils.degToRad(secondCameraEl.getAttribute('rotation').y),
+                        THREE.MathUtils.degToRad(secondCameraEl.getAttribute('rotation').z)
+                    );
+                    // mainCameraEl.setAttribute('rotation', secondCameraEl.getAttribute('rotation'));
+                    console.log(mainCameraEl.getAttribute('rotation'));
+                    console.log(secondCameraEl.getAttribute('rotation'));
+                    // Reactivate the main camera
+                    secondCameraEl.setAttribute('camera', 'active', false);
+                    // mainCameraEl.setAttribute('camera', 'active', true);
+                }, 3000);
+                // secondCameraEl.setAttribute('camera', 'active', false);
+                return; // End of trip
+            }
+
+            const targetPos = movements[movementIndex];
+            const duration = 500; // Duration for each movement
+
+            // Move Elevator
+            elevatorEl.setAttribute('animation', {
+                property: 'position',
+                to: targetPos,
+                dur: duration,
+                easing: 'linear'
+            });
+
+            movementIndex++;
+            setTimeout(moveElevator, duration);
+        };
+
+        moveElevator();
+    },
+
+    // Function to remove and then reattach control components
+    resetCameraControls: function(cameraEl) {
+        // Remove the control components
+        cameraEl.removeAttribute('wasd-controls');
+        cameraEl.removeAttribute('look-controls');
+
+        // Add them back after a brief timeout
+        setTimeout(() => {
+            cameraEl.setAttribute('wasd-controls', {});
+            cameraEl.setAttribute('look-controls', {});
+        }, 100); // 100 milliseconds delay
     }
 });
