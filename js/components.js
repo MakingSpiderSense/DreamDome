@@ -82,111 +82,7 @@ AFRAME.registerComponent('open-door', {
 });
 
 
-AFRAME.registerComponent('elevator-trip-2', {
-    init: function () {
-        const el = this.el;
-        const elevatorEl = document.querySelector('#elevator');
-        const cameraEl = document.querySelector('.user');
-
-        el.addEventListener('click', () => {
-            // Start the elevator trip
-            this.startElevatorTrip(elevatorEl, cameraEl);
-        });
-    },
-
-    startElevatorTrip: function (elevatorEl, cameraEl) {
-        const elevatorElX = elevatorEl.getAttribute('position').x;
-        const elevatorElY = elevatorEl.getAttribute('position').y;
-        const elevatorElZ = elevatorEl.getAttribute('position').z;
-        // Animate elevator going up
-        elevatorEl.setAttribute('animation', {
-            property: 'position',
-            to: { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ },
-            dur: 5000,
-            easing: 'linear'
-        });
-        // Animation for camera going up
-        cameraEl.setAttribute('animation', {
-            property: 'position',
-            to: { y: 20 },
-            dur: 5000,
-            easing: 'linear'
-        });
-
-        // After reaching the top, animate going back down
-        setTimeout(() => {
-            // Animate elevator going down
-            elevatorEl.setAttribute('animation', {
-                property: 'position',
-                to: { x: elevatorElX, y: elevatorElY, z: elevatorElZ },
-                dur: 5000,
-                easing: 'linear'
-            });
-            // Animation for camera going down
-            cameraEl.setAttribute('animation', {
-                property: 'position',
-                to: { y: 0 },
-                dur: 5000,
-                easing: 'linear'
-            });
-        }, 5000); // This timeout should match the duration of the up animation
-    }
-});
-
-AFRAME.registerComponent('elevator-trip-3', {
-    init: function () {
-        const el = this.el;
-        const elevatorEl = document.querySelector('#elevator');
-        const cameraEl = document.querySelector('.user');
-
-        el.addEventListener('click', () => {
-            // Start the elevator trip
-            this.startElevatorTrip(elevatorEl, cameraEl);
-        });
-    },
-
-    startElevatorTrip: function (elevatorEl, cameraEl) {
-        const elevatorElX = elevatorEl.getAttribute('position').x;
-        const elevatorElY = elevatorEl.getAttribute('position').y;
-        const elevatorElZ = elevatorEl.getAttribute('position').z;
-        // Define the sequence of movements
-        const movements = [
-            { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ }, // Up
-            { x: elevatorElX + 20, y: elevatorElY + 20, z: elevatorElZ }, // Right
-            { x: elevatorElX + 20, y: elevatorElY + 20, z: elevatorElZ + 20  }, // Back
-            { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ + 20  }, // Left
-            { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ  }, // Forward
-            { x: elevatorElX, y: elevatorElY, z: elevatorElZ  } // Down
-        ];
-
-        let movementIndex = 0;
-
-        const moveElevator = () => {
-            if (movementIndex >= movements.length) {
-                return; // End of trip
-            }
-
-            const targetPos = movements[movementIndex];
-            const duration = 5000; // Duration for each movement
-
-            // Move Elevator
-            elevatorEl.setAttribute('animation', {
-                property: 'position',
-                to: targetPos,
-                dur: duration,
-                easing: 'linear'
-            });
-
-            movementIndex++;
-            setTimeout(moveElevator, duration);
-        };
-
-        moveElevator();
-    }
-});
-
-
-// Version with camera as child of elevator
+// Elevator Ride
 AFRAME.registerComponent('elevator-trip', {
     init: function () {
         const el = this.el;
@@ -204,10 +100,18 @@ AFRAME.registerComponent('elevator-trip', {
                 y: 1.7,
                 z: cameraEl.getAttribute('position').z - elevatorEl.getAttribute('position').z
             });
+            // Blink
+            if (cameraEl && cameraEl.components['blink-control']) {
+                cameraEl.components['blink-control'].showEyelids(mainCameraEl);
+                cameraEl.components['blink-control'].blinkShut();
+            }
             setTimeout(() => {
                 secondCameraEl.setAttribute('camera', 'active', true);
                 // Start the elevator trip
                 this.startElevatorTrip(elevatorEl, cameraEl);
+                cameraEl.components['blink-control'].hideEyelids(mainCameraEl);
+                cameraEl.components['blink-control'].showEyelids(secondCameraEl);
+                cameraEl.components['blink-control'].blinkOpen();
             }, 500);
         });
     },
@@ -232,8 +136,7 @@ AFRAME.registerComponent('elevator-trip', {
         const moveElevator = () => {
             if (movementIndex >= movements.length) {
                 var secondCameraEl = document.querySelector('.user-2 #cameraRig2');
-        
-                // Get the final position and rotation of the second camera
+                // Get the final position of the second camera
                 const secondCameraPos = secondCameraEl.getAttribute('position');
                 // Set the position and direction of the main camera to match the second camera
                 const newCameraPos = {
@@ -241,33 +144,26 @@ AFRAME.registerComponent('elevator-trip', {
                     y: .1,
                     z: secondCameraPos.z + elevatorEl.getAttribute('position').z
                 };
-                // Set the position and rotation of the main camera to match the second camera
+                // Set the position of the main camera to match the second camera
                 cameraEl.setAttribute('position', newCameraPos);
-                console.log(mainCameraEl.getAttribute('rotation'));
-                console.log(secondCameraEl.getAttribute('rotation'));
-                mainCameraEl.setAttribute('rotation', secondCameraEl.getAttribute('rotation'));
-                // Reset camera controls back to original camera
-                // FIX THIS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                // The mainCameraEl rotation always ends up being the starting rotation before the trip! Needs to update to whatever the second camera's rotation is at the end of the trip.
-                setTimeout(() => {
-                    mainCameraEl.object3D.rotation.set(
-                        THREE.MathUtils.degToRad(secondCameraEl.getAttribute('rotation').x),
-                        THREE.MathUtils.degToRad(secondCameraEl.getAttribute('rotation').y),
-                        THREE.MathUtils.degToRad(secondCameraEl.getAttribute('rotation').z)
-                    );
-                    // mainCameraEl.setAttribute('rotation', secondCameraEl.getAttribute('rotation'));
-                    console.log(mainCameraEl.getAttribute('rotation'));
-                    console.log(secondCameraEl.getAttribute('rotation'));
-                    // Reactivate the main camera
-                    secondCameraEl.setAttribute('camera', 'active', false);
-                    // mainCameraEl.setAttribute('camera', 'active', true);
-                }, 3000);
-                // secondCameraEl.setAttribute('camera', 'active', false);
+                // Blink
+                if (cameraEl && cameraEl.components['blink-control']) {
+                    cameraEl.components['blink-control'].blinkShut();
+                    setTimeout(() => {
+                        cameraEl.components['blink-control'].showEyelids(mainCameraEl);
+                        cameraEl.components['blink-control'].hideEyelids(secondCameraEl);
+                        secondCameraEl.setAttribute('camera', 'active', false);
+                        cameraEl.components['blink-control'].blinkOpen();
+                        setTimeout(() => {
+                            cameraEl.components['blink-control'].hideEyelids(mainCameraEl);
+                        }, 150);
+                    }, 500);
+                }
                 return; // End of trip
             }
 
             const targetPos = movements[movementIndex];
-            const duration = 500; // Duration for each movement
+            const duration = 5000; // Duration for each movement
 
             // Move Elevator
             elevatorEl.setAttribute('animation', {
@@ -283,17 +179,67 @@ AFRAME.registerComponent('elevator-trip', {
 
         moveElevator();
     },
+});
 
-    // Function to remove and then reattach control components
-    resetCameraControls: function(cameraEl) {
-        // Remove the control components
-        cameraEl.removeAttribute('wasd-controls');
-        cameraEl.removeAttribute('look-controls');
 
-        // Add them back after a brief timeout
-        setTimeout(() => {
-            cameraEl.setAttribute('wasd-controls', {});
-            cameraEl.setAttribute('look-controls', {});
-        }, 100); // 100 milliseconds delay
-    }
+// Simulate Eyes Blinking
+// Description: You can finely control blink functions that simulate eyelid movements. Any of these methods can be called from other components when needed. This is useful for when there may be a jarring transition between scene changes or camera movements.
+AFRAME.registerComponent('blink-control', {
+    init: function () {
+        // Attach the blink method to the A-Frame element for global access
+        this.el.blinkShut = this.blinkShut.bind(this);
+        this.el.blinkOpen = this.blinkOpen.bind(this);
+        this.el.hideEyelids = this.hideEyelids.bind(this);
+        this.el.showEyelids = this.showEyelids.bind(this);
+    },
+    blinkShut: function () {
+        // Set el to all elements with the blink-control component
+        const el = document.querySelectorAll('[blink-control]');
+        console.log('blink shut');
+        // Close all eyes (multiple cameras)
+        el.forEach(blinkControlEl => {
+            blinkControlEl.querySelector('.upper-eyelid').setAttribute('animation', {
+                property: 'position',
+                to: { x: 0, y: 2.5, z: -1 },
+                dur: 150,
+                easing: 'linear'
+            });
+            blinkControlEl.querySelector('.lower-eyelid').setAttribute('animation', {
+                property: 'position',
+                to: { x: 0, y: -2.5, z: -1 },
+                dur: 150,
+                easing: 'linear'
+            });
+        });
+    },
+    blinkOpen: function () {
+        // Set el to all elements with the blink-control component
+        const el = document.querySelectorAll('[blink-control]');
+        console.log('blink open');
+        // Open all eyes (multiple cameras)
+        el.forEach(blinkControlEl => {
+            blinkControlEl.querySelector('.upper-eyelid').setAttribute('animation', {
+                property: 'position',
+                to: { x: 0, y: 4, z: -1 },
+                dur: 150,
+                easing: 'linear'
+            });
+            blinkControlEl.querySelector('.lower-eyelid').setAttribute('animation', {
+                property: 'position',
+                to: { x: 0, y: -4, z: -1 },
+                dur: 150,
+                easing: 'linear'
+            });
+        });
+    },
+    hideEyelids: function (cameraEl) {
+        // Hide the eyelids
+        cameraEl.querySelector('.upper-eyelid').setAttribute('visible', false);
+        cameraEl.querySelector('.lower-eyelid').setAttribute('visible', false);
+    },
+    showEyelids: function (cameraEl) {
+        // Show the eyelids
+        cameraEl.querySelector('.upper-eyelid').setAttribute('visible', true);
+        cameraEl.querySelector('.lower-eyelid').setAttribute('visible', true);
+    },
 });
