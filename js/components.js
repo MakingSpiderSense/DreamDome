@@ -89,6 +89,7 @@ AFRAME.registerComponent('elevator-trip', {
         const elevatorEl = document.querySelector('#elevator');
         const cameraEl = document.querySelector('.user');
         const mainCameraEl = cameraEl.querySelector('#cameraRig');
+        const soundEntity = document.querySelector('#elevator');
 
         el.addEventListener('click', () => {
             // Blink
@@ -96,7 +97,7 @@ AFRAME.registerComponent('elevator-trip', {
             cameraEl.components['blink-control'].blinkShut();
             setTimeout(() => {
                 // Start the elevator trip
-                this.startElevatorTrip(elevatorEl, cameraEl);
+                this.startElevatorTrip(elevatorEl, cameraEl, soundEntity);
                 cameraEl.components['blink-control'].blinkOpen();
                 setTimeout(() => {
                     cameraEl.components['blink-control'].hideEyelids(mainCameraEl);
@@ -104,8 +105,8 @@ AFRAME.registerComponent('elevator-trip', {
             }, 500);
         });
     },
-
-    startElevatorTrip: function (elevatorEl, cameraEl) {
+    // Start the elevator trip
+    startElevatorTrip: function (elevatorEl, cameraEl, soundEntity) {
         const elevatorDoorTriggerEl = document.querySelector('#elevator-door-trigger');
         const elevatorElX = elevatorEl.getAttribute('position').x;
         const elevatorElY = elevatorEl.getAttribute('position').y;
@@ -117,6 +118,8 @@ AFRAME.registerComponent('elevator-trip', {
         const elevatorDoorTriggerElY = elevatorDoorTriggerEl.getAttribute('position').y;
         const elevatorDoorTriggerElZ = elevatorDoorTriggerEl.getAttribute('position').z;
         elevatorDoorTriggerEl.setAttribute('position', { x: elevatorDoorTriggerElX, y: elevatorDoorTriggerElY, z: 8 });
+        // Play the elevator sound loop
+        soundEntity.components.sound.playSound();
         // Define the sequence of movements
         const movements = [
             { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ }, // Up
@@ -133,6 +136,8 @@ AFRAME.registerComponent('elevator-trip', {
             if (movementIndex >= movements.length) {
                 // Restore elevator door trigger position
                 elevatorDoorTriggerEl.setAttribute('position', { x: elevatorDoorTriggerElX, y: elevatorDoorTriggerElY, z: elevatorDoorTriggerElZ });
+                // Stop the elevator sound
+                soundEntity.components.sound.stopSound();
                 return; // End of trip
             }
 

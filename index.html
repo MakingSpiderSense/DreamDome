@@ -59,7 +59,7 @@
         </a-entity>
 
         <!-- Elevator -->
-        <a-entity class="elevator" id="elevator" position="-16 0 -14">
+        <a-entity class="elevator" id="elevator" position="-16 0 -14" sound="src: #elevator-moving; volume: 0.2; loop: true;">
             <a-entity class="el-glass">
                 <a-circle class="el-ceiling" position="0 5 0" color="white" opacity=".2" radius="3" material="roughness: 0;" rotation="90 0 0"></a-circle>
                 <a-cylinder ammo-body="type: static" ammo-shape class="el-mainbody" position="0 2.5 0" color="white" height="5" opacity=".2" radius="3" geometry="thetaLength: 300; thetaStart: 30;" material="side: double; roughness: 0;" open-ended="true"></a-cylinder>
