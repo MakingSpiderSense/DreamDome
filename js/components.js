@@ -106,7 +106,6 @@ AFRAME.registerComponent('elevator-trip', {
     },
 
     startElevatorTrip: function (elevatorEl, cameraEl) {
-        const mainCameraEl = cameraEl.querySelector('#cameraRig');
         const elevatorElX = elevatorEl.getAttribute('position').x;
         const elevatorElY = elevatorEl.getAttribute('position').y;
         const elevatorElZ = elevatorEl.getAttribute('position').z;
@@ -169,8 +168,7 @@ AFRAME.registerComponent('blink-control', {
     blinkShut: function () {
         // Set el to all elements with the blink-control component
         const el = document.querySelectorAll('[blink-control]');
-        console.log('blink shut');
-        // Close all eyes (multiple cameras)
+        // Close all eyes (all cameras with component)
         el.forEach(blinkControlEl => {
             blinkControlEl.querySelector('.upper-eyelid').setAttribute('animation', {
                 property: 'position',
@@ -189,8 +187,7 @@ AFRAME.registerComponent('blink-control', {
     blinkOpen: function () {
         // Set el to all elements with the blink-control component
         const el = document.querySelectorAll('[blink-control]');
-        console.log('blink open');
-        // Open all eyes (multiple cameras)
+        // Open all eyes (all cameras with component)
         el.forEach(blinkControlEl => {
             blinkControlEl.querySelector('.upper-eyelid').setAttribute('animation', {
                 property: 'position',
