@@ -108,6 +108,7 @@ AFRAME.registerComponent('elevator-trip', {
     // Start the elevator trip
     startElevatorTrip: function (elevatorEl, cameraEl, soundEntity) {
         const elevatorDoorTriggerEl = document.querySelector('#elevator-door-trigger');
+        const elevatorFloorEl = document.querySelector('.el-floor');
         const elevatorElX = elevatorEl.getAttribute('position').x;
         const elevatorElY = elevatorEl.getAttribute('position').y;
         const elevatorElZ = elevatorEl.getAttribute('position').z;
@@ -118,6 +119,19 @@ AFRAME.registerComponent('elevator-trip', {
         const elevatorDoorTriggerElY = elevatorDoorTriggerEl.getAttribute('position').y;
         const elevatorDoorTriggerElZ = elevatorDoorTriggerEl.getAttribute('position').z;
         elevatorDoorTriggerEl.setAttribute('position', { x: elevatorDoorTriggerElX, y: elevatorDoorTriggerElY, z: 8 });
+        // Make the elevator floor nearly invisible during the trip.
+        elevatorFloorEl.setAttribute('material', 'color', '#252d2c'); // This is to help with the transition
+        elevatorFloorEl.setAttribute('animation__color', {
+            property: 'material.color',
+            to: 'white',
+            dur: 2000
+        });
+        elevatorFloorEl.setAttribute('animation__opacity', {
+            property: 'material.opacity',
+            to: 0.2,
+            dur: 2000
+        });
+        elevatorFloorEl.setAttribute('material', 'src', null);
         // Play the elevator sound loop
         soundEntity.components.sound.playSound();
         // Define the sequence of movements
@@ -138,11 +152,26 @@ AFRAME.registerComponent('elevator-trip', {
                 elevatorDoorTriggerEl.setAttribute('position', { x: elevatorDoorTriggerElX, y: elevatorDoorTriggerElY, z: elevatorDoorTriggerElZ });
                 // Stop the elevator sound
                 soundEntity.components.sound.stopSound();
+                // Restore the elevator floor
+                elevatorFloorEl.setAttribute('animation__color', {
+                    property: 'material.color',
+                    to: '#252d2c',
+                    dur: 1000
+                });
+                elevatorFloorEl.setAttribute('animation__opacity', {
+                    property: 'material.opacity',
+                    to: 1,
+                    dur: 500
+                });
+                setTimeout(() => {
+                    elevatorFloorEl.setAttribute('material', 'src', '#speaker');
+                    elevatorFloorEl.setAttribute('material', 'color', 'gray');
+                }, 1050);
                 return; // End of trip
             }
 
             const targetPos = movements[movementIndex];
-            const duration = 5000; // Duration for each movement
+            const duration = 500; // Duration for each movement
 
             // Move Elevator
             elevatorEl.setAttribute('animation', {
