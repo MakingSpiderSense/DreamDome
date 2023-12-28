@@ -110,6 +110,8 @@ AFRAME.registerComponent('elevator-trip', {
         const elevatorElX = elevatorEl.getAttribute('position').x;
         const elevatorElY = elevatorEl.getAttribute('position').y;
         const elevatorElZ = elevatorEl.getAttribute('position').z;
+        // Move user to center of elevator. Since they can't move, this is just for a consistent starting point.
+        cameraEl.setAttribute('position', { x: elevatorElX, y: elevatorElY, z: elevatorElZ });
         // Define the sequence of movements
         const movements = [
             { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ }, // Up
@@ -124,15 +126,6 @@ AFRAME.registerComponent('elevator-trip', {
 
         const moveElevator = () => {
             if (movementIndex >= movements.length) {
-                // Blink
-                cameraEl.components['blink-control'].showEyelids(mainCameraEl);
-                cameraEl.components['blink-control'].blinkShut();
-                setTimeout(() => {
-                    cameraEl.components['blink-control'].blinkOpen();
-                    setTimeout(() => {
-                        cameraEl.components['blink-control'].hideEyelids(mainCameraEl);
-                    }, 150);
-                }, 500);
                 return; // End of trip
             }
 
@@ -141,6 +134,13 @@ AFRAME.registerComponent('elevator-trip', {
 
             // Move Elevator
             elevatorEl.setAttribute('animation', {
+                property: 'position',
+                to: targetPos,
+                dur: duration,
+                easing: 'linear'
+            });
+            // Move Camera
+            cameraEl.setAttribute('animation', {
                 property: 'position',
                 to: targetPos,
                 dur: duration,
