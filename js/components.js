@@ -91,27 +91,16 @@ AFRAME.registerComponent('elevator-trip', {
         const mainCameraEl = cameraEl.querySelector('#cameraRig');
 
         el.addEventListener('click', () => {
-            const secondCameraEl = document.querySelector('.user-2 #cameraRig2');
-            console.log(mainCameraEl.getAttribute('rotation'));
-            console.log(secondCameraEl.getAttribute('rotation'));
-            // Set the position and direction of the second camera to match the main camera
-            secondCameraEl.setAttribute('position', {
-                x: cameraEl.getAttribute('position').x - elevatorEl.getAttribute('position').x,
-                y: 1.7,
-                z: cameraEl.getAttribute('position').z - elevatorEl.getAttribute('position').z
-            });
             // Blink
-            if (cameraEl && cameraEl.components['blink-control']) {
-                cameraEl.components['blink-control'].showEyelids(mainCameraEl);
-                cameraEl.components['blink-control'].blinkShut();
-            }
+            cameraEl.components['blink-control'].showEyelids(mainCameraEl);
+            cameraEl.components['blink-control'].blinkShut();
             setTimeout(() => {
-                secondCameraEl.setAttribute('camera', 'active', true);
                 // Start the elevator trip
                 this.startElevatorTrip(elevatorEl, cameraEl);
-                cameraEl.components['blink-control'].hideEyelids(mainCameraEl);
-                cameraEl.components['blink-control'].showEyelids(secondCameraEl);
                 cameraEl.components['blink-control'].blinkOpen();
+                setTimeout(() => {
+                    cameraEl.components['blink-control'].hideEyelids(mainCameraEl);
+                }, 150);
             }, 500);
         });
     },
@@ -135,30 +124,15 @@ AFRAME.registerComponent('elevator-trip', {
 
         const moveElevator = () => {
             if (movementIndex >= movements.length) {
-                var secondCameraEl = document.querySelector('.user-2 #cameraRig2');
-                // Get the final position of the second camera
-                const secondCameraPos = secondCameraEl.getAttribute('position');
-                // Set the position and direction of the main camera to match the second camera
-                const newCameraPos = {
-                    x: secondCameraPos.x + elevatorEl.getAttribute('position').x,
-                    y: .1,
-                    z: secondCameraPos.z + elevatorEl.getAttribute('position').z
-                };
-                // Set the position of the main camera to match the second camera
-                cameraEl.setAttribute('position', newCameraPos);
                 // Blink
-                if (cameraEl && cameraEl.components['blink-control']) {
-                    cameraEl.components['blink-control'].blinkShut();
+                cameraEl.components['blink-control'].showEyelids(mainCameraEl);
+                cameraEl.components['blink-control'].blinkShut();
+                setTimeout(() => {
+                    cameraEl.components['blink-control'].blinkOpen();
                     setTimeout(() => {
-                        cameraEl.components['blink-control'].showEyelids(mainCameraEl);
-                        cameraEl.components['blink-control'].hideEyelids(secondCameraEl);
-                        secondCameraEl.setAttribute('camera', 'active', false);
-                        cameraEl.components['blink-control'].blinkOpen();
-                        setTimeout(() => {
-                            cameraEl.components['blink-control'].hideEyelids(mainCameraEl);
-                        }, 150);
-                    }, 500);
-                }
+                        cameraEl.components['blink-control'].hideEyelids(mainCameraEl);
+                    }, 150);
+                }, 500);
                 return; // End of trip
             }
 
