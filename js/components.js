@@ -171,7 +171,7 @@ AFRAME.registerComponent('elevator-trip', {
             }
 
             const targetPos = movements[movementIndex];
-            const duration = 500; // Duration for each movement
+            const duration = 5000; // Duration for each movement
 
             // Move Elevator
             elevatorEl.setAttribute('animation', {
