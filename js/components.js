@@ -143,7 +143,7 @@ AFRAME.registerComponent('elevator-trip', {
             case 'cosmo-climb':
                 movements = [
                     { x: elevatorElX, y: elevatorElY + 150, z: elevatorElZ, duration: 20000 }, // Up
-                    { x: elevatorElX, y: elevatorElY + 150, z: elevatorElZ, duration: 5000 }, // Hold position
+                    { x: elevatorElX, y: elevatorElY + 150, z: elevatorElZ, duration: 5000 }, // Hold position in sky
                     { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 20000 } // Down
                 ];
                 break;
@@ -160,9 +160,11 @@ AFRAME.registerComponent('elevator-trip', {
             case 'gravity-rush':
                 movements = [
                     { x: elevatorElX, y: elevatorElY + 150, z: elevatorElZ, duration: 20000 }, // Up
-                    { x: elevatorElX, y: elevatorElY + 150, z: elevatorElZ, duration: 5000 }, // Hold position
-                    { x: elevatorElX, y: elevatorElY + 10, z: elevatorElZ, duration: 500 }, // Down
-                    { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 2500 } // Down
+                    { x: elevatorElX, y: elevatorElY + 150, z: elevatorElZ, duration: 5000 }, // Hold position in sky
+                    { x: elevatorElX, y: elevatorElY + 100, z: elevatorElZ, duration: 350 }, // Down
+                    { x: elevatorElX, y: elevatorElY + 55, z: elevatorElZ, duration: 250 }, // Down (picking up speed)
+                    { x: elevatorElX, y: elevatorElY + 10, z: elevatorElZ, duration: 200 }, // Down (picking up speed)
+                    { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 2500 } // Down (slow finish)
                 ];
                 break;
         }
