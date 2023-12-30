@@ -84,6 +84,9 @@ AFRAME.registerComponent('open-door', {
 
 // Elevator Ride
 AFRAME.registerComponent('elevator-trip', {
+    schema: {
+        rideType: { type: 'string', default: 'skybox-tour' }
+    },
     init: function () {
         const el = this.el;
         const elevatorEl = document.querySelector('#elevator');
@@ -134,15 +137,35 @@ AFRAME.registerComponent('elevator-trip', {
         elevatorFloorEl.setAttribute('material', 'src', null);
         // Play the elevator sound loop
         soundEntity.components.sound.playSound();
-        // Define the sequence of movements and durations
-        const movements = [
-            { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ, duration: 5000 }, // Up
-            { x: elevatorElX + 20, y: elevatorElY + 20, z: elevatorElZ, duration: 5000 }, // Right
-            { x: elevatorElX + 20, y: elevatorElY + 20, z: elevatorElZ + 20, duration: 5000 }, // Back
-            { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ + 20, duration: 5000 }, // Left
-            { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ, duration: 5000 }, // Forward
-            { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 5000 } // Down
-        ];
+        // Elevator movements
+        let movements;
+        switch (this.data.rideType) {
+            case 'cosmo-climb':
+                movements = [
+                    { x: elevatorElX, y: elevatorElY + 150, z: elevatorElZ, duration: 20000 }, // Up
+                    { x: elevatorElX, y: elevatorElY + 150, z: elevatorElZ, duration: 5000 }, // Hold position
+                    { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 20000 } // Down
+                ];
+                break;
+            case 'skybox-tour':
+                movements = [
+                    { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ, duration: 5000 }, // Up
+                    { x: elevatorElX + 20, y: elevatorElY + 20, z: elevatorElZ, duration: 5000 }, // Right
+                    { x: elevatorElX + 20, y: elevatorElY + 20, z: elevatorElZ + 20, duration: 5000 }, // Back
+                    { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ + 20, duration: 5000 }, // Left
+                    { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ, duration: 5000 }, // Forward
+                    { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 5000 } // Down
+                ];
+                break;
+            case 'gravity-rush':
+                movements = [
+                    { x: elevatorElX, y: elevatorElY + 150, z: elevatorElZ, duration: 20000 }, // Up
+                    { x: elevatorElX, y: elevatorElY + 150, z: elevatorElZ, duration: 5000 }, // Hold position
+                    { x: elevatorElX, y: elevatorElY + 10, z: elevatorElZ, duration: 500 }, // Down
+                    { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 2500 } // Down
+                ];
+                break;
+        }
 
         let movementIndex = 0;
 
