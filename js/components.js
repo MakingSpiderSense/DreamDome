@@ -134,14 +134,14 @@ AFRAME.registerComponent('elevator-trip', {
         elevatorFloorEl.setAttribute('material', 'src', null);
         // Play the elevator sound loop
         soundEntity.components.sound.playSound();
-        // Define the sequence of movements
+        // Define the sequence of movements and durations
         const movements = [
-            { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ }, // Up
-            { x: elevatorElX + 20, y: elevatorElY + 20, z: elevatorElZ }, // Right
-            { x: elevatorElX + 20, y: elevatorElY + 20, z: elevatorElZ + 20  }, // Back
-            { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ + 20  }, // Left
-            { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ  }, // Forward
-            { x: elevatorElX, y: elevatorElY, z: elevatorElZ  } // Down
+            { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ, duration: 5000 }, // Up
+            { x: elevatorElX + 20, y: elevatorElY + 20, z: elevatorElZ, duration: 5000 }, // Right
+            { x: elevatorElX + 20, y: elevatorElY + 20, z: elevatorElZ + 20, duration: 5000 }, // Back
+            { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ + 20, duration: 5000 }, // Left
+            { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ, duration: 5000 }, // Forward
+            { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 5000 } // Down
         ];
 
         let movementIndex = 0;
@@ -171,7 +171,7 @@ AFRAME.registerComponent('elevator-trip', {
             }
 
             const targetPos = movements[movementIndex];
-            const duration = 5000; // Duration for each movement
+            const duration = targetPos.duration; // Duration for each movement
 
             // Move Elevator
             elevatorEl.setAttribute('animation', {
