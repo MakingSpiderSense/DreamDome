@@ -121,7 +121,7 @@ AFRAME.registerComponent('elevator-trip', {
         const elevatorDoorTriggerElX = elevatorDoorTriggerEl.getAttribute('position').x;
         const elevatorDoorTriggerElY = elevatorDoorTriggerEl.getAttribute('position').y;
         const elevatorDoorTriggerElZ = elevatorDoorTriggerEl.getAttribute('position').z;
-        elevatorDoorTriggerEl.setAttribute('position', { x: elevatorDoorTriggerElX, y: elevatorDoorTriggerElY, z: 9 });
+        elevatorDoorTriggerEl.setAttribute('position', { x: elevatorDoorTriggerElX, y: elevatorDoorTriggerElY, z: 12 });
         // Make the elevator floor nearly invisible during the trip.
         elevatorFloorEl.setAttribute('material', 'color', '#252d2c'); // This is to help with the transition
         elevatorFloorEl.setAttribute('animation__color', {
