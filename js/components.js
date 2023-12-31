@@ -165,6 +165,19 @@ AFRAME.registerComponent('elevator-trip', {
                     { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 1250, easing: 'easeOutCubic' } // Down (ease finish)
                 ];
                 break;
+            case 'skydive':
+                movements = [
+                    { x: elevatorElX, y: elevatorElY + 4000, z: elevatorElZ, duration: 1 }, // Up
+                    { x: elevatorElX, y: elevatorElY + 4000, z: elevatorElZ, duration: 500 }, // Hold position in sky
+                    { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 28571, easing: 'easeInCubic' }, // Gravity Fall
+                    { x: elevatorElX, y: elevatorElY - 10, z: elevatorElZ, duration: 1000, easing: 'linear' }, // Resistance
+                    { x: elevatorElX, y: elevatorElY - 155, z: elevatorElZ, duration: 5530, easing: 'easeInCubic' }, // Gravity Fall
+                    { x: elevatorElX, y: elevatorElY - 165, z: elevatorElZ, duration: 1500, easing: 'easeOutCubic' }, // Up
+                    { x: elevatorElX, y: elevatorElY - 165, z: elevatorElZ, duration: 2000 }, // Hold position in sky
+                    { x: elevatorElX, y: elevatorElY - 10, z: elevatorElZ, duration: 8000, easing: 'linear' }, // Up
+                    { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 1500, easing: 'easeOutCubic'  } // Hold position in sky
+                ];
+                break;
         }
 
         let movementIndex = 0;
