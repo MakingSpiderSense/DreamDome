@@ -26,6 +26,8 @@
         	<audio id="ghosthustlers" src="assets/ghosthustlers--some-elses-ride.mp3"></audio>
         	<audio id="door-moving" src="assets/door-moving.mp3"></audio>
         	<audio id="elevator-moving" src="assets/elevator-moving.mp3"></audio>
+            <audio id="elevator-fall-1" src="assets/elevator-fall-1.mp3"></audio>
+            <audio id="elevator-plunge" src="assets/elevator-plunge.mp3"></audio>
             <img id="billboard-front" src="assets/billboard-front.png">
 			<a-asset-item id="my-nav-mesh" src="assets/navmesh.gltf"></a-asset-item>
         </a-assets>
@@ -59,7 +61,11 @@
         </a-entity>
 
         <!-- Elevator -->
-        <a-entity class="elevator" id="elevator" position="-16 0 -14" sound="src: #elevator-moving; volume: 0.2; loop: true;">
+        <a-entity class="elevator" id="elevator" position="-16 0 -14">
+            <!-- Sound Entities -->
+            <a-entity id="sound-moving" sound="src: #elevator-moving; volume: 0.2; loop: true;"></a-entity>
+            <a-entity id="sound-falling-1" sound="src: #elevator-fall-1; volume: 0.3;"></a-entity>
+            <a-entity id="sound-plunge" sound="src: #elevator-plunge; volume: 0.3;"></a-entity>
             <a-entity class="el-glass">
                 <a-circle class="el-ceiling" position="0 5 0" color="white" opacity=".2" radius="3" material="roughness: 0;" rotation="90 0 0"></a-circle>
                 <a-cylinder ammo-body="type: static" ammo-shape class="el-mainbody" position="0 2.5 0" color="white" height="5" opacity=".2" radius="3" geometry="thetaLength: 300; thetaStart: 30;" material="side: double; roughness: 0;" open-ended="true"></a-cylinder>
@@ -120,7 +126,7 @@
         </a-entity>
 
 		<!-- Camera Rig -->
-		<a-entity class="user" position="0 0 6" movement-controls="speed: 1; constrainToNavMesh: true;" blink-control>
+		<a-entity class="user" position="0 0 6" movement-controls="speed: .5; constrainToNavMesh: true;" blink-control>
 			<!-- Camera -->
 			<a-entity camera position="0 1.6 0"
 					  look-controls="pointerLockEnabled: false"
