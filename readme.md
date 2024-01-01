@@ -4,6 +4,8 @@
 
 This project is a synthwave-inspired space that acts as a sandbox to explore the capabilities of A-frame. It is currently a personal showcase of my work in A-frame and is not open for collaboration or pull requests. Feel free to explore and learn from the code!
 
+https://makingspidersense.com/vr/
+
 ## Features
 
 - **Speaker:** There's a large speaker designed like a Bluetooth tube speaker. Pressing the power button activates it and starts playing music.
