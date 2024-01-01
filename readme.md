@@ -4,12 +4,14 @@
 
 This project is a synthwave-inspired space that acts as a sandbox to explore the capabilities of A-frame.
 
-- **Speaker:** There's a large speaker designed like a Bluetooth tube speaker. Pressing the power button activates it and starts playing music.
-- **Elevator:** The elevator offers several unique experiences. "Skybox Tour" involves a journey upwards and then a lateral movement in a box shape before descending. "Cosmo Climb" ascends straight up for a panoramic view. "Gravity Rush" is a thrilling drop, three times higher than Six Flags' Giant Drop. There's also a hidden "Skydive" option, simulating a 4,000 meter free fall. Search for a flat, pink button on the control panel that doesn't appear to be functional. "Gravity Rush" and "Skydive" **should only be attempted** by those who are not prone to motion sickness.
-
 ## Project Status
 
 This project is currently a personal showcase of my work in A-frame and is not open for collaboration or pull requests. Feel free to explore and learn from the code!
+
+## Features
+
+- **Speaker:** There's a large speaker designed like a Bluetooth tube speaker. Pressing the power button activates it and starts playing music.
+- **Elevator:** The elevator offers several unique experiences. "Skybox Tour" involves a journey upwards and then a lateral movement in a box shape before descending. "Cosmo Climb" ascends straight up for a panoramic view. "Gravity Rush" is a thrilling drop, three times higher than Six Flags' Giant Drop. There's also a hidden "Skydive" option, simulating a 4,000 meter free fall. Search for a flat, pink button on the control panel that doesn't appear to be functional. "Gravity Rush" and "Skydive" **should only be attempted** by those who are not prone to motion sickness.
 
 ## Dependencies
 
