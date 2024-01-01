@@ -2,11 +2,7 @@
 
 ## Description
 
-This project is a synthwave-inspired space that acts as a sandbox to explore the capabilities of A-frame.
-
-## Project Status
-
-This project is currently a personal showcase of my work in A-frame and is not open for collaboration or pull requests. Feel free to explore and learn from the code!
+This project is a synthwave-inspired space that acts as a sandbox to explore the capabilities of A-frame. It is currently a personal showcase of my work in A-frame and is not open for collaboration or pull requests. Feel free to explore and learn from the code!
 
 ## Features
 
