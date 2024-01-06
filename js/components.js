@@ -132,12 +132,12 @@ AFRAME.registerComponent('elevator-trip', {
         elevatorFloorEl.setAttribute('material', 'color', '#252d2c'); // This is to help with the transition
         elevatorFloorEl.setAttribute('animation__color', {
             property: 'material.color',
-            to: 'white',
+            to: '#ffffff',
             dur: 2000
         });
         elevatorFloorEl.setAttribute('animation__opacity', {
             property: 'material.opacity',
-            to: 0.2,
+            to: 0.1,
             dur: 2000
         });
         elevatorFloorEl.setAttribute('material', 'src', null);
