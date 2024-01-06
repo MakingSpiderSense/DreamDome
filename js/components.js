@@ -95,6 +95,12 @@ AFRAME.registerComponent('elevator-trip', {
         const soundEntity = document.querySelector('#elevator');
 
         el.addEventListener('click', () => {
+            // Exit if another ride is in progress
+            const elevatorController = document.querySelector('#elevator').components['elevator-controller'];
+            if (elevatorController.data.isMoving) {
+                return;
+            }
+            elevatorController.data.isMoving = true;
             // Blink
             cameraEl.components['blink-control'].showEyelids(mainCameraEl);
             cameraEl.components['blink-control'].blinkShut();
@@ -204,6 +210,9 @@ AFRAME.registerComponent('elevator-trip', {
                     elevatorFloorEl.setAttribute('material', 'src', '#speaker');
                     elevatorFloorEl.setAttribute('material', 'color', 'gray');
                 }, 1050);
+                // Restore the elevator state
+                const elevatorController = document.querySelector('#elevator').components['elevator-controller'];
+                elevatorController.data.isMoving = false;
                 return; // End of trip
             }
 
@@ -244,6 +253,14 @@ AFRAME.registerComponent('elevator-trip', {
         };
 
         moveElevator();
+    },
+});
+
+
+// Elevator Controller
+AFRAME.registerComponent('elevator-controller', {
+    schema: {
+        isMoving: { type: 'boolean', default: false }
     },
 });
 
