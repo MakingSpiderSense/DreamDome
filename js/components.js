@@ -155,10 +155,10 @@ AFRAME.registerComponent('elevator-trip', {
             case 'skybox-tour':
                 movements = [
                     { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ, duration: 5000 }, // Up
-                    { x: elevatorElX + 20, y: elevatorElY + 20, z: elevatorElZ, duration: 5000 }, // Right
-                    { x: elevatorElX + 20, y: elevatorElY + 20, z: elevatorElZ + 20, duration: 5000 }, // Back
-                    { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ + 20, duration: 5000 }, // Left
-                    { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ, duration: 5000 }, // Forward
+                    { x: elevatorElX + 60, y: elevatorElY + 20, z: elevatorElZ, duration: 15000 }, // Right
+                    { x: elevatorElX + 60, y: elevatorElY + 20, z: elevatorElZ + 60, duration: 15000 }, // Back
+                    { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ + 60, duration: 15000 }, // Left
+                    { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ, duration: 15000 }, // Forward
                     { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 5000 } // Down
                 ];
                 break;
