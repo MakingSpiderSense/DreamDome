@@ -149,7 +149,8 @@ AFRAME.registerComponent('elevator-trip', {
                 movements = [
                     { x: elevatorElX, y: elevatorElY + 150, z: elevatorElZ, duration: 20000 }, // Up
                     { x: elevatorElX, y: elevatorElY + 150, z: elevatorElZ, duration: 5000 }, // Hold position in sky
-                    { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 20000 } // Down
+                    { x: elevatorElX, y: elevatorElY + 5, z: elevatorElZ, duration: 19000 }, // Down
+                    { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 2500, easing: 'easeOutCubic' } // Down (ease finish)
                 ];
                 break;
             case 'skybox-tour':
@@ -159,7 +160,8 @@ AFRAME.registerComponent('elevator-trip', {
                     { x: elevatorElX + 60, y: elevatorElY + 20, z: elevatorElZ + 60, duration: 15000 }, // Back
                     { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ + 60, duration: 15000 }, // Left
                     { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ, duration: 15000 }, // Forward
-                    { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 5000 } // Down
+                    { x: elevatorElX, y: elevatorElY + 5, z: elevatorElZ, duration: 3750 }, // Down
+                    { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 4500, easing: 'easeOutCubic' } // Down (ease finish)
                 ];
                 break;
             case 'gravity-rush':
