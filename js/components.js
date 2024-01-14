@@ -147,26 +147,29 @@ AFRAME.registerComponent('elevator-trip', {
         switch (this.data.rideType) {
             case 'cosmo-climb':
                 movements = [
-                    { x: elevatorElX, y: elevatorElY + 150, z: elevatorElZ, duration: 20000 }, // Up
-                    { x: elevatorElX, y: elevatorElY + 150, z: elevatorElZ, duration: 5000 }, // Hold position in sky
+                    { x: elevatorElX, y: elevatorElY + 10, z: elevatorElZ, duration: 2720, easing: 'easeInQuad' }, // Up (ease start)
+                    { x: elevatorElX, y: elevatorElY + 150, z: elevatorElZ, duration: 1900 }, // Up
+                    { x: elevatorElX, y: elevatorElY + 150, z: elevatorElZ, duration: 500 }, // Hold position in sky
                     { x: elevatorElX, y: elevatorElY + 5, z: elevatorElZ, duration: 19000 }, // Down
-                    { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 2500, easing: 'easeOutCubic' } // Down (ease finish)
+                    { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 2720, easing: 'easeOutQuad' } // Down (ease finish)
                 ];
                 break;
             case 'skybox-tour':
                 movements = [
-                    { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ, duration: 5000 }, // Up
+                    { x: elevatorElX, y: elevatorElY + 5, z: elevatorElZ, duration: 2500, easing: 'easeInQuad' }, // Up (ease start)
+                    { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ, duration: 3750 }, // Up
                     { x: elevatorElX + 60, y: elevatorElY + 20, z: elevatorElZ, duration: 15000 }, // Right
                     { x: elevatorElX + 60, y: elevatorElY + 20, z: elevatorElZ + 60, duration: 15000 }, // Back
                     { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ + 60, duration: 15000 }, // Left
                     { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ, duration: 15000 }, // Forward
                     { x: elevatorElX, y: elevatorElY + 5, z: elevatorElZ, duration: 3750 }, // Down
-                    { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 4500, easing: 'easeOutCubic' } // Down (ease finish)
+                    { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 2500, easing: 'easeOutQuad' } // Down (ease finish)
                 ];
                 break;
             case 'gravity-rush':
                 movements = [
-                    { x: elevatorElX, y: elevatorElY + 200, z: elevatorElZ, duration: 25000 }, // Up
+                    { x: elevatorElX, y: elevatorElY + 10, z: elevatorElZ, duration: 2500, easing: 'easeInQuad' }, // Up (ease start)
+                    { x: elevatorElX, y: elevatorElY + 200, z: elevatorElZ, duration: 23750 }, // Up
                     { x: elevatorElX, y: elevatorElY + 200, z: elevatorElZ, duration: 5000  }, // Hold position in sky
                     { x: elevatorElX, y: elevatorElY + 5, z: elevatorElZ, duration: 6300, easing: 'easeInCubic', sound: 'sound-falling-1' }, // Gravity Fall
                     { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 1250, easing: 'easeOutCubic', sound: 'sound-falling-1' } // Down (ease finish)
