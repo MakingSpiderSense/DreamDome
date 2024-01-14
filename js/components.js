@@ -174,7 +174,7 @@ AFRAME.registerComponent('elevator-trip', {
                 movements = [
                     { x: elevatorElX, y: elevatorElY + 4000, z: elevatorElZ, duration: 1 }, // Up
                     { x: elevatorElX, y: elevatorElY + 4000, z: elevatorElZ, duration: 500 }, // Hold position in sky
-                    { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 28571, easing: 'easeInCubic' }, // Gravity Fall
+                    { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 28571, easing: 'easeInCubic', sound: 'sound-falling-1', soundDelay: 24271 }, // Gravity Fall
                     { x: elevatorElX, y: elevatorElY - 10, z: elevatorElZ, duration: 1000, easing: 'linear', sound: 'sound-plunge' }, // Resistance
                     { x: elevatorElX, y: elevatorElY - 165, z: elevatorElZ, duration: 8380, easing: 'easeOutCubic' }, // Water Fall
                     { x: elevatorElX, y: elevatorElY - 165, z: elevatorElZ, duration: 2000 }, // Hold position
@@ -186,6 +186,18 @@ AFRAME.registerComponent('elevator-trip', {
 
         let movementIndex = 0;
         let currentSoundId = '';
+        let soundDelayTimeout;
+
+        const playSoundWithDelay = (soundId, delay) => {
+            if (soundDelayTimeout) clearTimeout(soundDelayTimeout);
+            soundDelayTimeout = setTimeout(() => {
+                // Start the new sound
+                const soundEntity = document.querySelector(`#${soundId}`);
+                soundEntity.components.sound.playSound();
+                // Update the current sound ID
+                currentSoundId = soundId;
+            }, delay);
+        };
 
         const moveElevator = () => {
             if (movementIndex >= movements.length) {
@@ -219,6 +231,7 @@ AFRAME.registerComponent('elevator-trip', {
             const targetPos = movements[movementIndex];
             const duration = targetPos.duration; // Duration for each movement
             const newSoundId = targetPos.sound || 'sound-moving'; // Default to 'sound-moving'
+            const soundDelay = targetPos.soundDelay || 0;
             // Only change sound if it's different from the current one
             if (newSoundId !== currentSoundId) {
                 // Stop the current sound
@@ -227,11 +240,7 @@ AFRAME.registerComponent('elevator-trip', {
                     currentSoundEntity.components.sound.stopSound();
                 }
                 // Start the new sound
-                const newSoundEntity = document.querySelector(`#${newSoundId}`);
-                newSoundEntity.components.sound.playSound();
-
-                // Update the current sound ID
-                currentSoundId = newSoundId;
+                playSoundWithDelay(newSoundId, soundDelay);
             }
             // Move Elevator
             elevatorEl.setAttribute('animation', {
