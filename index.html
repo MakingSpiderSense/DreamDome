@@ -28,6 +28,7 @@
         	<audio id="elevator-moving" src="assets/elevator-moving.mp3"></audio>
             <audio id="elevator-fall-1" src="assets/elevator-fall-1.mp3"></audio>
             <audio id="elevator-plunge" src="assets/elevator-plunge.mp3"></audio>
+            <audio id="skybox-theme" src="assets/skybox-theme.mp3"></audio>
             <img id="billboard-front" src="assets/billboard-front.png">
 			<a-asset-item id="my-nav-mesh" src="assets/navmesh.gltf"></a-asset-item>
         </a-assets>
@@ -65,7 +66,8 @@
             <!-- Sound Entities -->
             <a-entity id="sound-moving" sound="src: #elevator-moving; volume: 0.2; loop: true;"></a-entity>
             <a-entity id="sound-falling-1" sound="src: #elevator-fall-1; volume: 0.3;"></a-entity>
-            <a-entity id="sound-plunge" sound="src: #elevator-plunge; volume: 0.3;"></a-entity>
+            <a-entity id="sound-plunge" sound="src: #elevator-plunge; volume: 0.5;"></a-entity>
+            <a-entity id="sound-skybox-theme" sound="src: #skybox-theme; volume: 0.4; loop: true;"></a-entity>
             <a-entity class="el-glass">
                 <a-circle class="el-ceiling" position="0 5 0" color="white" opacity=".2" radius="3" material="roughness: 0;" rotation="90 0 0"></a-circle>
                 <a-cylinder ammo-body="type: static" ammo-shape class="el-mainbody" position="0 2.5 0" color="white" height="5" opacity=".2" radius="3" geometry="thetaLength: 300; thetaStart: 30;" material="side: double; roughness: 0;" open-ended="true"></a-cylinder>

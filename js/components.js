@@ -92,7 +92,6 @@ AFRAME.registerComponent('elevator-trip', {
         const elevatorEl = document.querySelector('#elevator');
         const cameraEl = document.querySelector('.user');
         const mainCameraEl = cameraEl.querySelector('#cameraRig');
-        const soundEntity = document.querySelector('#elevator');
 
         el.addEventListener('click', () => {
             // Exit if another ride is in progress
@@ -106,7 +105,7 @@ AFRAME.registerComponent('elevator-trip', {
             cameraEl.components['blink-control'].blinkShut();
             setTimeout(() => {
                 // Start the elevator trip
-                this.startElevatorTrip(elevatorEl, cameraEl, soundEntity);
+                this.startElevatorTrip(elevatorEl, cameraEl);
                 cameraEl.components['blink-control'].blinkOpen();
                 setTimeout(() => {
                     cameraEl.components['blink-control'].hideEyelids(mainCameraEl);
@@ -115,7 +114,7 @@ AFRAME.registerComponent('elevator-trip', {
         });
     },
     // Start the elevator trip
-    startElevatorTrip: function (elevatorEl, cameraEl, soundEntity) {
+    startElevatorTrip: function (elevatorEl, cameraEl) {
         const elevatorDoorTriggerEl = document.querySelector('#elevator-door-trigger');
         const elevatorFloorEl = document.querySelector('.el-floor');
         const elevatorElX = elevatorEl.getAttribute('position').x;
@@ -156,14 +155,14 @@ AFRAME.registerComponent('elevator-trip', {
                 break;
             case 'skybox-tour':
                 movements = [
-                    { x: elevatorElX, y: elevatorElY + 5, z: elevatorElZ, duration: 2500, easing: 'easeInQuad' }, // Up (ease start)
-                    { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ, duration: 3750 }, // Up
-                    { x: elevatorElX + 60, y: elevatorElY + 20, z: elevatorElZ, duration: 15000 }, // Right
-                    { x: elevatorElX + 60, y: elevatorElY + 20, z: elevatorElZ + 60, duration: 15000 }, // Back
-                    { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ + 60, duration: 15000 }, // Left
-                    { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ, duration: 15000 }, // Forward
-                    { x: elevatorElX, y: elevatorElY + 5, z: elevatorElZ, duration: 3750 }, // Down
-                    { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 2500, easing: 'easeOutQuad' } // Down (ease finish)
+                    { x: elevatorElX, y: elevatorElY + 5, z: elevatorElZ, duration: 2500, easing: 'easeInQuad', sounds: ['sound-moving', 'sound-skybox-theme'] }, // Up (ease start)
+                    { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ, duration: 3750, sounds: [{ id: 'sound-moving' }, { id: 'sound-skybox-theme' }] }, // Up
+                    { x: elevatorElX + 60, y: elevatorElY + 20, z: elevatorElZ, duration: 15000, sounds: [{ id: 'sound-moving' }, { id: 'sound-skybox-theme' }] }, // Right
+                    { x: elevatorElX + 60, y: elevatorElY + 20, z: elevatorElZ + 60, duration: 15000, sounds: [{ id: 'sound-moving' }, { id: 'sound-skybox-theme' }] }, // Back
+                    { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ + 60, duration: 15000, sounds: [{ id: 'sound-moving' }, { id: 'sound-skybox-theme' }] }, // Left
+                    { x: elevatorElX, y: elevatorElY + 20, z: elevatorElZ, duration: 15000, sounds: [{ id: 'sound-moving' }, { id: 'sound-skybox-theme' }] }, // Forward
+                    { x: elevatorElX, y: elevatorElY + 5, z: elevatorElZ, duration: 3750, sounds: [{ id: 'sound-moving' }, { id: 'sound-skybox-theme' }] }, // Down
+                    { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 2500, easing: 'easeOutQuad', sounds: [{ id: 'sound-moving' }, { id: 'sound-skybox-theme' }] } // Down (ease finish)
                 ];
                 break;
             case 'gravity-rush':
@@ -171,16 +170,16 @@ AFRAME.registerComponent('elevator-trip', {
                     { x: elevatorElX, y: elevatorElY + 10, z: elevatorElZ, duration: 2500, easing: 'easeInQuad' }, // Up (ease start)
                     { x: elevatorElX, y: elevatorElY + 200, z: elevatorElZ, duration: 23750 }, // Up
                     { x: elevatorElX, y: elevatorElY + 200, z: elevatorElZ, duration: 5000  }, // Hold position in sky
-                    { x: elevatorElX, y: elevatorElY + 5, z: elevatorElZ, duration: 6300, easing: 'easeInCubic', sound: 'sound-falling-1' }, // Gravity Fall
-                    { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 1250, easing: 'easeOutCubic', sound: 'sound-falling-1' } // Down (ease finish)
+                    { x: elevatorElX, y: elevatorElY + 5, z: elevatorElZ, duration: 6300, easing: 'easeInCubic', sounds: [{ id: 'sound-falling-1' }] }, // Gravity Fall
+                    { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 1250, easing: 'easeOutCubic', sounds: [{ id: 'sound-falling-1' }] } // Down (ease finish)
                 ];
                 break;
             case 'skydive':
                 movements = [
                     { x: elevatorElX, y: elevatorElY + 4000, z: elevatorElZ, duration: 1 }, // Up
                     { x: elevatorElX, y: elevatorElY + 4000, z: elevatorElZ, duration: 500 }, // Hold position in sky
-                    { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 28571, easing: 'easeInCubic', sound: 'sound-falling-1', soundDelay: 24271 }, // Gravity Fall
-                    { x: elevatorElX, y: elevatorElY - 10, z: elevatorElZ, duration: 1000, easing: 'linear', sound: 'sound-plunge' }, // Resistance
+                    { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 28571, easing: 'easeInCubic', sounds: [{ id: 'sound-falling-1', delay: 24271 }] }, // Gravity Fall
+                    { x: elevatorElX, y: elevatorElY - 10, z: elevatorElZ, duration: 1000, easing: 'linear', sounds: [{ id: 'sound-plunge' }] }, // Resistance
                     { x: elevatorElX, y: elevatorElY - 165, z: elevatorElZ, duration: 8380, easing: 'easeOutCubic' }, // Water Fall
                     { x: elevatorElX, y: elevatorElY - 165, z: elevatorElZ, duration: 2000 }, // Hold position
                     { x: elevatorElX, y: elevatorElY - 10, z: elevatorElZ, duration: 8000, easing: 'linear' }, // Up
@@ -190,28 +189,53 @@ AFRAME.registerComponent('elevator-trip', {
         }
 
         let movementIndex = 0;
-        let currentSoundId = '';
-        let soundDelayTimeout;
+        let currentlyPlayingSounds = {};
 
-        const playSoundWithDelay = (soundId, delay) => {
-            if (soundDelayTimeout) clearTimeout(soundDelayTimeout);
-            soundDelayTimeout = setTimeout(() => {
-                // Start the new sound
+        const stopAllSounds = () => {
+            document.querySelectorAll('.elevator [sound]').forEach((soundEl) => {
+                soundEl.components.sound.stopSound();
+            });
+        };
+
+        const stopAllSoundsExcept = (soundsToKeep) => {
+            Object.keys(currentlyPlayingSounds).forEach(soundId => {
+                if (!soundsToKeep.includes(soundId)) {
+                    const soundEntity = document.querySelector(`#${soundId}`);
+                    soundEntity.components.sound.stopSound();
+                    delete currentlyPlayingSounds[soundId];
+                }
+            });
+        };
+
+        const playSoundWithDelay = (soundId, delay = 0) => {
+            setTimeout(() => {
                 const soundEntity = document.querySelector(`#${soundId}`);
-                soundEntity.components.sound.playSound();
-                // Update the current sound ID
-                currentSoundId = soundId;
+                if (!currentlyPlayingSounds[soundId]) {
+                    soundEntity.components.sound.playSound();
+                    currentlyPlayingSounds[soundId] = true;
+                }
             }, delay);
+        };
+
+        const playSounds = (sounds) => {
+            // Extract sound IDs from the sounds array
+            const soundIds = sounds.map(sound => sound.id);
+        
+            // Stop all sounds that are not in the next movement
+            stopAllSoundsExcept(soundIds);
+        
+            // Play new sounds
+            sounds.forEach(sound => {
+                playSoundWithDelay(sound.id, sound.delay);
+            });
         };
 
         const moveElevator = () => {
             if (movementIndex >= movements.length) {
+                // Stop all sounds at the end of the ride
+                stopAllSounds();
                 // Restore elevator door trigger position
                 elevatorDoorTriggerEl.setAttribute('position', { x: elevatorDoorTriggerElX, y: elevatorDoorTriggerElY, z: elevatorDoorTriggerElZ });
-                // Stop all sounds
-                document.querySelectorAll('.elevator [sound]').forEach((soundEl) => {
-                    soundEl.components.sound.stopSound();
-                });
                 // Restore the elevator floor
                 elevatorFloorEl.setAttribute('animation__color', {
                     property: 'material.color',
@@ -235,18 +259,11 @@ AFRAME.registerComponent('elevator-trip', {
 
             const targetPos = movements[movementIndex];
             const duration = targetPos.duration; // Duration for each movement
-            const newSoundId = targetPos.sound || 'sound-moving'; // Default to 'sound-moving'
-            const soundDelay = targetPos.soundDelay || 0;
-            // Only change sound if it's different from the current one
-            if (newSoundId !== currentSoundId) {
-                // Stop the current sound
-                if (currentSoundId) {
-                    const currentSoundEntity = document.querySelector(`#${currentSoundId}`);
-                    currentSoundEntity.components.sound.stopSound();
-                }
-                // Start the new sound
-                playSoundWithDelay(newSoundId, soundDelay);
-            }
+            const sounds = targetPos.sounds || [{ id: 'sound-moving' }]; // Default to 'sound-moving'
+
+            // Play all sounds for the current movement
+            playSounds(sounds);
+
             // Move Elevator
             elevatorEl.setAttribute('animation', {
                 property: 'position',
