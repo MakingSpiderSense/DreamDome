@@ -147,8 +147,8 @@ AFRAME.registerComponent('elevator-trip', {
             case 'cosmo-climb':
                 movements = [
                     { x: elevatorElX, y: elevatorElY + 10, z: elevatorElZ, duration: 2720, easing: 'easeInQuad' }, // Up (ease start)
-                    { x: elevatorElX, y: elevatorElY + 150, z: elevatorElZ, duration: 1900 }, // Up
-                    { x: elevatorElX, y: elevatorElY + 150, z: elevatorElZ, duration: 500 }, // Hold position in sky
+                    { x: elevatorElX, y: elevatorElY + 150, z: elevatorElZ, duration: 19000 }, // Up
+                    { x: elevatorElX, y: elevatorElY + 150, z: elevatorElZ, duration: 5000 }, // Hold position in sky
                     { x: elevatorElX, y: elevatorElY + 5, z: elevatorElZ, duration: 19000 }, // Down
                     { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 2720, easing: 'easeOutQuad' } // Down (ease finish)
                 ];
