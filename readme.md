@@ -6,6 +6,8 @@ This project is a synthwave-inspired space that acts as a sandbox to explore the
 
 https://makingspidersense.com/vr/
 
+Dream Dome has been tested with the Quest 3, but also should work through the browser using the `WASD` keys and mouse. A dedicated graphics card is recommended for the best experience. Make sure your browser has hardware acceleration enabled so that the graphics card is used. Tested with a RTX 2070 Super. 
+
 ## Features
 
 - **Speaker:** There's a large speaker designed like a Bluetooth tube speaker. Pressing the power button activates it and starts playing music.
