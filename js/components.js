@@ -355,3 +355,47 @@ AFRAME.registerComponent('blink-control', {
         cameraEl.querySelector('.lower-eyelid').setAttribute('visible', true);
     },
 });
+
+
+// Trigger shooting star animations after 5 seconds
+window.addEventListener('load', function() {
+    setTimeout(function() {
+        const shootingStars = document.querySelectorAll('.shooting-star');
+        shootingStars.forEach(function(star, index) {
+            // Build star from template
+            const template = document.querySelector('#shooting-star-template').cloneNode(true);
+            template.setAttribute('visible', true);
+            star.appendChild(template);
+            const starEntity = star.querySelector('#star-position');
+            const starParts = star.querySelectorAll('.star-head, .star-tail');
+            // Fade in the star parts
+            starParts.forEach(part => {
+                part.setAttribute('animation__fadein', {
+                    property: 'opacity',
+                    from: 0,
+                    to: 1,
+                    dur: 500,
+                    easing: 'linear'
+                });
+            });
+            // Move the star
+            starEntity.setAttribute('animation__move', {
+                property: 'position',
+                to: '-465 55 -130',
+                dur: 4000,
+                easing: 'linear'
+            });
+            // Fade out the star parts
+            starParts.forEach(part => {
+                part.setAttribute('animation__fadeout', {
+                    property: 'opacity',
+                    from: 1,
+                    to: 0,
+                    delay: 3000,
+                    dur: 1000,
+                    easing: 'linear'
+                });
+            });
+        });
+    }, 2000);
+});
