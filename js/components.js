@@ -362,7 +362,6 @@ let clonesCreated = false; // Flag to track if clones are created
 function triggerShootingStars() {
     const shootingStars = document.querySelectorAll('.shooting-star');
     shootingStars.forEach(function(star, index) {
-        let starPosition, starParts;
         if (!clonesCreated) {
             // Build star from template
             const template = document.querySelector('#shooting-star-template').cloneNode(true);
@@ -370,8 +369,9 @@ function triggerShootingStars() {
             star.appendChild(template);
         }
         // Select elements for animation
-        starPosition = star.querySelector('.star-position');
-        starParts = star.querySelectorAll('.star-head, .star-tail');
+        const starPosition = star.querySelector('.star-position');
+        const starParts = star.querySelectorAll('.star-head, .star-tail');
+        const starTail = star.querySelector('.star-tail');
         // // Show the stars
         star.setAttribute('visible', true);
         starParts.forEach(part => part.setAttribute('visible', true));
@@ -393,6 +393,23 @@ function triggerShootingStars() {
                 easing: 'linear'
             });
         });
+        // Animate the star tail
+        starTail.setAttribute('animation__scale', {
+            property: 'scale',
+            to: '3 .3 1',
+            loop: true,
+            dur: 2000,
+            easing: 'easeOutQuad',
+            dir: 'alternate'
+        });
+        starTail.setAttribute('animation__position', {
+            property: 'position',
+            to: '4.7 1 0',
+            loop: true,
+            dur: 2000,
+            easing: 'easeOutQuad',
+            dir: 'alternate'
+        });
         // Move the star
         starPosition.setAttribute('animation__move', {
             property: 'position',
@@ -404,6 +421,8 @@ function triggerShootingStars() {
         starPosition.addEventListener('animationcomplete__move', function () {
             starPosition.setAttribute('position', '-305 215 -290');
             starPosition.removeAttribute('animation__move');
+            starTail.removeAttribute('animation__scale');
+            starTail.removeAttribute('animation__position');
             starParts.forEach(part => {
                 part.removeAttribute('animation__fadein');
                 part.removeAttribute('animation__fadeout');
