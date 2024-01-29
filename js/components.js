@@ -357,45 +357,68 @@ AFRAME.registerComponent('blink-control', {
 });
 
 
-// Trigger shooting star animations after 5 seconds
-window.addEventListener('load', function() {
-    setTimeout(function() {
-        const shootingStars = document.querySelectorAll('.shooting-star');
-        shootingStars.forEach(function(star, index) {
+// Trigger shooting star animations
+let clonesCreated = false; // Flag to track if clones are created
+function triggerShootingStars() {
+    const shootingStars = document.querySelectorAll('.shooting-star');
+    shootingStars.forEach(function(star, index) {
+        let starPosition, starParts;
+        if (!clonesCreated) {
             // Build star from template
             const template = document.querySelector('#shooting-star-template').cloneNode(true);
             template.setAttribute('visible', true);
             star.appendChild(template);
-            const starEntity = star.querySelector('#star-position');
-            const starParts = star.querySelectorAll('.star-head, .star-tail');
-            // Fade in the star parts
-            starParts.forEach(part => {
-                part.setAttribute('animation__fadein', {
-                    property: 'opacity',
-                    from: 0,
-                    to: 1,
-                    dur: 500,
-                    easing: 'linear'
-                });
-            });
-            // Move the star
-            starEntity.setAttribute('animation__move', {
-                property: 'position',
-                to: '-465 55 -130',
-                dur: 4000,
+        }
+        // Select elements for animation
+        starPosition = star.querySelector('.star-position');
+        starParts = star.querySelectorAll('.star-head, .star-tail');
+        // // Show the stars
+        star.setAttribute('visible', true);
+        starParts.forEach(part => part.setAttribute('visible', true));
+        // Fade in and out the star parts
+        starParts.forEach(part => {
+            part.setAttribute('animation__fadein', {
+                property: 'opacity',
+                from: 0,
+                to: 1,
+                dur: 500,
                 easing: 'linear'
             });
-            // Fade out the star parts
-            starParts.forEach(part => {
-                part.setAttribute('animation__fadeout', {
-                    property: 'opacity',
-                    from: 1,
-                    to: 0,
-                    delay: 3000,
-                    dur: 1000,
-                    easing: 'linear'
-                });
+            part.setAttribute('animation__fadeout', {
+                property: 'opacity',
+                from: 1,
+                to: 0,
+                delay: 3000,
+                dur: 1000,
+                easing: 'linear'
             });
         });
+        // Move the star
+        starPosition.setAttribute('animation__move', {
+            property: 'position',
+            to: '-465 55 -130',
+            dur: 4000,
+            easing: 'linear'
+        });
+        // Reset position and hide stars at the end of the animation
+        starPosition.addEventListener('animationcomplete__move', function () {
+            starPosition.setAttribute('position', '-305 215 -290');
+            starPosition.removeAttribute('animation__move');
+            starParts.forEach(part => {
+                part.removeAttribute('animation__fadein');
+                part.removeAttribute('animation__fadeout');
+            });
+            star.setAttribute('visible', false);
+            starParts.forEach(part => part.setAttribute('visible', false));
+        }, {once: true}); // Ensure the listener is removed after execution
+    });
+    clonesCreated = true; // Set flag to true after first creation
+}
+
+// Trigger shooting stars after 2 seconds
+window.addEventListener('load', function() {
+    setTimeout(function() {
+        triggerShootingStars();
+        setInterval(triggerShootingStars, 6000);
     }, 2000);
 });
