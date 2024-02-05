@@ -148,7 +148,7 @@ AFRAME.registerComponent('elevator-trip', {
                 movements = [
                     { x: elevatorElX, y: elevatorElY + 10, z: elevatorElZ, duration: 2720, easing: 'easeInQuad' }, // Up (ease start)
                     { x: elevatorElX, y: elevatorElY + 150, z: elevatorElZ, duration: 19000 }, // Up
-                    { x: elevatorElX, y: elevatorElY + 150, z: elevatorElZ, duration: 5000 }, // Hold position in sky
+                    { x: elevatorElX, y: elevatorElY + 150, z: elevatorElZ, duration: 5000, shootingStar: { enabled: true, delay: 1000 } }, // Hold position in sky
                     { x: elevatorElX, y: elevatorElY + 5, z: elevatorElZ, duration: 19000 }, // Down
                     { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 2720, easing: 'easeOutQuad' } // Down (ease finish)
                 ];
@@ -169,7 +169,7 @@ AFRAME.registerComponent('elevator-trip', {
                 movements = [
                     { x: elevatorElX, y: elevatorElY + 10, z: elevatorElZ, duration: 2500, easing: 'easeInQuad' }, // Up (ease start)
                     { x: elevatorElX, y: elevatorElY + 200, z: elevatorElZ, duration: 23750 }, // Up
-                    { x: elevatorElX, y: elevatorElY + 200, z: elevatorElZ, duration: 5000  }, // Hold position in sky
+                    { x: elevatorElX, y: elevatorElY + 200, z: elevatorElZ, duration: 5000, shootingStar: { enabled: true, delay: 1000 }}, // Hold position in sky
                     { x: elevatorElX, y: elevatorElY + 5, z: elevatorElZ, duration: 6300, easing: 'easeInCubic', sounds: [{ id: 'sound-falling-1' }] }, // Gravity Fall
                     { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 1250, easing: 'easeOutCubic', sounds: [{ id: 'sound-falling-1' }] } // Down (ease finish)
                 ];
@@ -263,6 +263,10 @@ AFRAME.registerComponent('elevator-trip', {
 
             // Play all sounds for the current movement
             playSounds(sounds);
+
+            if (targetPos.shootingStar && targetPos.shootingStar.enabled) {
+                setTimeout(triggerShootingStars, targetPos.shootingStar.delay);
+            }
 
             // Move Elevator
             elevatorEl.setAttribute('animation', {
@@ -434,10 +438,10 @@ function triggerShootingStars() {
     clonesCreated = true; // Set flag to true after first creation
 }
 
-// Trigger shooting stars after 2 seconds
-window.addEventListener('load', function() {
-    setTimeout(function() {
-        triggerShootingStars();
-        setInterval(triggerShootingStars, 6000);
-    }, 2000);
-});
+// // Testing: Trigger shooting stars after 2 seconds
+// window.addEventListener('load', function() {
+//     setTimeout(function() {
+//         triggerShootingStars();
+//         setInterval(triggerShootingStars, 6000);
+//     }, 2000);
+// });
