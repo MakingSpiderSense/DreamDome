@@ -388,7 +388,7 @@ AFRAME.registerComponent('twinkling-stars', {
             }
             let star = stars[currentStar];
             let starHead = star.querySelector('.star-head');
-            console.log(`Animating star ${currentStar + 1} in cluster ${clusterNumber}`);
+            // console.log(`Animating star ${currentStar + 1} in cluster ${clusterNumber}`);
             this.animateStarHead(starHead);
             // Wait a bit and move to next star after animation
             setTimeout(() => {
