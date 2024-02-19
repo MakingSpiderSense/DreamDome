@@ -375,7 +375,7 @@ AFRAME.registerComponent('twinkling-stars', {
             let cluster = document.querySelector('#star-cluster-' + i).querySelector('.standard-star');
             setTimeout(() => {
                 this.setupStars(cluster, i);
-            }, 225 * (i - 1)); // Staggering initiation by 225ms
+            }, 500 * (i - 1)); // Staggering initiation by 500ms
         }
     },
     setupStars: function (cluster, clusterNumber) {
