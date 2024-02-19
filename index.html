@@ -15,7 +15,7 @@
 
 <body>
 	<!-- <a-scene vr-mode-ui="enabled: false"> -->
-    <a-scene stats physics="driver: ammo; debug: false;" reset-storage>
+    <a-scene stats physics="driver: ammo; debug: false;" reset-storage twinkling-stars>
 
         <!-- Asset Management System -->
         <a-assets>
@@ -61,6 +61,37 @@
         <a-entity id="shooting-star-1" class="shooting-star" rotation="0 0 0"></a-entity>
         <a-entity id="shooting-star-2" class="shooting-star" rotation="0 120 0"></a-entity>
         <a-entity id="shooting-star-3" class="shooting-star" rotation="0 240 0"></a-entity>
+
+        <!-- Standard Star Template -->
+        <a-entity id="standard-star-template" class="standard-star">
+            <!-- Defining star positions -->
+            <a-entity class="star-position" position="-305 215 -290" rotation="0 45 35" scale="4 4 4">
+                <a-image class="star-head" src="#star-head" position="0 1 0" opacity="0" material="color: pink;"></a-image>
+            </a-entity>
+            <a-entity class="star-position" position="-200 326 -264" rotation="0 45 35" scale="4 4 4">
+                <a-image class="star-head" src="#star-head" position="0 1 0" opacity="0" material="color: orange;"></a-image>
+            </a-entity>
+            <a-entity class="star-position" position="-127 204 -364" rotation="0 45 35" scale="4 4 4">
+                <a-image class="star-head" src="#star-head" position="0 1 0" opacity="0" material="color: yellow;"></a-image>
+            </a-entity>
+            <a-entity class="star-position" position="-212 356 -113" rotation="0 45 35" scale="4 4 4">
+                <a-image class="star-head" src="#star-head" position="0 1 0" opacity="0" material="color: teal;"></a-image>
+            </a-entity>
+            <a-entity class="star-position" position="-92 375 -300" rotation="0 45 35" scale="4 4 4">
+                <a-image class="star-head" src="#star-head" position="0 1 0" opacity="0" material="color: cyan;"></a-image>
+            </a-entity>
+            <a-entity class="star-position" position="-186 386 -234" rotation="0 45 35" scale="4 4 4">
+                <a-image class="star-head" src="#star-head" position="0 1 0" opacity="0" material="color: purple;"></a-image>
+            </a-entity>
+        </a-entity>
+
+        <!-- Star Clusters -->
+        <a-entity id="star-cluster-1" class="star-cluster" rotation="0 30 0"></a-entity>
+        <a-entity id="star-cluster-2" class="star-cluster" rotation="0 90 0"></a-entity>
+        <a-entity id="star-cluster-3" class="star-cluster" rotation="0 150 0"></a-entity>
+        <a-entity id="star-cluster-4" class="star-cluster" rotation="0 210 0"></a-entity>
+        <a-entity id="star-cluster-5" class="star-cluster" rotation="0 270 0"></a-entity>
+        <a-entity id="star-cluster-6" class="star-cluster" rotation="0 330 0"></a-entity>
 
         <!-- Billboard -->
         <a-entity class="billboard" position="80 9.5 -16">
