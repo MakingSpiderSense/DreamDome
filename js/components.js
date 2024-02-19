@@ -379,7 +379,7 @@ AFRAME.registerComponent('twinkling-stars', {
         }
     },
     setupStars: function (cluster, clusterNumber) {
-        const stars = cluster.querySelectorAll('.star-position');
+        const stars = cluster.querySelectorAll('.star-single');
         let currentStar = 0;
         // Animate stars, looping forever
         const animateStar = () => {
