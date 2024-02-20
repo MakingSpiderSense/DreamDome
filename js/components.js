@@ -406,6 +406,17 @@ AFRAME.registerComponent('twinkling-stars', {
         animateStar();
     },
     animateStarHead: function (starHead) {
+        // Change the starHead's material to either white, blue, purple, or teal
+        const randomColor = Math.random();
+        if (randomColor < 0.25) {
+            starHead.setAttribute('material', 'color: white');
+        } else if (randomColor < 0.5) {
+            starHead.setAttribute('material', 'color: #fc20e2'); // pink
+        } else if (randomColor < 0.75) {
+            starHead.setAttribute('material', 'color: purple');
+        } else {
+            starHead.setAttribute('material', 'color: teal');
+        }
         // Animation logic: Fade in, hold, fade out
         starHead.setAttribute('animation__fadein', 'property: opacity; from: 0; to: 1; dur: 500');
         starHead.setAttribute('animation__visible', 'property: opacity; to: 1; startEvents: animationcomplete__fadein; dur: 500');
