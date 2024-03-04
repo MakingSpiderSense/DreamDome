@@ -40,8 +40,7 @@
         <!-- Add a fake floor - this is temporary until I can work out the floor physics with environment component -->
         <a-box width="200" height="0.1" depth="200" ammo-body="type: static" ammo-shape visible="false"></a-box>
 		<!-- Navigation Mesh -->
-		<a-entity gltf-model="#my-nav-mesh" nav-mesh position="0 -0.1 0" visible="false">
-		</a-entity>
+		<a-entity gltf-model="#my-nav-mesh" nav-mesh position="0 -0.1 0" visible="false"></a-entity>
 
         <!-- Sky -->
         <a-sky src="#neon-sky" rotation="0 -90 0"></a-sky>
@@ -138,8 +137,8 @@
             </a-entity>
         </a-entity>
 
-        <!-- Ball: To be added between the Speaker and Elevator -->
-        <a-sphere class="ball" position="-2.2 2 -4.75" radius=".5" color="#53e4e1" ammo-body="type: dynamic; restitution: 1000; mass: 1;" ammo-shape="type: sphere; fit: manual; sphereRadius: 0.5"></a-sphere>
+        <!-- Ball -->
+        <a-sphere class="ball" position="-2.2 2 -4.75" radius=".5" color="#53e4e1" ammo-body="type: dynamic; restitution: 1; mass: 1;" ammo-shape="type: sphere; fit: manual; sphereRadius: 0.5"></a-sphere>
 
         <!-- Speaker -->
         <a-entity class="speaker" position="7 0 8" animation="property: rotation; to: 0 -360 0; loop: true; dur: 30000;">
