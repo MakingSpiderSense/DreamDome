@@ -20,6 +20,7 @@ Dream Dome has been tested with the Quest 3, but also should work through the br
 - `aframe-aabb-collider-component` - Used for the collision detection.
     - Used to detect when the user is close to the elevator door, triggering the door to open.
 - `aframe-physics-system` - Used for the physics system.
+- `aframe-particle-system` - Used for the particle system.
 
 ## Additional Notes
 
