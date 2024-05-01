@@ -198,7 +198,10 @@
             <!-- Controllers -->
             <a-entity class="controllers">
                 <a-entity oculus-touch-controls="hand: left"></a-entity>
-                <a-entity oculus-touch-controls="hand: right" cursor raycaster="objects: .clickable; showLine: true; autoRefresh: true; lineColor: #53e4e1; lineOpacity: .7; far: 1.5;"></a-entity>
+                <a-entity oculus-touch-controls="hand: right">
+                    <a-cylinder id="custom-ray" position="0 0 -0.75" height="1.5" radius="0.002" color="#53e4e1" rotation="90 0 0" opacity=".5"></a-cylinder>
+                    <a-entity cursor raycaster="objects: .clickable; far: 1.5;"></a-entity>
+                </a-entity>
             </a-entity>
         </a-entity>
 
