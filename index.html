@@ -186,11 +186,11 @@
                       ammo-body="type: kinematic" ammo-shape="type: box; fit: manual; sphereRadius:0.5"
                       >
                     <!-- Cursor -->
-                    <a-entity cursor position="0 0 -1"
+                    <!-- <a-entity cursor position="0 0 -1"
                                 geometry="primitive: sphere; radius: 0.005"
                                 material="color: #FFFFFF; shader: flat; opacity: 0.5"
                                 raycaster="objects: .clickable">
-                    </a-entity>
+                    </a-entity> -->
                     <!-- Eyelids-->
                     <a-plane class="upper-eyelid" visible="true" material="shader: flat;" color="black" width="10" height="5" position="0 4 -1"></a-plane>
                     <a-plane class="lower-eyelid" visible="true" material="shader: flat;" color="black" width="10" height="5" position="0 -4 -1"></a-plane>
@@ -198,7 +198,7 @@
             <!-- Controllers -->
             <a-entity class="controllers">
                 <a-entity oculus-touch-controls="hand: left"></a-entity>
-                <a-entity oculus-touch-controls="hand: right"></a-entity>
+                <a-entity oculus-touch-controls="hand: right" cursor geometry="primitive: cylinder; color: #FF0000; radius: 0.005; height: 0.01; opacity: 0.5" raycaster="objects: .clickable; showLine: true; autoRefresh: true; lineColor: red;"></a-entity>
             </a-entity>
         </a-entity>
 
