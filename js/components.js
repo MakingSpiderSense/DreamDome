@@ -18,13 +18,14 @@ AFRAME.registerComponent('dim-lights', {
 });
 
 
-// For each entity with "clickable" class, add the `raycaster-intersected` and `raycaster-intersected-cleared` event listeners. Console log whether or not the entity is intersected.
+// Raycaster Intersections
 AFRAME.registerComponent('raycaster-listener', {
     init: function () {
         const el = this.el;
         const originalColor = "#ffffff";
         const styledRay = document.getElementById('styled-ray');
         const reticle = document.getElementById('reticle');
+        // Make reticle larger and beam color green when intersecting
         el.addEventListener('raycaster-intersected', function () {
             styledRay.setAttribute('material', 'color', '#A2F5A2');
             reticle.setAttribute('geometry', 'radius', '.008');
