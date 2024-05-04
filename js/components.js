@@ -18,6 +18,25 @@ AFRAME.registerComponent('dim-lights', {
 });
 
 
+// For each entity with "clickable" class, add the `raycaster-intersected` and `raycaster-intersected-cleared` event listeners. Console log whether or not the entity is intersected.
+AFRAME.registerComponent('raycaster-listener', {
+    init: function () {
+        const el = this.el;
+        const originalColor = "#ffffff";
+        const styledRay = document.getElementById('styled-ray');
+        const reticle = document.getElementById('reticle');
+        el.addEventListener('raycaster-intersected', function () {
+            styledRay.setAttribute('material', 'color', '#A2F5A2');
+            reticle.setAttribute('geometry', 'radius', '.008');
+        });
+        el.addEventListener('raycaster-intersected-cleared', function () {
+            styledRay.setAttribute('material', 'color', originalColor);
+            reticle.setAttribute('geometry', 'radius', '.005');
+        });
+    }
+});
+
+
 // Toggle Music
 AFRAME.registerComponent('toggle-music', {
     init: function () {

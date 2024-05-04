@@ -17,7 +17,7 @@
 
 <body>
 	<!-- <a-scene vr-mode-ui="enabled: false"> -->
-    <a-scene stats physics="driver: ammo; debug: false;" reset-storage twinkling-stars>
+    <a-scene stats physics="driver: ammo; debug: false;" reset-storage twinkling-stars raycaster-listener>
 
         <!-- Asset Management System -->
         <a-assets>
@@ -179,7 +179,7 @@
 		<!-- Camera Rig -->
 		<a-entity class="user" position="0 0 6" movement-controls="speed: .5; constrainToNavMesh: true;" blink-control>
             <!-- VR Console Log -->
-            <!-- <a-console position=".5 1 0" rotation="0 -45 0"></a-console> -->
+            <!-- <a-console position=".5 .5 -.2" rotation="0 -45 0"></a-console> -->
 			<!-- Camera -->
 			<a-entity camera position="0 1.6 0"
 					  look-controls="pointerLockEnabled: false"
@@ -189,7 +189,7 @@
                       ammo-body="type: kinematic" ammo-shape="type: box; fit: manual; sphereRadius:0.5"
                       >
                     <!-- Cursor -->
-                    <a-entity cursor position="0 0 -1"
+                    <a-entity id="reticle" cursor position="0 0 -1"
                                 geometry="primitive: sphere; radius: 0.005"
                                 material="color: #FFFFFF; shader: flat; opacity: 0.5"
                                 raycaster="objects: .clickable">
@@ -203,7 +203,7 @@
                 <a-entity oculus-touch-controls="hand: left"></a-entity>
                 <a-entity oculus-touch-controls="hand: right">
                     <!-- Raycaster Style Line -->
-                    <a-cylinder id="styled-ray" position="0 -.389 -.673" height="1.455" radius="0.002" color="#53e4e1" rotation="60 0 0" opacity=".4"></a-cylinder>
+                    <a-cylinder id="styled-ray" position="0 -.389 -.673" height="1.455" radius="0.002" color="#ffffff" rotation="60 0 0" opacity=".4"></a-cylinder>
                     <!-- Raycaster Actual Line -->
                     <a-entity id="actual-ray" cursor rotation="-30 0 0" raycaster="objects: .clickable; far: 1.5; showLine: false; lineColor: red"></a-entity>
                 </a-entity>
