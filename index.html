@@ -10,6 +10,7 @@
     <script src="https://cdn.jsdelivr.net/gh/MozillaReality/ammo.js@8bbc0ea/builds/ammo.wasm.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-physics-system@v4.2.2/dist/aframe-physics-system.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-particle-system-component@1.1.4/dist/aframe-particle-system-component.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/kylebakerio/a-console@1.0.2/a-console.js"></script>
     <!-- <script src="https://unpkg.com/aframe-event-set-component@5.0.0/dist/aframe-event-set-component.min.js"></script> -->
     <script src="js/components.js"></script>
 </head>
@@ -177,6 +178,8 @@
 
 		<!-- Camera Rig -->
 		<a-entity class="user" position="0 0 6" movement-controls="speed: .5; constrainToNavMesh: true;" blink-control>
+            <!-- VR Console Log -->
+            <!-- <a-console position=".5 1 0" rotation="0 -45 0"></a-console> -->
 			<!-- Camera -->
 			<a-entity camera position="0 1.6 0"
 					  look-controls="pointerLockEnabled: false"
