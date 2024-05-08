@@ -36,7 +36,7 @@
             <img id="billboard-front" src="assets/billboard-front.png">
 			<a-asset-item id="my-nav-mesh" src="assets/navmesh.gltf"></a-asset-item>
         </a-assets>
-        
+
         <!-- Environment -->
         <a-entity class="env-dream" environment="preset: dream; groundColor: #445; grid: cross; fog: 0; skyType: none; seed: 3;"></a-entity>
         <!-- Particle System -->
@@ -168,7 +168,7 @@
             <!-- Button -->
             <a-entity class="ps-btn" rotation="39.7 51.4 122.8" position="-1.01 .2 -.79" scale=".2 .2 .2">
                 <a-entity id="ps-torus" geometry="primitive: torus; radius: .5; radiusTubular: 0.05; arc: 300" material="color: #53e4e1; opacity: .2;"></a-entity>
-                <a-entity id="ps-cone" geometry="primitive: cone; height: .8; radiusBottom: .05; radiusTop: .2;" material="color: #53e4e1; opacity: .2;" scale=".7 .7 1" rotation="0 0 -120" 
+                <a-entity id="ps-cone" geometry="primitive: cone; height: .8; radiusBottom: .05; radiusTop: .2;" material="color: #53e4e1; opacity: .2;" scale=".7 .7 1" rotation="0 0 -120"
                     position=".285 -.16 0">
                 </a-entity>
                 <a-sphere id="ps-btn-hitbox" class="clickable" toggle-music material="opacity: 0;" sound="src: #ghosthustlers; volume: 1; refDistance: 5; rolloffFactor: .3">
@@ -188,7 +188,7 @@
                       open-door
                       ammo-body="type: kinematic" ammo-shape="type: box; fit: manual; sphereRadius:0.5"
                       >
-                    <!-- Cursor -->
+                    <!-- Reticle -->
                     <a-entity id="reticle" cursor position="0 0 -1"
                                 geometry="primitive: sphere; radius: 0.005"
                                 material="color: #FFFFFF; shader: flat; opacity: 0.5"
