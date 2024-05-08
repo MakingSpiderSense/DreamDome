@@ -18,6 +18,30 @@ AFRAME.registerComponent('dim-lights', {
 });
 
 
+AFRAME.registerComponent('vr-mode-detect', {
+    init: function () {
+        var sceneEl = this.el.sceneEl; // Reference to the scene
+        var reticle = document.getElementById('reticle');
+        // Event listener for entering VR mode
+        sceneEl.addEventListener('enter-vr', function () {
+            if (AFRAME.utils.device.checkHeadsetConnected()) {
+                // Hide the reticle when in VR mode
+                reticle.setAttribute('visible', 'false');
+                // Disable cursor's raycasting
+                reticle.setAttribute('raycaster', 'enabled', false);
+            }
+        });
+        // Event listener for exiting VR mode
+        sceneEl.addEventListener('exit-vr', function () {
+            // Show the reticle when not in VR mode
+            reticle.setAttribute('visible', 'true');
+            // Enable cursor's raycasting
+            reticle.setAttribute('raycaster', 'enabled', true);
+        });
+    }
+});
+
+
 // Raycaster Intersections
 AFRAME.registerComponent('raycaster-listener', {
     init: function () {
@@ -68,7 +92,7 @@ AFRAME.registerComponent('toggle-music', {
     }
 });
 
-  
+
 // Open/close the elevator door and play sound
 AFRAME.registerComponent('open-door', {
     init: function () {
@@ -240,10 +264,10 @@ AFRAME.registerComponent('elevator-trip', {
         const playSounds = (sounds) => {
             // Extract sound IDs from the sounds array
             const soundIds = sounds.map(sound => sound.id);
-        
+
             // Stop all sounds that are not in the next movement
             stopAllSoundsExcept(soundIds);
-        
+
             // Play new sounds
             sounds.forEach(sound => {
                 playSoundWithDelay(sound.id, sound.delay);
