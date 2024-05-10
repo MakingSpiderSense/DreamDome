@@ -93,19 +93,67 @@ AFRAME.registerComponent('raycaster-listener', {
     init: function () {
         const el = this.el;
         const originalColor = "#ffffff";
-        const styledRay = document.getElementById('styled-ray');
-        const reticle = document.getElementById('reticle');
+        const styledRay = document.querySelectorAll('.styled-ray');
+        const reticle = document.querySelectorAll('.reticle');
         // Make reticle larger and beam color green when intersecting
         el.addEventListener('raycaster-intersected', function () {
-            console.log('Player hit something!');
-            styledRay.setAttribute('material', 'color', '#A2F5A2');
+            styledRay.forEach(function (ray) {
+                ray.setAttribute('material', 'color', '#A2F5A2');
+            });
             reticle.setAttribute('geometry', 'radius', '.008');
         });
         el.addEventListener('raycaster-intersected-cleared', function () {
-            console.log('Player cleared intersection!');
-            styledRay.setAttribute('material', 'color', originalColor);
+            styledRay.forEach(function (ray) {
+                ray.setAttribute('material', 'color', originalColor);
+            });
             reticle.setAttribute('geometry', 'radius', '.005');
         });
+    }
+});
+
+
+// Toggle Raycaster
+AFRAME.registerComponent('raycaster-manager', {
+    init: function () {
+        const leftController = document.querySelector('#left-hand');
+        const rightController = document.querySelector('#right-hand');
+        // Listen for trigger down events on both controllers
+        leftController.addEventListener('triggerdown', () => this.toggleRaycaster('left'));
+        rightController.addEventListener('triggerdown', () => this.toggleRaycaster('right'));
+    },
+    // Toggle logic for raycaster
+    toggleRaycaster: function (hand) {
+        const actualRay = document.querySelector(`#${hand}-hand .actual-ray`);
+        // Check if the raycaster is already active on this controller
+        if (actualRay.getAttribute('raycaster').enabled) {
+            console.log('Raycaster already active on this controller:', hand);
+            // If not intersecting a clickable, disable it
+            if (!actualRay.components.raycaster.intersectedEls.length) {
+                console.log('No intersection detected. Disabling raycaster on:', hand);
+                this.disableRaycaster(hand);
+            }
+        } else {
+            // Enable and move the raycaster to this controller
+            console.log('Enabling raycaster on:', hand);
+            this.enableRaycaster(hand);
+        }
+    },
+    // Disable raycaster
+    disableRaycaster: function (hand) {
+        const styledRay = document.querySelector(`#${hand}-hand .styled-ray`);
+        const actualRay = document.querySelector(`#${hand}-hand .actual-ray`);
+        styledRay.setAttribute('visible', false);
+        actualRay.setAttribute('raycaster', 'enabled', false);
+    },
+    // Enable raycaster
+    enableRaycaster: function (hand) {
+        const styledRay = document.querySelector(`#${hand}-hand .styled-ray`);
+        const actualRay = document.querySelector(`#${hand}-hand .actual-ray`);
+        styledRay.setAttribute('visible', true);
+        actualRay.setAttribute('raycaster', { enabled: true });
+        // Disable the other controller's raycaster
+        const otherHand = hand === 'left' ? 'right' : 'left';
+        this.disableRaycaster(otherHand);
     }
 });
 
