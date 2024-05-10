@@ -1,5 +1,50 @@
 // A-frame Components
 
+
+// VR Console Logger
+AFRAME.registerComponent('vr-logger', {
+    schema: {
+        maxMessages: { type: 'int', default: 5 } // Maximum number of messages to display
+    },
+    // Initialize the component
+    init: function () {
+        const enableVrLogger = localStorage.getItem('enableVrLogger');
+        if (!enableVrLogger || enableVrLogger !== 'true') {
+            console.log('VR Logger is disabled.');
+            return;
+        }
+        this.messages = [];
+        this.el.setAttribute('text', {
+            color: 'white',
+            width: 3, // Width of the text box
+            wrapCount: 45, // Number of characters per line before wrapping
+            align: 'left',
+        });
+        // Override the console.log function to capture and display messages in the VR console
+        const originalConsoleLog = console.log;
+        console.log = (...args) => {
+            originalConsoleLog(...args);
+            // Add the console message to the array
+            this.addMessage(args.map(a => a.toString()).join(' '));
+        };
+    },
+    // Add a message to the console
+    addMessage: function (message) {
+        // Remove the oldest message if the array is full
+        if (this.messages.length >= this.data.maxMessages) {
+            this.messages.shift();
+        }
+        // Add the new message to the array
+        this.messages.push(message + "\n");
+        this.updateText();
+    },
+    // Update the text displayed in the VR console
+    updateText: function () {
+        this.el.setAttribute('text', 'value', this.messages.join('\n'));
+    }
+});
+
+
 // Reset Local Storage
 AFRAME.registerComponent('reset-storage', {
     init: function () {
@@ -18,6 +63,7 @@ AFRAME.registerComponent('dim-lights', {
 });
 
 
+// Detect if the user is actually in VR
 AFRAME.registerComponent('vr-mode-detect', {
     init: function () {
         var sceneEl = this.el.sceneEl; // Reference to the scene
@@ -51,10 +97,12 @@ AFRAME.registerComponent('raycaster-listener', {
         const reticle = document.getElementById('reticle');
         // Make reticle larger and beam color green when intersecting
         el.addEventListener('raycaster-intersected', function () {
+            console.log('Player hit something!');
             styledRay.setAttribute('material', 'color', '#A2F5A2');
             reticle.setAttribute('geometry', 'radius', '.008');
         });
         el.addEventListener('raycaster-intersected-cleared', function () {
+            console.log('Player cleared intersection!');
             styledRay.setAttribute('material', 'color', originalColor);
             reticle.setAttribute('geometry', 'radius', '.005');
         });
