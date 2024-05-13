@@ -94,7 +94,7 @@ AFRAME.registerComponent('raycaster-listener', {
         const el = this.el;
         const originalColor = "#ffffff";
         const styledRay = document.querySelectorAll('.styled-ray');
-        const reticle = document.querySelectorAll('.reticle');
+        const reticle = document.querySelector('#reticle');
         // Make reticle larger and beam color green when intersecting
         el.addEventListener('raycaster-intersected', function () {
             styledRay.forEach(function (ray) {
