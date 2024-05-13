@@ -45,6 +45,53 @@ AFRAME.registerComponent('vr-logger', {
 });
 
 
+function setupMotionSensors() {
+    // Check if DeviceMotionEvent is available and the user agent indicates a mobile device
+    if (typeof DeviceMotionEvent !== 'undefined' && /Mobi|Android/i.test(navigator.userAgent)) {
+        let motionReceived = false;
+        // Test if motion sensors are already active
+        function motionTest(event) {
+            if ((event.acceleration.x !== null || event.accelerationIncludingGravity.x !== null) && !motionReceived) {
+                // Motion data is active, so hide the button
+                motionReceived = true;
+                document.getElementById('enableSensors').style.display = 'none';
+                // Remove event listener once the motion data is confirmed active
+                window.removeEventListener('devicemotion', motionTest);
+            }
+        }
+        window.addEventListener('devicemotion', motionTest);
+        // Initially check if motion data is received after a delay
+        setTimeout(() => {
+            if (!motionReceived) {
+                // Different behavior based on whether requestPermission is available
+                if (typeof DeviceMotionEvent.requestPermission === 'function') {
+                    // This block handles Safari and similar browsers that allow requesting permission
+                    document.getElementById('enableSensors').style.display = 'block';
+                    document.getElementById('enableSensors').addEventListener('click', function() {
+                        DeviceMotionEvent.requestPermission().then(response => {
+                            if (response === 'granted') {
+                                document.getElementById('enableSensors').style.display = 'none';
+                            } else {
+                                alert('Motion sensor permission denied');
+                            }
+                        }).catch(console.error);
+                    });
+                } else {
+                    // This block handles others browsers where permission cannot be requested, like Chrome, Brave, etc.
+                    document.getElementById('enableSensors').style.display = 'block';
+                    document.getElementById('enableSensors').addEventListener('click', function() {
+                        alert("Please enable motion sensors in your browser's site settings. This will allow you to look up/down and fully interact with objects in the scene.");
+                    });
+                }
+            }
+        }, 500); // Give some time to receive a motion event if active
+    } else {
+        console.log('DeviceMotionEvent not supported or not a mobile device');
+    }
+}
+window.addEventListener('DOMContentLoaded', setupMotionSensors);
+
+
 // Reset Local Storage
 AFRAME.registerComponent('reset-storage', {
     init: function () {

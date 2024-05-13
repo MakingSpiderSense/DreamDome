@@ -1,0 +1,25 @@
+/**
+ * Global
+ * Description: Styles that are used globally across the site.
+ */
+
+// // COLORS
+// $color1: #95190d;
+// $color2: #221d23;
+
+// // FONTS
+// $font1: xxxxxx;
+// $font2: xxxxxx;
+
+button#enableSensors {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    z-index: 999;
+    cursor: pointer;
+    background-color: rgba(0, 0, 0, 0.3);
+    color: white;
+    padding: 10px;
+    border: 2px solid white;
+    border-radius: 5px;
+}
