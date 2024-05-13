@@ -45,6 +45,7 @@ AFRAME.registerComponent('vr-logger', {
 });
 
 
+// Prompt enabling motion sensors for mobile devices
 function setupMotionSensors() {
     // Check if DeviceMotionEvent is available and the user agent indicates a mobile device
     if (typeof DeviceMotionEvent !== 'undefined' && /Mobi|Android/i.test(navigator.userAgent)) {
@@ -90,6 +91,18 @@ function setupMotionSensors() {
     }
 }
 window.addEventListener('DOMContentLoaded', setupMotionSensors);
+
+
+// Add performance statistics if on development environment
+document.addEventListener("DOMContentLoaded", function () {
+    var scene = document.querySelector('a-scene');
+    var currentUrl = window.location.href;
+    // Check if the URL contains any of the specified paths
+    if (currentUrl.includes('/dream-dome/')) {
+        // Add stats attribute which displays performance statistics
+        scene.setAttribute('stats', '');
+    }
+});
 
 
 // Reset Local Storage
