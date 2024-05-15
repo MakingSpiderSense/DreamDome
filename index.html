@@ -12,7 +12,7 @@
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-physics-system@v4.2.2/dist/aframe-physics-system.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-particle-system-component@1.1.4/dist/aframe-particle-system-component.min.js"></script>
     <!-- <script src="https://unpkg.com/aframe-event-set-component@5.0.0/dist/aframe-event-set-component.min.js"></script> -->
-    <script src="js/components.js?v=1.0.0"></script>
+    <script src="js/components.js?v=1.0.1"></script>
     <link href="style1.css" rel="stylesheet">
 </head>
 
@@ -34,6 +34,8 @@
             <audio id="elevator-fall-1" src="assets/elevator-fall-1.mp3"></audio>
             <audio id="elevator-plunge" src="assets/elevator-plunge.mp3"></audio>
             <audio id="skybox-theme" src="assets/skybox-theme.mp3"></audio>
+            <audio id="raycaster-beep" src="assets/raycaster.mp3"></audio>
+            <audio id="button-a" src="assets/button-a.mp3"></audio>
             <img id="billboard-front" src="assets/billboard-front.png">
 			<a-asset-item id="my-nav-mesh" src="assets/navmesh.gltf"></a-asset-item>
         </a-assets>
@@ -205,13 +207,13 @@
             <a-entity class="controllers">
                 <a-entity id="left-hand" oculus-touch-controls="hand: left">
                     <!-- Raycaster Style Line -->
-                    <a-cylinder class="styled-ray" visible="false" position="0 -.389 -.673" height="1.455" radius="0.002" color="#ffffff" rotation="60 0 0" opacity=".4"></a-cylinder>
+                    <a-cylinder class="styled-ray" visible="false" position="0 -.389 -.673" height="1.455" radius="0.002" color="#ffffff" rotation="60 0 0" opacity=".4" sound="src: #raycaster-beep; volume: .1;"></a-cylinder>
                     <!-- Raycaster Actual Line -->
                     <a-entity class="actual-ray" cursor rotation="-30 0 0" raycaster="objects: .clickable; enabled: false; far: 1.5; showLine: false; lineColor: red"></a-entity>
                 </a-entity>
                 <a-entity id="right-hand" oculus-touch-controls="hand: right">
                     <!-- Raycaster Style Line -->
-                    <a-cylinder class="styled-ray" visible="false" position="0 -.389 -.673" height="1.455" radius="0.002" color="#ffffff" rotation="60 0 0" opacity=".4"></a-cylinder>
+                    <a-cylinder class="styled-ray" visible="false" position="0 -.389 -.673" height="1.455" radius="0.002" color="#ffffff" rotation="60 0 0" opacity=".4" sound="src: #raycaster-beep; volume: .1;"></a-cylinder>
                     <!-- Raycaster Actual Line -->
                     <a-entity class="actual-ray" cursor rotation="-30 0 0" raycaster="objects: .clickable; enabled: false; far: 1.5; showLine: false; lineColor: red"></a-entity>
                 </a-entity>

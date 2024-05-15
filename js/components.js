@@ -211,9 +211,17 @@ AFRAME.registerComponent('raycaster-manager', {
         const actualRay = document.querySelector(`#${hand}-hand .actual-ray`);
         styledRay.setAttribute('visible', true);
         actualRay.setAttribute('raycaster', { enabled: true });
+        this.playSound(styledRay);
         // Disable the other controller's raycaster
         const otherHand = hand === 'left' ? 'right' : 'left';
         this.disableRaycaster(otherHand);
+    },
+    // Play sound
+    playSound: function (styledRay) {
+        let soundComp = styledRay.components.sound;
+        if (soundComp) {
+            soundComp.playSound();
+        }
     }
 });
 
