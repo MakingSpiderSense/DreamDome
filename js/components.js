@@ -300,8 +300,11 @@ AFRAME.registerComponent('elevator-trip', {
         const elevatorEl = document.querySelector('#elevator');
         const cameraEl = document.querySelector('.user');
         const mainCameraEl = cameraEl.querySelector('#cameraRig');
+        const cpanel = document.querySelector('.cpanel');
 
         el.addEventListener('click', () => {
+            // Play the sound of a button press on the control panel
+            this.playSound(cpanel);
             // Exit if another ride is in progress
             const elevatorController = document.querySelector('#elevator').components['elevator-controller'];
             if (elevatorController.data.isMoving) {
