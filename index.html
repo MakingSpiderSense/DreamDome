@@ -198,7 +198,7 @@
                     <a-entity id="reticle" cursor position="0 0 -1"
                                 geometry="primitive: sphere; radius: 0.005"
                                 material="color: #FFFFFF; shader: flat; opacity: 0.5"
-                                raycaster="objects: .clickable">
+                                raycaster="objects: .clickable; autoRefresh: false;">
                     </a-entity>
                     <!-- Eyelids-->
                     <a-plane class="upper-eyelid" visible="true" material="shader: flat;" color="black" width="10" height="5" position="0 4 -1"></a-plane>
@@ -210,13 +210,13 @@
                     <!-- Raycaster Style Line -->
                     <a-cylinder class="styled-ray" visible="false" position="0 -.389 -.673" height="1.455" radius="0.002" color="#ffffff" rotation="60 0 0" opacity=".4" sound="src: #raycaster-beep; volume: .1;"></a-cylinder>
                     <!-- Raycaster Actual Line -->
-                    <a-entity class="actual-ray" cursor rotation="-30 0 0" raycaster="objects: .clickable; enabled: false; far: 1.5; showLine: false; lineColor: red"></a-entity>
+                    <a-entity class="actual-ray" cursor rotation="-30 0 0" raycaster="objects: .clickable; autoRefresh: false; enabled: false; far: 1.5; showLine: false; lineColor: red"></a-entity>
                 </a-entity>
                 <a-entity id="right-hand" oculus-touch-controls="hand: right">
                     <!-- Raycaster Style Line -->
                     <a-cylinder class="styled-ray" visible="false" position="0 -.389 -.673" height="1.455" radius="0.002" color="#ffffff" rotation="60 0 0" opacity=".4" sound="src: #raycaster-beep; volume: .1;"></a-cylinder>
                     <!-- Raycaster Actual Line -->
-                    <a-entity class="actual-ray" cursor rotation="-30 0 0" raycaster="objects: .clickable; enabled: false; far: 1.5; showLine: false; lineColor: red"></a-entity>
+                    <a-entity class="actual-ray" cursor rotation="-30 0 0" raycaster="objects: .clickable; autoRefresh: false; enabled: false; far: 1.5; showLine: false; lineColor: red"></a-entity>
                 </a-entity>
             </a-entity>
         </a-entity>
