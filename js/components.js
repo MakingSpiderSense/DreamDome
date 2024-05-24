@@ -187,7 +187,7 @@ AFRAME.registerComponent('raycaster-manager', {
         // Check if the raycaster is already active on this controller
         if (actualRay.getAttribute('raycaster').enabled) {
             console.log('Raycaster already active on this controller:', hand);
-            // If not intersecting a clickable, disable it
+            // If not intersecting a interactable, disable it
             if (!actualRay.components.raycaster.intersectedEls.length) {
                 console.log('No intersection detected. Disabling raycaster on:', hand);
                 this.disableRaycaster(hand);

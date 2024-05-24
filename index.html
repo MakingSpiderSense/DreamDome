@@ -130,10 +130,10 @@
             <a-entity class="cpanel" position="-2.7 1 1" sound="src: #button-a; volume: .1;">
                 <a-entity class="cp-plate" rotation="-8 104 -1">
                     <a-box material="color: #333;" depth=".026" height=".5" width=".59"></a-box>
-                    <a-sphere class="clickable" elevator-trip="rideType: cosmo-climb" material="color: #0fefdc;" radius=".055" scale="1 1 .35" position="-0.138 -0.075 0.007"></a-sphere>
-                    <a-sphere class="clickable" elevator-trip="rideType: skybox-tour" material="color: #ff6cb6;" radius=".055" scale="1 1 .35" position="-.006 -.018 .007"></a-sphere>
-                    <a-sphere class="clickable" elevator-trip="rideType: gravity-rush" material="color: #ffff99;" radius=".055" scale="1 1 .35" position="0.129 -0.075 0.007"></a-sphere>
-                    <a-sphere class="clickable" elevator-trip="rideType: skydive" material="color: yellow;" radius=".055" scale="1 1 .35" position="0.114 0.194 0.043" visible="false"></a-sphere>
+                    <a-sphere class="interactable" elevator-trip="rideType: cosmo-climb" material="color: #0fefdc;" radius=".055" scale="1 1 .35" position="-0.138 -0.075 0.007"></a-sphere>
+                    <a-sphere class="interactable" elevator-trip="rideType: skybox-tour" material="color: #ff6cb6;" radius=".055" scale="1 1 .35" position="-.006 -.018 .007"></a-sphere>
+                    <a-sphere class="interactable" elevator-trip="rideType: gravity-rush" material="color: #ffff99;" radius=".055" scale="1 1 .35" position="0.129 -0.075 0.007"></a-sphere>
+                    <a-sphere class="interactable" elevator-trip="rideType: skydive" material="color: yellow;" radius=".055" scale="1 1 .35" position="0.114 0.194 0.043" visible="false"></a-sphere>
                     <a-image src="#cpanel" scale="1 1 1" height=".5" width=".59" position="-.004 -.003 .018"></a-image>
                 </a-entity>
                 <a-cylinder color="#333" radius="0.01" height=".925" position="0 -.4375 0" scale="1 1 2" rotation="0 15.3 0"></a-cylinder>
@@ -175,7 +175,7 @@
                 <a-entity id="ps-cone" geometry="primitive: cone; height: .8; radiusBottom: .05; radiusTop: .2;" material="color: #53e4e1; opacity: .2;" scale=".7 .7 1" rotation="0 0 -120"
                     position=".285 -.16 0">
                 </a-entity>
-                <a-sphere id="ps-btn-hitbox" class="clickable" toggle-music material="opacity: 0;" sound="src: #ghosthustlers; volume: 1; refDistance: 5; rolloffFactor: .3">
+                <a-sphere id="ps-btn-hitbox" class="interactable" toggle-music material="opacity: 0;" sound="src: #ghosthustlers; volume: 1; refDistance: 5; rolloffFactor: .3">
                 </a-sphere>
             </a-entity>
         </a-entity>
@@ -198,7 +198,7 @@
                     <a-entity id="reticle" cursor position="0 0 -1"
                                 geometry="primitive: sphere; radius: 0.005"
                                 material="color: #FFFFFF; shader: flat; opacity: 0.5"
-                                raycaster="objects: .clickable; autoRefresh: false;">
+                                raycaster="objects: .interactable; autoRefresh: false;">
                     </a-entity>
                     <!-- Eyelids-->
                     <a-plane class="upper-eyelid" visible="true" material="shader: flat;" color="black" width="10" height="5" position="0 4 -1"></a-plane>
@@ -210,13 +210,13 @@
                     <!-- Raycaster Style Line -->
                     <a-cylinder class="styled-ray" visible="false" position="0 -.389 -.673" height="1.455" radius="0.002" color="#ffffff" rotation="60 0 0" opacity=".4" sound="src: #raycaster-beep; volume: .1;"></a-cylinder>
                     <!-- Raycaster Actual Line -->
-                    <a-entity class="actual-ray" cursor rotation="-30 0 0" raycaster="objects: .clickable; autoRefresh: false; enabled: false; far: 1.5; showLine: false; lineColor: red"></a-entity>
+                    <a-entity class="actual-ray" cursor rotation="-30 0 0" raycaster="objects: .interactable; autoRefresh: false; enabled: false; far: 1.5; showLine: false; lineColor: red"></a-entity>
                 </a-entity>
                 <a-entity id="right-hand" oculus-touch-controls="hand: right">
                     <!-- Raycaster Style Line -->
                     <a-cylinder class="styled-ray" visible="false" position="0 -.389 -.673" height="1.455" radius="0.002" color="#ffffff" rotation="60 0 0" opacity=".4" sound="src: #raycaster-beep; volume: .1;"></a-cylinder>
                     <!-- Raycaster Actual Line -->
-                    <a-entity class="actual-ray" cursor rotation="-30 0 0" raycaster="objects: .clickable; autoRefresh: false; enabled: false; far: 1.5; showLine: false; lineColor: red"></a-entity>
+                    <a-entity class="actual-ray" cursor rotation="-30 0 0" raycaster="objects: .interactable; autoRefresh: false; enabled: false; far: 1.5; showLine: false; lineColor: red"></a-entity>
                 </a-entity>
             </a-entity>
         </a-entity>
