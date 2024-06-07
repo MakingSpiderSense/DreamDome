@@ -347,7 +347,7 @@ AFRAME.registerComponent('elevator-trip', {
         });
         elevatorFloorEl.setAttribute('animation__opacity', {
             property: 'material.opacity',
-            to: 0.1,
+            to: 0.01,
             dur: 2000
         });
         elevatorFloorEl.setAttribute('material', 'src', null);
