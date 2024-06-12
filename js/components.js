@@ -451,17 +451,16 @@ AFRAME.registerComponent('elevator-trip', {
                 // Restore the elevator floor
                 elevatorFloorEl.setAttribute('animation__color', {
                     property: 'material.color',
-                    to: '#252d2c',
+                    to: '#808080',
                     dur: 1000
                 });
                 elevatorFloorEl.setAttribute('animation__opacity', {
                     property: 'material.opacity',
                     to: 1,
-                    dur: 500
+                    dur: 1000
                 });
                 setTimeout(() => {
                     elevatorFloorEl.setAttribute('material', 'src', '#speaker');
-                    elevatorFloorEl.setAttribute('material', 'color', 'gray');
                 }, 1050);
                 // Restore the elevator state
                 const elevatorController = document.querySelector('#elevator').components['elevator-controller'];
@@ -482,6 +481,7 @@ AFRAME.registerComponent('elevator-trip', {
             // Play all sounds for the current movement
             playSounds(sounds);
 
+            // Trigger shooting stars if enabled
             if (targetPos.shootingStar && targetPos.shootingStar.enabled) {
                 setTimeout(triggerShootingStars, targetPos.shootingStar.delay);
             }
