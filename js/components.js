@@ -442,6 +442,7 @@ AFRAME.registerComponent('elevator-trip', {
         };
 
         const moveElevator = () => {
+            // End the ride if all movements are complete
             if (movementIndex >= movements.length) {
                 // Stop all sounds at the end of the ride
                 stopAllSounds();
@@ -465,12 +466,18 @@ AFRAME.registerComponent('elevator-trip', {
                 // Restore the elevator state
                 const elevatorController = document.querySelector('#elevator').components['elevator-controller'];
                 elevatorController.data.isMoving = false;
+                // Re-enable movement
+                cameraEl.setAttribute('movement-controls', { enabled: true });
                 return; // End of trip
             }
 
+            // Start the ride
             const targetPos = movements[movementIndex];
             const duration = targetPos.duration; // Duration for each movement
             const sounds = targetPos.sounds || [{ id: 'sound-moving' }]; // Default to 'sound-moving'
+
+            // Disable movement
+            cameraEl.setAttribute('movement-controls', { enabled: false });
 
             // Play all sounds for the current movement
             playSounds(sounds);
