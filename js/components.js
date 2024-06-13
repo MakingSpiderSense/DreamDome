@@ -155,12 +155,24 @@ AFRAME.registerComponent('raycaster-listener', {
         const originalColor = "#ffffff";
         const styledRay = document.querySelectorAll('.styled-ray');
         const reticle = document.querySelector('#reticle');
+        const leftHand = document.querySelector('#left-hand');
+        const rightHand = document.querySelector('#right-hand');
         // Make reticle larger and beam color green when intersecting
         el.addEventListener('raycaster-intersected', function () {
             styledRay.forEach(function (ray) {
                 ray.setAttribute('material', 'color', '#A2F5A2');
             });
             reticle.setAttribute('geometry', 'radius', '.008');
+            // Vibrate the controller that is intersecting
+            styledRay.forEach(function (ray) {
+                if (ray.getAttribute('visible')) {
+                    if (ray.classList.contains('ar-left')) {
+                        leftHand.emit('trigger-vibration');
+                    } else if (ray.classList.contains('ar-right')) {
+                        rightHand.emit('trigger-vibration');
+                    }
+                }
+            });
         });
         el.addEventListener('raycaster-intersected-cleared', function () {
             styledRay.forEach(function (ray) {
