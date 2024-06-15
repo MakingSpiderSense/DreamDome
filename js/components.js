@@ -340,6 +340,10 @@ AFRAME.registerComponent('elevator-trip', {
     startElevatorTrip: function (elevatorEl, cameraEl) {
         const elevatorDoorTriggerEl = document.querySelector('#elevator-door-trigger');
         const elevatorFloorEl = document.querySelector('.el-floor');
+        const elevatorCeilingEl = document.querySelector('.el-ceiling');
+        const elevatorMainEl = document.querySelector('.el-mainbody');
+        const elevatorDoorArcEl = document.querySelector('.el-door-arc');
+        const elevatorDoorEl = document.querySelector('.el-door');
         const elevatorElX = elevatorEl.getAttribute('position').x;
         const elevatorElY = elevatorEl.getAttribute('position').y;
         const elevatorElZ = elevatorEl.getAttribute('position').z;
@@ -350,7 +354,7 @@ AFRAME.registerComponent('elevator-trip', {
         const elevatorDoorTriggerElY = elevatorDoorTriggerEl.getAttribute('position').y;
         const elevatorDoorTriggerElZ = elevatorDoorTriggerEl.getAttribute('position').z;
         elevatorDoorTriggerEl.setAttribute('position', { x: elevatorDoorTriggerElX, y: elevatorDoorTriggerElY, z: 12 });
-        // Make the elevator floor nearly invisible during the trip.
+        // Make the elevator floor and glass nearly invisible during the trip.
         elevatorFloorEl.setAttribute('material', 'color', '#252d2c'); // This is to help with the transition
         elevatorFloorEl.setAttribute('animation__color', {
             property: 'material.color',
@@ -363,6 +367,26 @@ AFRAME.registerComponent('elevator-trip', {
             dur: 2000
         });
         elevatorFloorEl.setAttribute('material', 'src', null);
+        elevatorCeilingEl.setAttribute('animation__opacity', {
+            property: 'material.opacity',
+            to: 0.2,
+            dur: 2000
+        });
+        elevatorMainEl.setAttribute('animation__opacity', {
+            property: 'material.opacity',
+            to: 0.1,
+            dur: 2000
+        });
+        elevatorDoorArcEl.setAttribute('animation__opacity', {
+            property: 'material.opacity',
+            to: 0.1,
+            dur: 2000
+        });
+        elevatorDoorEl.setAttribute('animation__opacity', {
+            property: 'material.opacity',
+            to: 0.15,
+            dur: 2000
+        });
 
         // Elevator movements
         let movements;
@@ -391,9 +415,9 @@ AFRAME.registerComponent('elevator-trip', {
             case 'gravity-rush':
                 movements = [
                     { x: elevatorElX, y: elevatorElY + 10, z: elevatorElZ, duration: 2500, easing: 'easeInQuad' }, // Up (ease start)
-                    { x: elevatorElX, y: elevatorElY + 200, z: elevatorElZ, duration: 23750 }, // Up
-                    { x: elevatorElX, y: elevatorElY + 200, z: elevatorElZ, duration: 5000, shootingStar: { enabled: true, delay: 1000 }}, // Hold position in sky
-                    { x: elevatorElX, y: elevatorElY + 5, z: elevatorElZ, duration: 6300, easing: 'easeInCubic', sounds: [{ id: 'sound-falling-1' }] }, // Gravity Fall
+                    { x: elevatorElX, y: elevatorElY + 200, z: elevatorElZ, duration: 2375 }, // Up
+                    { x: elevatorElX, y: elevatorElY + 200, z: elevatorElZ, duration: 500, shootingStar: { enabled: true, delay: 1000 }}, // Hold position in sky
+                    { x: elevatorElX, y: elevatorElY + 5, z: elevatorElZ, duration: 630, easing: 'easeInCubic', sounds: [{ id: 'sound-falling-1' }] }, // Gravity Fall
                     { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 1250, easing: 'easeOutCubic', sounds: [{ id: 'sound-falling-1' }] } // Down (ease finish)
                 ];
                 break;
@@ -460,7 +484,7 @@ AFRAME.registerComponent('elevator-trip', {
                 stopAllSounds();
                 // Restore elevator door trigger position
                 elevatorDoorTriggerEl.setAttribute('position', { x: elevatorDoorTriggerElX, y: elevatorDoorTriggerElY, z: elevatorDoorTriggerElZ });
-                // Restore the elevator floor
+                // Restore the elevator floor and glass
                 elevatorFloorEl.setAttribute('animation__color', {
                     property: 'material.color',
                     to: '#808080',
@@ -469,6 +493,26 @@ AFRAME.registerComponent('elevator-trip', {
                 elevatorFloorEl.setAttribute('animation__opacity', {
                     property: 'material.opacity',
                     to: 1,
+                    dur: 1000
+                });
+                elevatorCeilingEl.setAttribute('animation__opacity', {
+                    property: 'material.opacity',
+                    to: .4,
+                    dur: 1000
+                });
+                elevatorMainEl.setAttribute('animation__opacity', {
+                    property: 'material.opacity',
+                    to: .2,
+                    dur: 1000
+                });
+                elevatorDoorArcEl.setAttribute('animation__opacity', {
+                    property: 'material.opacity',
+                    to: .2,
+                    dur: 1000
+                });
+                elevatorDoorEl.setAttribute('animation__opacity', {
+                    property: 'material.opacity',
+                    to: .3,
                     dur: 1000
                 });
                 setTimeout(() => {

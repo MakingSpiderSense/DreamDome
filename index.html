@@ -121,11 +121,12 @@
             <a-entity id="sound-falling-1" sound="src: #elevator-fall-1; volume: 0.3;"></a-entity>
             <a-entity id="sound-plunge" sound="src: #elevator-plunge; volume: 0.5;"></a-entity>
             <a-entity id="sound-skybox-theme" sound="src: #skybox-theme; volume: 0.4; loop: true;"></a-entity>
+            <!-- Glass -->
             <a-entity class="el-glass">
-                <a-circle class="el-ceiling" position="0 5 0" color="white" opacity=".2" radius="3" material="roughness: 0;" rotation="90 0 0"></a-circle>
+                <a-circle class="el-ceiling" position="0 5 0" color="white" opacity=".4" radius="3" material="roughness: 0;" rotation="90 0 0"></a-circle>
                 <a-cylinder ammo-body="type: static" ammo-shape class="el-mainbody" position="0 2.5 0" color="white" height="5" opacity=".2" radius="3" geometry="thetaLength: 300; thetaStart: 30;" material="side: double; roughness: 0;" open-ended="true"></a-cylinder>
                 <a-cylinder class="el-door-arc" position="0 4.5 0" color="white" height="1" opacity=".2" radius="3" geometry="thetaLength: 60; thetaStart: -30;" material="side: double; roughness: 0;" open-ended="true"></a-cylinder>
-                <a-cylinder class="el-door" position="0 2.1 0" color="white" height="4.2" opacity=".4" radius="2.9" geometry="thetaLength: 70; thetaStart: -35;" material="side: double; roughness: 0;" open-ended="true"></a-cylinder>
+                <a-cylinder class="el-door" position="0 2.1 0" color="white" height="4.2" opacity=".3" radius="2.9" geometry="thetaLength: 70; thetaStart: -35;" material="side: double; roughness: 0;" open-ended="true"></a-cylinder>
             </a-entity>
             <!-- Control Panel -->
             <a-entity class="cpanel" position="-2.7 1 1" sound="src: #button-a; volume: .1;">
