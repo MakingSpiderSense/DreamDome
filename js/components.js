@@ -415,9 +415,9 @@ AFRAME.registerComponent('elevator-trip', {
             case 'gravity-rush':
                 movements = [
                     { x: elevatorElX, y: elevatorElY + 10, z: elevatorElZ, duration: 2500, easing: 'easeInQuad' }, // Up (ease start)
-                    { x: elevatorElX, y: elevatorElY + 200, z: elevatorElZ, duration: 2375 }, // Up
-                    { x: elevatorElX, y: elevatorElY + 200, z: elevatorElZ, duration: 500, shootingStar: { enabled: true, delay: 1000 }}, // Hold position in sky
-                    { x: elevatorElX, y: elevatorElY + 5, z: elevatorElZ, duration: 630, easing: 'easeInCubic', sounds: [{ id: 'sound-falling-1' }] }, // Gravity Fall
+                    { x: elevatorElX, y: elevatorElY + 200, z: elevatorElZ, duration: 23750 }, // Up
+                    { x: elevatorElX, y: elevatorElY + 200, z: elevatorElZ, duration: 5000, shootingStar: { enabled: true, delay: 1000 }}, // Hold position in sky
+                    { x: elevatorElX, y: elevatorElY + 5, z: elevatorElZ, duration: 6300, easing: 'easeInCubic', sounds: [{ id: 'sound-falling-1' }] }, // Gravity Fall
                     { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 1250, easing: 'easeOutCubic', sounds: [{ id: 'sound-falling-1' }] } // Down (ease finish)
                 ];
                 break;
