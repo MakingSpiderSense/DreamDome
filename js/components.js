@@ -148,6 +148,25 @@ AFRAME.registerComponent('vr-mode-detect', {
 });
 
 
+// Utility function to trigger haptics
+function triggerHaptics(hand, duration, force) {
+    const leftHand = document.querySelector('#left-hand');
+    const rightHand = document.querySelector('#right-hand');
+    if (hand === 'left') {
+        leftHand.setAttribute('haptics__trigger', `dur: ${duration}; force: ${force}`);
+        leftHand.emit('trigger-vibration');
+    } else if (hand === 'right') {
+        rightHand.setAttribute('haptics__trigger', `dur: ${duration}; force: ${force}`);
+        rightHand.emit('trigger-vibration');
+    } else if (hand === 'both') {
+        leftHand.setAttribute('haptics__trigger', `dur: ${duration}; force: ${force}`);
+        rightHand.setAttribute('haptics__trigger', `dur: ${duration}; force: ${force}`);
+        leftHand.emit('trigger-vibration');
+        rightHand.emit('trigger-vibration');
+    }
+}
+
+
 // Raycaster Intersections
 AFRAME.registerComponent('raycaster-listener', {
     init: function () {
@@ -155,8 +174,6 @@ AFRAME.registerComponent('raycaster-listener', {
         const originalColor = "#ffffff";
         const styledRay = document.querySelectorAll('.styled-ray');
         const reticle = document.querySelector('#reticle');
-        const leftHand = document.querySelector('#left-hand');
-        const rightHand = document.querySelector('#right-hand');
         // Make reticle larger and beam color green when intersecting
         el.addEventListener('raycaster-intersected', function () {
             styledRay.forEach(function (ray) {
@@ -167,9 +184,9 @@ AFRAME.registerComponent('raycaster-listener', {
             styledRay.forEach(function (ray) {
                 if (ray.getAttribute('visible')) {
                     if (ray.classList.contains('ar-left')) {
-                        leftHand.emit('trigger-vibration');
+                        triggerHaptics('left', 150, 0.1);
                     } else if (ray.classList.contains('ar-right')) {
-                        rightHand.emit('trigger-vibration');
+                        triggerHaptics('right', 150, 0.1);
                     }
                 }
             });

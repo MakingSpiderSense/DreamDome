@@ -208,13 +208,13 @@
 			</a-entity>
             <!-- Controllers -->
             <a-entity class="controllers">
-                <a-entity id="left-hand" oculus-touch-controls="hand: left" haptics__trigger="events: trigger-vibration; dur: 150; force: .1">
+                <a-entity id="left-hand" oculus-touch-controls="hand: left" haptics__trigger="events: trigger-vibration;">
                     <!-- Raycaster Style Line -->
                     <a-cylinder class="styled-ray ar-left" visible="false" position="0 -.389 -.673" height="1.455" radius="0.002" color="#ffffff" rotation="60 0 0" opacity=".4" sound="src: #raycaster-beep; volume: .1;"></a-cylinder>
                     <!-- Raycaster Actual Line -->
                     <a-entity class="actual-ray" cursor rotation="-30 0 0" raycaster="objects: .interactable; autoRefresh: false; enabled: false; far: 1.5; showLine: false; lineColor: red"></a-entity>
                 </a-entity>
-                <a-entity id="right-hand" oculus-touch-controls="hand: right" haptics__trigger="events: trigger-vibration; dur: 150; force: .1">
+                <a-entity id="right-hand" oculus-touch-controls="hand: right" haptics__trigger="events: trigger-vibration;">
                     <!-- Raycaster Style Line -->
                     <a-cylinder class="styled-ray ar-right" visible="false" position="0 -.389 -.673" height="1.455" radius="0.002" color="#ffffff" rotation="60 0 0" opacity=".4" sound="src: #raycaster-beep; volume: .1;"></a-cylinder>
                     <!-- Raycaster Actual Line -->
