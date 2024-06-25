@@ -162,6 +162,26 @@ function triggerHaptics(hand, duration, force) {
         initVibration(rightHand, duration, force);
     }
 }
+// Utility function to trigger haptic patterns
+function triggerHapticPattern(hand, pattern) {
+    const leftHand = document.querySelector('#left-hand');
+    const rightHand = document.querySelector('#right-hand');
+    let totalDuration = 0;
+    pattern.forEach((step) => {
+        setTimeout(() => {
+            console.log(`Vibrating ${hand} hand for ${step.duration}ms with intensity ${step.intensity}`);
+            if (hand === 'left') {
+                initVibration(leftHand, step.duration, step.intensity);
+            } else if (hand === 'right') {
+                initVibration(rightHand, step.duration, step.intensity);
+            } else if (hand === 'both') {
+                initVibration(leftHand, step.duration, step.intensity);
+                initVibration(rightHand, step.duration, step.intensity);
+            }
+        }, totalDuration);
+        totalDuration += step.duration;
+    });
+}
 // Initialize the vibration
 // Note: There are still issues if two haptic triggers over 5 seconds are called in quick succession. Not a big deal right now, but could be improved.
 function initVibration(hand, duration, force) {
@@ -174,7 +194,6 @@ function initVibration(hand, duration, force) {
         // We need to break up the vibration into smaller chunks
         let remainingDuration = duration;
         function vibrate() {
-            console.log(`Vibrating for ${maxDuration}ms`);
             if (remainingDuration > maxDuration) {
                 hand.setAttribute('haptics__trigger', `dur: ${maxDuration}; force: ${force}`);
                 hand.emit('trigger-vibration');
@@ -467,7 +486,14 @@ AFRAME.registerComponent('elevator-trip', {
                 movements = [
                     { x: elevatorElX, y: elevatorElY + 4000, z: elevatorElZ, duration: 1 }, // Up
                     { x: elevatorElX, y: elevatorElY + 4000, z: elevatorElZ, duration: 500 }, // Hold position in sky
-                    { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 28571, easing: 'easeInCubic', vibration: 1, sounds: [{ id: 'sound-falling-1', delay: 24271 }] }, // Gravity Fall
+                    { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 28571, easing: 'easeInCubic', vibrationPattern: [
+                        { duration: 2000, intensity: 0 },
+                        { duration: 10000, intensity: .1 },
+                        { duration: 8000, intensity: .15 },
+                        { duration: 4271, intensity: .2 },
+                        { duration: 1000, intensity: .8 },
+                        { duration: 3300, intensity: 1 }
+                    ], sounds: [{ id: 'sound-falling-1', delay: 24271 }] }, // Gravity Fall
                     { x: elevatorElX, y: elevatorElY - 10, z: elevatorElZ, duration: 1000, vibration: .3, easing: 'linear', sounds: [{ id: 'sound-plunge' }] }, // Resistance
                     { x: elevatorElX, y: elevatorElY - 165, z: elevatorElZ, duration: 8380, easing: 'easeOutCubic' }, // Water Fall
                     { x: elevatorElX, y: elevatorElY - 165, z: elevatorElZ, duration: 2000, vibration: 0 }, // Hold position
@@ -580,11 +606,13 @@ AFRAME.registerComponent('elevator-trip', {
             playSounds(sounds);
 
             // Trigger vibration if enabled
-            if (targetPos.vibration || targetPos.vibration === 0) {
+            if (targetPos.vibrationPattern) {
+                triggerHapticPattern('both', targetPos.vibrationPattern);
+            } else if (targetPos.vibration || targetPos.vibration === 0) {
                 triggerHaptics('both', duration, targetPos.vibration);
             } else {
                 // Default vibration if not specified
-                triggerHaptics('both', duration, '.1');
+                triggerHaptics('both', duration, 0.1);
             }
 
             // Trigger shooting stars if enabled
