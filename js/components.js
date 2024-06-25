@@ -150,19 +150,44 @@ AFRAME.registerComponent('vr-mode-detect', {
 
 // Utility function to trigger haptics
 function triggerHaptics(hand, duration, force) {
+    console.log(`Triggering haptics: hand=${hand}, duration=${duration}, force=${force}`);
     const leftHand = document.querySelector('#left-hand');
     const rightHand = document.querySelector('#right-hand');
     if (hand === 'left') {
-        leftHand.setAttribute('haptics__trigger', `dur: ${duration}; force: ${force}`);
-        leftHand.emit('trigger-vibration');
+        initVibration(leftHand, duration, force);
     } else if (hand === 'right') {
-        rightHand.setAttribute('haptics__trigger', `dur: ${duration}; force: ${force}`);
-        rightHand.emit('trigger-vibration');
+        initVibration(rightHand, duration, force);
     } else if (hand === 'both') {
-        leftHand.setAttribute('haptics__trigger', `dur: ${duration}; force: ${force}`);
-        rightHand.setAttribute('haptics__trigger', `dur: ${duration}; force: ${force}`);
-        leftHand.emit('trigger-vibration');
-        rightHand.emit('trigger-vibration');
+        initVibration(leftHand, duration, force);
+        initVibration(rightHand, duration, force);
+    }
+}
+// Initialize the vibration
+// Note: There are still issues if two haptic triggers over 5 seconds are called in quick succession. Not a big deal right now, but could be improved.
+function initVibration(hand, duration, force) {
+    // Since the vibration is limited to 5 seconds, we need to break it up into smaller chunks if it exceeds that duration
+    const maxDuration = 5000;
+    if (duration <= maxDuration) {
+        hand.setAttribute('haptics__trigger', `dur: ${duration}; force: ${force}`);
+        hand.emit('trigger-vibration');
+    } else {
+        // We need to break up the vibration into smaller chunks
+        let remainingDuration = duration;
+        function vibrate() {
+            console.log(`Vibrating for ${maxDuration}ms`);
+            if (remainingDuration > maxDuration) {
+                hand.setAttribute('haptics__trigger', `dur: ${maxDuration}; force: ${force}`);
+                hand.emit('trigger-vibration');
+                remainingDuration -= maxDuration;
+                // Keep calling vibrate until the remaining duration is less than the max duration
+                setTimeout(vibrate, maxDuration);
+            } else {
+                // Vibrate for the remaining duration
+                hand.setAttribute('haptics__trigger', `dur: ${remainingDuration}; force: ${force}`);
+                hand.emit('trigger-vibration');
+            }
+        }
+        vibrate();
     }
 }
 
