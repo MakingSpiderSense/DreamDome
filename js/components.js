@@ -150,7 +150,7 @@ AFRAME.registerComponent('vr-mode-detect', {
 
 // Utility function to trigger haptics
 function triggerHaptics(hand, duration, force) {
-    console.log(`Triggering haptics: hand=${hand}, duration=${duration}, force=${force}`);
+    // console.log(`Triggering haptics: hand=${hand}, duration=${duration}, force=${force}`);
     const leftHand = document.querySelector('#left-hand');
     const rightHand = document.querySelector('#right-hand');
     if (hand === 'left') {
@@ -437,7 +437,7 @@ AFRAME.registerComponent('elevator-trip', {
                 movements = [
                     { x: elevatorElX, y: elevatorElY + 10, z: elevatorElZ, duration: 2720, easing: 'easeInQuad' }, // Up (ease start)
                     { x: elevatorElX, y: elevatorElY + 150, z: elevatorElZ, duration: 19000 }, // Up
-                    { x: elevatorElX, y: elevatorElY + 150, z: elevatorElZ, duration: 5000, shootingStar: { enabled: true, delay: 1000 } }, // Hold position in sky
+                    { x: elevatorElX, y: elevatorElY + 150, z: elevatorElZ, duration: 5000, vibration: 0, shootingStar: { enabled: true, delay: 1000 } }, // Hold position in sky
                     { x: elevatorElX, y: elevatorElY + 5, z: elevatorElZ, duration: 19000 }, // Down
                     { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 2720, easing: 'easeOutQuad' } // Down (ease finish)
                 ];
@@ -458,8 +458,8 @@ AFRAME.registerComponent('elevator-trip', {
                 movements = [
                     { x: elevatorElX, y: elevatorElY + 10, z: elevatorElZ, duration: 2500, easing: 'easeInQuad' }, // Up (ease start)
                     { x: elevatorElX, y: elevatorElY + 200, z: elevatorElZ, duration: 23750 }, // Up
-                    { x: elevatorElX, y: elevatorElY + 200, z: elevatorElZ, duration: 5000, shootingStar: { enabled: true, delay: 1000 }}, // Hold position in sky
-                    { x: elevatorElX, y: elevatorElY + 5, z: elevatorElZ, duration: 6300, easing: 'easeInCubic', sounds: [{ id: 'sound-falling-1' }] }, // Gravity Fall
+                    { x: elevatorElX, y: elevatorElY + 200, z: elevatorElZ, duration: 5000, vibration: 0, shootingStar: { enabled: true, delay: 1000 }}, // Hold position in sky
+                    { x: elevatorElX, y: elevatorElY + 5, z: elevatorElZ, duration: 6300, easing: 'easeInCubic', vibration: 1, sounds: [{ id: 'sound-falling-1' }] }, // Gravity Fall
                     { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 1250, easing: 'easeOutCubic', sounds: [{ id: 'sound-falling-1' }] } // Down (ease finish)
                 ];
                 break;
@@ -467,10 +467,10 @@ AFRAME.registerComponent('elevator-trip', {
                 movements = [
                     { x: elevatorElX, y: elevatorElY + 4000, z: elevatorElZ, duration: 1 }, // Up
                     { x: elevatorElX, y: elevatorElY + 4000, z: elevatorElZ, duration: 500 }, // Hold position in sky
-                    { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 28571, easing: 'easeInCubic', sounds: [{ id: 'sound-falling-1', delay: 24271 }] }, // Gravity Fall
-                    { x: elevatorElX, y: elevatorElY - 10, z: elevatorElZ, duration: 1000, easing: 'linear', sounds: [{ id: 'sound-plunge' }] }, // Resistance
+                    { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 28571, easing: 'easeInCubic', vibration: 1, sounds: [{ id: 'sound-falling-1', delay: 24271 }] }, // Gravity Fall
+                    { x: elevatorElX, y: elevatorElY - 10, z: elevatorElZ, duration: 1000, vibration: .3, easing: 'linear', sounds: [{ id: 'sound-plunge' }] }, // Resistance
                     { x: elevatorElX, y: elevatorElY - 165, z: elevatorElZ, duration: 8380, easing: 'easeOutCubic' }, // Water Fall
-                    { x: elevatorElX, y: elevatorElY - 165, z: elevatorElZ, duration: 2000 }, // Hold position
+                    { x: elevatorElX, y: elevatorElY - 165, z: elevatorElZ, duration: 2000, vibration: 0 }, // Hold position
                     { x: elevatorElX, y: elevatorElY - 10, z: elevatorElZ, duration: 8000, easing: 'linear' }, // Up
                     { x: elevatorElX, y: elevatorElY, z: elevatorElZ, duration: 1500, easing: 'easeOutCubic' } // Up (ease finish)
                 ];
@@ -578,6 +578,14 @@ AFRAME.registerComponent('elevator-trip', {
 
             // Play all sounds for the current movement
             playSounds(sounds);
+
+            // Trigger vibration if enabled
+            if (targetPos.vibration || targetPos.vibration === 0) {
+                triggerHaptics('both', duration, targetPos.vibration);
+            } else {
+                // Default vibration if not specified
+                triggerHaptics('both', duration, '.1');
+            }
 
             // Trigger shooting stars if enabled
             if (targetPos.shootingStar && targetPos.shootingStar.enabled) {
