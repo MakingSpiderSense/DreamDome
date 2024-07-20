@@ -95,8 +95,8 @@ window.addEventListener('DOMContentLoaded', setupMotionSensors);
 
 // Add performance statistics if on development environment
 document.addEventListener("DOMContentLoaded", function () {
-    var scene = document.querySelector('a-scene');
-    var currentUrl = window.location.href;
+    const scene = document.querySelector('a-scene');
+    const currentUrl = window.location.href;
     // Check if the URL contains any of the specified paths
     if (currentUrl.includes('/dream-dome/')) {
         // Add stats attribute which displays performance statistics
@@ -126,8 +126,8 @@ AFRAME.registerComponent('dim-lights', {
 // Detect if the user is actually in VR
 AFRAME.registerComponent('vr-mode-detect', {
     init: function () {
-        var sceneEl = this.el.sceneEl; // Reference to the scene
-        var reticle = document.getElementById('reticle');
+        const sceneEl = this.el.sceneEl; // Reference to the scene
+        const reticle = document.getElementById('reticle');
         // Event listener for entering VR mode
         sceneEl.addEventListener('enter-vr', function () {
             if (AFRAME.utils.device.checkHeadsetConnected()) {
