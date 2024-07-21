@@ -148,6 +148,17 @@ AFRAME.registerComponent('vr-mode-detect', {
 });
 
 
+// Use fuse cursor on tablets too
+// Note: The fuse is supposed to be the default on mobile devices, but on tablets seem to be considered desktop devices. They should behave like mobile devices, so this is a workaround.
+document.addEventListener('DOMContentLoaded', function () {
+    const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+    const reticle = document.querySelector('#reticle');
+    if (isMobile) {
+        reticle.setAttribute('cursor', 'fuse', 'true');
+    }
+});
+
+
 // Utility function to trigger haptics
 function triggerHaptics(hand, duration, force) {
     // console.log(`Triggering haptics: hand=${hand}, duration=${duration}, force=${force}`);
