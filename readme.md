@@ -16,13 +16,14 @@ Dream Dome has been primarily tested with the Quest 3 and occasionally with the 
 
 ## Dependencies
 
-- `aframe-environment-component` - Creates the sky and ground. However, we are using a custom sky.
-- `aframe-extras` - Used for the `movement-controls` component which allows for smooth locomotion.
-- `aframe-aabb-collider-component` - Used for the collision detection.
+- `aframe-environment-component` - Creates the sky and ground. However, we are using a custom sky ([GitHub](https://github.com/supermedium/aframe-environment-component)).
+- `aframe-extras` - Used for the `movement-controls` component which allows for smooth locomotion ([GitHub](https://github.com/c-frame/aframe-extras)).
+- `aframe-aabb-collider-component` - Used for the collision detection ([GitHub](https://github.com/supermedium/superframe/tree/master/components/aabb-collider/)).
     - Used to detect when the user is close to the elevator door, triggering the door to open.
-- `aframe-physics-system` - Used for the physics system.
-- `aframe-particle-system` - Used for the particle system.
-- `aframe-haptics-component` - Used for haptic feedback on the controllers.
+- `aframe-physics-system` - Used for the physics system ([GitHub](https://github.com/c-frame/aframe-physics-system)).
+    - `ammo.js` - Used for the physics engine ([GitHub](https://github.com/c-frame/aframe-physics-system/blob/master/AmmoDriver.md)).
+- `aframe-particle-system` - Used for the particle system ([GitHub](https://github.com/c-frame/aframe-particle-system-component)).
+- `aframe-haptics-component` - Used for haptic feedback on the controllers ([GitHub](https://github.com/supermedium/superframe/tree/master/components/haptics/)).
 
 ## Additional Notes
 
