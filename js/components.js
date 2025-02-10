@@ -234,7 +234,9 @@ AFRAME.registerComponent('raycaster-listener', {
             styledRay.forEach(function (ray) {
                 ray.setAttribute('material', 'color', '#A2F5A2');
             });
-            reticle.setAttribute('geometry', 'radius', '.008');
+            if (reticle) {
+                reticle.setAttribute('geometry', 'radius', '.008');
+            }
             // Vibrate the controller that is intersecting
             styledRay.forEach(function (ray) {
                 if (ray.getAttribute('visible')) {
@@ -250,7 +252,9 @@ AFRAME.registerComponent('raycaster-listener', {
             styledRay.forEach(function (ray) {
                 ray.setAttribute('material', 'color', originalColor);
             });
-            reticle.setAttribute('geometry', 'radius', '.005');
+            if (reticle) {
+                reticle.setAttribute('geometry', 'radius', '.005');
+            }
         });
     }
 });
