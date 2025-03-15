@@ -1,50 +1,6 @@
 // A-frame Components
 
 
-// VR Console Logger
-AFRAME.registerComponent('vr-logger', {
-    schema: {
-        maxMessages: { type: 'int', default: 5 } // Maximum number of messages to display
-    },
-    // Initialize the component
-    init: function () {
-        const enableVrLogger = localStorage.getItem('enableVrLogger');
-        if (!enableVrLogger || enableVrLogger !== 'true') {
-            console.log('VR Logger is disabled.');
-            return;
-        }
-        this.messages = [];
-        this.el.setAttribute('text', {
-            color: 'white',
-            width: 3, // Width of the text box
-            wrapCount: 45, // Number of characters per line before wrapping
-            align: 'left',
-        });
-        // Override the console.log function to capture and display messages in the VR console
-        const originalConsoleLog = console.log;
-        console.log = (...args) => {
-            originalConsoleLog(...args);
-            // Add the console message to the array
-            this.addMessage(args.map(a => a.toString()).join(' '));
-        };
-    },
-    // Add a message to the console
-    addMessage: function (message) {
-        // Remove the oldest message if the array is full
-        if (this.messages.length >= this.data.maxMessages) {
-            this.messages.shift();
-        }
-        // Add the new message to the array
-        this.messages.push(message + "\n");
-        this.updateText();
-    },
-    // Update the text displayed in the VR console
-    updateText: function () {
-        this.el.setAttribute('text', 'value', this.messages.join('\n'));
-    }
-});
-
-
 // Prompt enabling motion sensors for mobile devices
 function setupMotionSensors() {
     // Check if DeviceMotionEvent is available and the user agent indicates a mobile device
@@ -123,31 +79,6 @@ AFRAME.registerComponent('dim-lights', {
 });
 
 
-// Detect if the user is actually in VR
-AFRAME.registerComponent('vr-mode-detect', {
-    init: function () {
-        const sceneEl = this.el.sceneEl; // Reference to the scene
-        const reticle = document.getElementById('reticle');
-        // Event listener for entering VR mode
-        sceneEl.addEventListener('enter-vr', function () {
-            if (AFRAME.utils.device.checkHeadsetConnected()) {
-                // Hide the reticle when in VR mode
-                reticle.setAttribute('visible', 'false');
-                // Disable cursor's raycasting
-                reticle.setAttribute('raycaster', 'enabled', false);
-            }
-        });
-        // Event listener for exiting VR mode
-        sceneEl.addEventListener('exit-vr', function () {
-            // Show the reticle when not in VR mode
-            reticle.setAttribute('visible', 'true');
-            // Enable cursor's raycasting
-            reticle.setAttribute('raycaster', 'enabled', true);
-        });
-    }
-});
-
-
 // Use fuse cursor on tablets too
 // Note: The fuse is supposed to be the default on mobile devices, but on tablets seem to be considered desktop devices. They should behave like mobile devices, so this is a workaround.
 document.addEventListener('DOMContentLoaded', function () {
@@ -155,161 +86,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const reticle = document.querySelector('#reticle');
     if (isMobile) {
         reticle.setAttribute('cursor', 'fuse', 'true');
-    }
-});
-
-
-// Utility function to trigger haptics
-function triggerHaptics(hand, duration, force) {
-    // console.log(`Triggering haptics: hand=${hand}, duration=${duration}, force=${force}`);
-    const leftHand = document.querySelector('#left-hand');
-    const rightHand = document.querySelector('#right-hand');
-    if (hand === 'left') {
-        initVibration(leftHand, duration, force);
-    } else if (hand === 'right') {
-        initVibration(rightHand, duration, force);
-    } else if (hand === 'both') {
-        initVibration(leftHand, duration, force);
-        initVibration(rightHand, duration, force);
-    }
-}
-// Utility function to trigger haptic patterns
-function triggerHapticPattern(hand, pattern) {
-    const leftHand = document.querySelector('#left-hand');
-    const rightHand = document.querySelector('#right-hand');
-    let totalDuration = 0;
-    pattern.forEach((step) => {
-        setTimeout(() => {
-            console.log(`Vibrating ${hand} hand for ${step.duration}ms with intensity ${step.intensity}`);
-            if (hand === 'left') {
-                initVibration(leftHand, step.duration, step.intensity);
-            } else if (hand === 'right') {
-                initVibration(rightHand, step.duration, step.intensity);
-            } else if (hand === 'both') {
-                initVibration(leftHand, step.duration, step.intensity);
-                initVibration(rightHand, step.duration, step.intensity);
-            }
-        }, totalDuration);
-        totalDuration += step.duration;
-    });
-}
-// Initialize the vibration
-// Note: There are still issues if two haptic triggers over 5 seconds are called in quick succession. Not a big deal right now, but could be improved.
-function initVibration(hand, duration, force) {
-    // Since the vibration is limited to 5 seconds, we need to break it up into smaller chunks if it exceeds that duration
-    const maxDuration = 5000;
-    if (duration <= maxDuration) {
-        hand.setAttribute('haptics__trigger', `dur: ${duration}; force: ${force}`);
-        hand.emit('trigger-vibration');
-    } else {
-        // We need to break up the vibration into smaller chunks
-        let remainingDuration = duration;
-        function vibrate() {
-            if (remainingDuration > maxDuration) {
-                hand.setAttribute('haptics__trigger', `dur: ${maxDuration}; force: ${force}`);
-                hand.emit('trigger-vibration');
-                remainingDuration -= maxDuration;
-                // Keep calling vibrate until the remaining duration is less than the max duration
-                setTimeout(vibrate, maxDuration);
-            } else {
-                // Vibrate for the remaining duration
-                hand.setAttribute('haptics__trigger', `dur: ${remainingDuration}; force: ${force}`);
-                hand.emit('trigger-vibration');
-            }
-        }
-        vibrate();
-    }
-}
-
-
-// Raycaster Intersections
-AFRAME.registerComponent('raycaster-listener', {
-    init: function () {
-        const el = this.el;
-        const originalColor = "#ffffff";
-        const styledRay = document.querySelectorAll('.styled-ray');
-        const reticle = document.querySelector('#reticle');
-        // Make reticle larger and beam color green when intersecting
-        el.addEventListener('raycaster-intersected', function () {
-            styledRay.forEach(function (ray) {
-                ray.setAttribute('material', 'color', '#A2F5A2');
-            });
-            if (reticle) {
-                reticle.setAttribute('geometry', 'radius', '.008');
-            }
-            // Vibrate the controller that is intersecting
-            styledRay.forEach(function (ray) {
-                if (ray.getAttribute('visible')) {
-                    if (ray.classList.contains('ar-left')) {
-                        triggerHaptics('left', 150, 0.1);
-                    } else if (ray.classList.contains('ar-right')) {
-                        triggerHaptics('right', 150, 0.1);
-                    }
-                }
-            });
-        });
-        el.addEventListener('raycaster-intersected-cleared', function () {
-            styledRay.forEach(function (ray) {
-                ray.setAttribute('material', 'color', originalColor);
-            });
-            if (reticle) {
-                reticle.setAttribute('geometry', 'radius', '.005');
-            }
-        });
-    }
-});
-
-
-// Toggle Raycaster
-AFRAME.registerComponent('raycaster-manager', {
-    init: function () {
-        const leftController = document.querySelector('#left-hand');
-        const rightController = document.querySelector('#right-hand');
-        // Listen for trigger down events on both controllers
-        leftController.addEventListener('triggerdown', () => this.toggleRaycaster('left'));
-        rightController.addEventListener('triggerdown', () => this.toggleRaycaster('right'));
-    },
-    // Toggle logic for raycaster
-    toggleRaycaster: function (hand) {
-        const actualRay = document.querySelector(`#${hand}-hand .actual-ray`);
-        // Check if the raycaster is already active on this controller
-        if (actualRay.getAttribute('raycaster').enabled) {
-            console.log('Raycaster already active on this controller:', hand);
-            // If not intersecting a interactable, disable it
-            if (!actualRay.components.raycaster.intersectedEls.length) {
-                console.log('No intersection detected. Disabling raycaster on:', hand);
-                this.disableRaycaster(hand);
-            }
-        } else {
-            // Enable and move the raycaster to this controller
-            console.log('Enabling raycaster on:', hand);
-            this.enableRaycaster(hand);
-        }
-    },
-    // Disable raycaster
-    disableRaycaster: function (hand) {
-        const styledRay = document.querySelector(`#${hand}-hand .styled-ray`);
-        const actualRay = document.querySelector(`#${hand}-hand .actual-ray`);
-        styledRay.setAttribute('visible', false);
-        actualRay.setAttribute('raycaster', 'enabled', false);
-    },
-    // Enable raycaster
-    enableRaycaster: function (hand) {
-        const styledRay = document.querySelector(`#${hand}-hand .styled-ray`);
-        const actualRay = document.querySelector(`#${hand}-hand .actual-ray`);
-        styledRay.setAttribute('visible', true);
-        actualRay.setAttribute('raycaster', { enabled: true });
-        this.playSound(styledRay);
-        // Disable the other controller's raycaster
-        const otherHand = hand === 'left' ? 'right' : 'left';
-        this.disableRaycaster(otherHand);
-    },
-    // Play sound
-    playSound: function (styledRay) {
-        let soundComp = styledRay.components.sound;
-        if (soundComp) {
-            soundComp.playSound();
-        }
     }
 });
 
@@ -356,6 +132,8 @@ AFRAME.registerComponent('open-door', {
         };
         // Open the door
         this.openElevatorDoor = function (evt) {
+            console.log('Door opened');
+
             elDoor.setAttribute('animation__theta', 'property: geometry.thetaStart; dur: 1000;');
             if (evt.target.components["aabb-collider"].closestIntersectedEl.id == "elevator-door-trigger") {
                 this.playDoorSound(); // Play the door sound
