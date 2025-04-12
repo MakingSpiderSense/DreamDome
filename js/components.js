@@ -662,10 +662,11 @@ AFRAME.registerComponent('arm-swing-movement', {
         rightController: {type: 'selector', default: null},
         speedFactor: {type: 'number', default: 1}, // multiplier for movement speed
         smoothingTime: {type: 'number', default: 1000}, // in ms; time to transition speed
-        minSpeed: {type: 'number', default: 1} // minimum speed to consider the user moving
+        minSpeed: {type: 'number', default: 1}, // minimum speed to consider the user moving
+        swingTimeout: {type: 'number', default: 700} // time in ms to wait before stopping movement when no new swings are detected
     },
     init: function() {
-        console.log('Arm Swing Movement Component Initialized v1.2');
+        console.log('Arm Swing Movement Component Initialized v1.3');
         this.hands = {
             left: {entity: this.data.leftController, lastZ: null, lastDirection: null, lastSwingTime: null, periods: []},
             right: {entity: this.data.rightController, lastZ: null, lastDirection: null, lastSwingTime: null, periods: []}
@@ -709,6 +710,15 @@ AFRAME.registerComponent('arm-swing-movement', {
             }
             hand.lastDirection = newDirection;
             hand.lastZ = currentZ;
+        }
+        // Clear swing periods if no new swings are detected within swingTimeout.
+        for (let handKey in this.hands) {
+            let hand = this.hands[handKey];
+            if (hand.lastSwingTime !== null && (time - hand.lastSwingTime > this.data.swingTimeout)) {
+                hand.periods = [];
+                hand.lastSwingTime = null;
+                hand.lastDirection = null;
+            }
         }
         // Calculate average swing period from both hands.
         let periods = [];
