@@ -661,16 +661,18 @@ AFRAME.registerComponent('arm-swing-movement', {
         leftController: {type: 'selector', default: null},
         rightController: {type: 'selector', default: null},
         speedFactor: {type: 'number', default: 1}, // multiplier for movement speed
-        smoothingTime: {type: 'number', default: 1000} // in ms; time to transition speed
+        smoothingTime: {type: 'number', default: 1000}, // in ms; time to transition speed
+        minSpeed: {type: 'number', default: 1} // minimum speed to consider the user moving
     },
     init: function() {
-        console.log('Arm Swing Movement Component Initialized v1.1');
+        console.log('Arm Swing Movement Component Initialized v1.2');
         this.hands = {
             left: {entity: this.data.leftController, lastZ: null, lastDirection: null, lastSwingTime: null, periods: []},
             right: {entity: this.data.rightController, lastZ: null, lastDirection: null, lastSwingTime: null, periods: []}
         };
         this.currentSpeed = 0;
         this.threshold = 0.005; // minimum change in z to consider movement (tweak as needed)
+        this.moving = false; // flag to track whether the user is moving
     },
     tick: function(time, deltaTime) {
         // If controllers not provided, try to find them.
@@ -720,6 +722,14 @@ AFRAME.registerComponent('arm-swing-movement', {
         // Compute target speed based on swing frequency (if no swings, target speed is 0).
         let targetSpeed = 0;
         if (avgPeriod > 0) {targetSpeed = this.data.speedFactor * (1000 / avgPeriod);}
+        // If the computed speed is below the minimum, stop moving.
+        if (targetSpeed < this.data.minSpeed) {
+            targetSpeed = 0;
+            this.moving = false;
+            this.currentSpeed = 0;
+        } else {
+            this.moving = true;
+        }
         // Smoothly interpolate current speed toward target speed.
         let dt = deltaTime;
         this.currentSpeed += (targetSpeed - this.currentSpeed) * (dt / this.data.smoothingTime);
