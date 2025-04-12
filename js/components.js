@@ -664,7 +664,7 @@ AFRAME.registerComponent('arm-swing-movement', {
         smoothingTime: {type: 'number', default: 1000} // in ms; time to transition speed
     },
     init: function() {
-        console.log('Arm Swing Movement Component Initialized');
+        console.log('Arm Swing Movement Component Initialized v1.1');
         this.hands = {
             left: {entity: this.data.leftController, lastZ: null, lastDirection: null, lastSwingTime: null, periods: []},
             right: {entity: this.data.rightController, lastZ: null, lastDirection: null, lastSwingTime: null, periods: []}
@@ -728,6 +728,7 @@ AFRAME.registerComponent('arm-swing-movement', {
         let forward = new THREE.Vector3();
         this.el.object3D.getWorldDirection(forward);
         // Update rig's position by moving it forward.
+        forward.negate();
         this.el.object3D.position.add(forward.multiplyScalar(distance));
     }
 });
