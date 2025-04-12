@@ -736,7 +736,6 @@ AFRAME.registerComponent('arm-swing-movement', {
         if (targetSpeed < this.data.minSpeed) {
             targetSpeed = 0;
             this.moving = false;
-            this.currentSpeed = 0;
         } else {
             this.moving = true;
         }
