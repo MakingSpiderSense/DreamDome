@@ -654,3 +654,80 @@ function triggerShootingStars() {
 //         setInterval(triggerShootingStars, 6000);
 //     }, 2000);
 // });
+
+
+AFRAME.registerComponent('arm-swing-movement', {
+    schema: {
+        leftController: {type: 'selector', default: null},
+        rightController: {type: 'selector', default: null},
+        speedFactor: {type: 'number', default: 1}, // multiplier for movement speed
+        smoothingTime: {type: 'number', default: 1000} // in ms; time to transition speed
+    },
+    init: function() {
+        console.log('Arm Swing Movement Component Initialized');
+        this.hands = {
+            left: {entity: this.data.leftController, lastZ: null, lastDirection: null, lastSwingTime: null, periods: []},
+            right: {entity: this.data.rightController, lastZ: null, lastDirection: null, lastSwingTime: null, periods: []}
+        };
+        this.currentSpeed = 0;
+        this.threshold = 0.005; // minimum change in z to consider movement (tweak as needed)
+    },
+    tick: function(time, deltaTime) {
+        // If controllers not provided, try to find them.
+        if (!this.hands.left.entity) {
+            let leftEl = this.el.sceneEl.querySelector('[oculus-touch-controls][hand="left"]');
+            if (leftEl) {this.hands.left.entity = leftEl;}
+        }
+        if (!this.hands.right.entity) {
+            let rightEl = this.el.sceneEl.querySelector('[oculus-touch-controls][hand="right"]');
+            if (rightEl) {this.hands.right.entity = rightEl;}
+        }
+        // Process each hand.
+        for (let handKey in this.hands) {
+            let hand = this.hands[handKey];
+            if (!hand.entity) {continue;}
+            let worldPos = new THREE.Vector3();
+            hand.entity.object3D.getWorldPosition(worldPos);
+            // Convert world position to rig's (this.el) local space.
+            let localPos = this.el.object3D.worldToLocal(worldPos.clone());
+            let currentZ = localPos.z;
+            if (hand.lastZ === null) {hand.lastZ = currentZ; continue;}
+            let diff = currentZ - hand.lastZ;
+            let newDirection = hand.lastDirection;
+            if (diff > this.threshold) {newDirection = 'positive';}
+            else if (diff < -this.threshold) {newDirection = 'negative';}
+            // When a direction reversal is detected, record a swing event.
+            if (hand.lastDirection && newDirection && newDirection !== hand.lastDirection) {
+                if (hand.lastSwingTime !== null) {
+                    let period = time - hand.lastSwingTime;
+                    hand.periods.push(period);
+                    if (hand.periods.length > 6) {hand.periods.shift();}
+                }
+                hand.lastSwingTime = time;
+            }
+            hand.lastDirection = newDirection;
+            hand.lastZ = currentZ;
+        }
+        // Calculate average swing period from both hands.
+        let periods = [];
+        for (let handKey in this.hands) {
+            periods = periods.concat(this.hands[handKey].periods);
+        }
+        let avgPeriod = 0;
+        if (periods.length > 0) {
+            avgPeriod = periods.reduce((sum, v) => sum + v, 0) / periods.length;
+        }
+        // Compute target speed based on swing frequency (if no swings, target speed is 0).
+        let targetSpeed = 0;
+        if (avgPeriod > 0) {targetSpeed = this.data.speedFactor * (1000 / avgPeriod);}
+        // Smoothly interpolate current speed toward target speed.
+        let dt = deltaTime;
+        this.currentSpeed += (targetSpeed - this.currentSpeed) * (dt / this.data.smoothingTime);
+        // Move the rig forward.
+        let distance = this.currentSpeed * (dt / 1000);
+        let forward = new THREE.Vector3();
+        this.el.object3D.getWorldDirection(forward);
+        // Update rig's position by moving it forward.
+        this.el.object3D.position.add(forward.multiplyScalar(distance));
+    }
+});
