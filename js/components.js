@@ -668,8 +668,8 @@ AFRAME.registerComponent('arm-swing-movement', {
     init: function() {
         console.log('Arm Swing Movement Component Initialized v1.3');
         this.hands = {
-            left: {entity: this.data.leftController, lastZ: null, lastDirection: null, lastSwingTime: null, periods: []},
-            right: {entity: this.data.rightController, lastZ: null, lastDirection: null, lastSwingTime: null, periods: []}
+            left: {entity: this.data.leftController, lastZ: null, lastDirection: null, lastSwingTime: null, recentSwings: []},
+            right: {entity: this.data.rightController, lastZ: null, lastDirection: null, lastSwingTime: null, recentSwings: []}
         };
         this.currentSpeed = 0;
         this.threshold = 0.005; // minimum change in z to consider movement (tweak as needed)
@@ -703,35 +703,35 @@ AFRAME.registerComponent('arm-swing-movement', {
             if (hand.lastDirection && newDirection && newDirection !== hand.lastDirection) {
                 if (hand.lastSwingTime !== null) {
                     let period = time - hand.lastSwingTime;
-                    hand.periods.push(period);
-                    if (hand.periods.length > 6) {hand.periods.shift();}
+                    hand.recentSwings.push(period);
+                    if (hand.recentSwings.length > 6) {hand.recentSwings.shift();}
                 }
                 hand.lastSwingTime = time;
             }
             hand.lastDirection = newDirection;
             hand.lastZ = currentZ;
         }
-        // Clear swing periods if no new swings are detected within swingTimeout.
+        // Clear recentSwings if no new swings are detected within swingTimeout.
         for (let handKey in this.hands) {
             let hand = this.hands[handKey];
             if (hand.lastSwingTime !== null && (time - hand.lastSwingTime > this.data.swingTimeout)) {
-                hand.periods = [];
+                hand.recentSwings = [];
                 hand.lastSwingTime = null;
                 hand.lastDirection = null;
             }
         }
-        // Calculate average swing period from both hands.
-        let periods = [];
+        // Calculate average swing time from both hands.
+        let recentSwings = [];
         for (let handKey in this.hands) {
-            periods = periods.concat(this.hands[handKey].periods);
+            recentSwings = recentSwings.concat(this.hands[handKey].recentSwings);
         }
-        let avgPeriod = 0;
-        if (periods.length > 0) {
-            avgPeriod = periods.reduce((sum, v) => sum + v, 0) / periods.length;
+        let avgSwingTime = 0; // Time it takes to swing arms back to forward and vice versa.
+        if (recentSwings.length > 0) {
+            avgSwingTime = recentSwings.reduce((sum, v) => sum + v, 0) / recentSwings.length;
         }
         // Compute target speed based on swing frequency (if no swings, target speed is 0).
         let targetSpeed = 0;
-        if (avgPeriod > 0) {targetSpeed = this.data.speedFactor * (1000 / avgPeriod);}
+        if (avgSwingTime > 0) {targetSpeed = this.data.speedFactor * (1000 / avgSwingTime);}
         // If the computed speed is below the minimum, stop moving.
         if (targetSpeed < this.data.minSpeed) {
             targetSpeed = 0;
