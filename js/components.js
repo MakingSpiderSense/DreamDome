@@ -742,6 +742,9 @@ AFRAME.registerComponent('arm-swing-movement', {
         }
         // Smoothly interpolate current speed toward target speed.
         this.currentSpeed += (targetSpeed - this.currentSpeed) * (deltaTime / this.data.smoothingTime);
+        // Debugging: Output speed
+        let roundedSpeed = Math.round(this.currentSpeed * 10) / 10;
+        console.log(`Current Speed: ${roundedSpeed} m/s`);
         // Move the rig forward.
         let distance = this.currentSpeed * (deltaTime / 1000);
         let forward = new THREE.Vector3();
