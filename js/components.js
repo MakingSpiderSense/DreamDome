@@ -725,9 +725,10 @@ AFRAME.registerComponent('arm-swing-movement', {
         for (let handKey in this.hands) {
             recentSwings = recentSwings.concat(this.hands[handKey].recentSwings);
         }
-        let avgSwingTime = 0; // Time it takes to swing arms back to forward and vice versa.
+        let avgSwingTime = 0; // Time it takes to swing arms back to forward and vice versa (direction reversals).
         if (recentSwings.length > 0) {
-            avgSwingTime = recentSwings.reduce((sum, v) => sum + v, 0) / recentSwings.length;
+            // Reduce array to sum of swing times and divide by length to get average.
+            avgSwingTime = recentSwings.reduce((sum, swingTime) => sum + swingTime, 0) / recentSwings.length;
         }
         // Compute target speed based on swing frequency (if no swings, target speed is 0).
         let targetSpeed = 0;
@@ -740,10 +741,9 @@ AFRAME.registerComponent('arm-swing-movement', {
             this.moving = true;
         }
         // Smoothly interpolate current speed toward target speed.
-        let dt = deltaTime;
-        this.currentSpeed += (targetSpeed - this.currentSpeed) * (dt / this.data.smoothingTime);
+        this.currentSpeed += (targetSpeed - this.currentSpeed) * (deltaTime / this.data.smoothingTime);
         // Move the rig forward.
-        let distance = this.currentSpeed * (dt / 1000);
+        let distance = this.currentSpeed * (deltaTime / 1000);
         let forward = new THREE.Vector3();
         this.el.object3D.getWorldDirection(forward);
         // Update rig's position by moving it forward.
