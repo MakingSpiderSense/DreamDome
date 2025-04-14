@@ -732,7 +732,10 @@ AFRAME.registerComponent('arm-swing-movement', {
         }
         // Compute target speed based on swing frequency (if no swings, target speed is 0).
         let targetSpeed = 0;
-        if (avgSwingTime > 0) {targetSpeed = this.data.speedFactor * (1000 / avgSwingTime);}
+        const stepsPerSecond = 1000 / avgSwingTime; // Convert avgSwingTime to steps/second, assuming an arm swing is a step.
+        if (avgSwingTime > 0) {
+            targetSpeed = this.data.speedFactor * (stepsPerSecond);
+        }
         // If the computed speed is below the minimum, stop moving.
         if (targetSpeed < this.data.minSpeed) {
             targetSpeed = 0;
