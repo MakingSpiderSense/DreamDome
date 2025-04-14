@@ -666,7 +666,7 @@ AFRAME.registerComponent('arm-swing-movement', {
         swingTimeout: {type: 'number', default: 700} // time in ms to wait before stopping movement when no new swings are detected
     },
     init: function() {
-        console.log('Arm Swing Movement Component Initialized v1.3');
+        console.log('Arm Swing Movement Component Initialized v1.5');
         this.hands = {
             left: {entity: this.data.leftController, lastZ: null, lastDirection: null, lastSwingTime: null, recentSwings: []},
             right: {entity: this.data.rightController, lastZ: null, lastDirection: null, lastSwingTime: null, recentSwings: []}
@@ -734,7 +734,10 @@ AFRAME.registerComponent('arm-swing-movement', {
         let targetSpeed = 0;
         const stepsPerSecond = 1000 / avgSwingTime; // Convert avgSwingTime to steps/second, assuming an arm swing is a step.
         if (avgSwingTime > 0) {
-            targetSpeed = this.data.speedFactor * (stepsPerSecond);
+            // Use the custom formula based on real-world data: y = 3.45 * x - 3.95, where x is steps/sec and y is speed (m/s).
+            targetSpeed = 3.45 * stepsPerSecond - 3.95;
+            // Multiply by speedFactor to adjust speed
+            targetSpeed *= this.data.speedFactor;
         }
         // If the computed speed is below the minimum, stop moving.
         if (targetSpeed < this.data.minSpeed) {
@@ -746,8 +749,7 @@ AFRAME.registerComponent('arm-swing-movement', {
         // Smoothly interpolate current speed toward target speed.
         this.currentSpeed += (targetSpeed - this.currentSpeed) * (deltaTime / this.data.smoothingTime);
         // Debugging: Output speed
-        let roundedSpeed = Math.round(this.currentSpeed * 10) / 10;
-        console.log(`Current Speed: ${roundedSpeed} m/s`);
+        console.log(`Steps/sec: ${stepsPerSecond.toFixed(1)}, Target Speed: ${targetSpeed.toFixed(1)}, Current Speed: ${this.currentSpeed.toFixed(1)}`);
         // Move the rig forward.
         let distance = this.currentSpeed * (deltaTime / 1000);
         let forward = new THREE.Vector3();
