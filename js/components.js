@@ -400,12 +400,12 @@ AFRAME.registerComponent('elevator-trip', {
 
             // Trigger vibration if enabled
             if (targetPos.vibrationPattern) {
-                triggerHapticPattern('both', targetPos.vibrationPattern);
+                MSSAFrameKit.triggerHapticPattern('both', targetPos.vibrationPattern);
             } else if (targetPos.vibration || targetPos.vibration === 0) {
-                triggerHaptics('both', duration, targetPos.vibration);
+                MSSAFrameKit.triggerHaptics('both', duration, targetPos.vibration);
             } else {
                 // Default vibration if not specified
-                triggerHaptics('both', duration, 0.1);
+                MSSAFrameKit.triggerHaptics('both', duration, 0.1);
             }
 
             // Trigger shooting stars if enabled
