@@ -674,6 +674,8 @@ AFRAME.registerComponent('arm-swing-movement', {
         this.currentSpeed = 0;
         this.threshold = 0.01; // minimum change/frame in meters in z direction to consider movement
         this.moving = false; // flag to track whether the user is moving
+        this.navGroup = null; // for nav-mesh constraint
+        this.navNode = null;  // for nav-mesh constraint
     },
     tick: function(time, deltaTime) {
         // If controllers not provided, try to find them.
@@ -756,6 +758,23 @@ AFRAME.registerComponent('arm-swing-movement', {
         this.el.object3D.getWorldDirection(forward);
         // Update rig's position by moving it forward.
         forward.negate();
-        this.el.object3D.position.add(forward.multiplyScalar(distance));
+        // If movement-controls is using nav-mesh, clamp movement to mesh
+        let mc = this.el.components['movement-controls'];
+        let navsys = this.el.sceneEl.systems.nav;
+        if (mc && mc.data.constrainToNavMesh && navsys) {
+            let start = this.el.object3D.position.clone(); // Grab rig's current world‑position and make a copy to do the math on
+            let end = start.clone().add(forward.clone().multiplyScalar(distance)); // Compute the *desired* end position by moving “forward” by your computed distance
+            let navGroup = this.navGroup !== null ? this.navGroup : navsys.getGroup(start); // Figure out which nav‑mesh “group” we're in. Cache it after the first lookup.
+            let navNode = this.navNode || navsys.getNode(start, navGroup); // Find the nearest nav‑mesh node for path‑clamping, also caching it.
+            let clampedEnd = new THREE.Vector3(); // Prepare an empty vector to receive the *clamped* end point.
+            let newNavNode = navsys.clampStep(start, end, navGroup, navNode, clampedEnd); // Ask the nav‑mesh system to clamp your straight‑line move onto the mesh surface.
+            this.el.object3D.position.copy(clampedEnd); // Move your rig to that clamped point
+            // Cache the group and node for the next frame
+            this.navGroup = navGroup;
+            this.navNode = newNavNode;
+        } else {
+            // Default unconstrained movement
+            this.el.object3D.position.add(forward.multiplyScalar(distance));
+        }
     }
 });
