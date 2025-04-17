@@ -734,11 +734,19 @@ AFRAME.registerComponent('arm-swing-movement', {
         for (let handKey in this.hands) {
             recentSwings = recentSwings.concat(this.hands[handKey].recentSwings);
         }
-        let avgSwingTime = 0; // Time it takes to swing arms back to forward and vice versa (direction reversals).
-        if (recentSwings.length > 5) {
-            // Reduce array to sum of swing times and divide by length to get average.
-            avgSwingTime = recentSwings.reduce((sum, swingTime) => sum + swingTime, 0) / recentSwings.length;
+        // Make sure there are at least 12 swings and none are zero. If so, add or update 0 swings to 2000ms.
+        const recentSwingsLength = recentSwings.length;
+        recentSwings = recentSwings.filter(swingTime => swingTime > 0);
+        if (recentSwingsLength < 12) {
+            // Push until we have 12 swings.
+            let numToAdd = 12 - recentSwingsLength;
+            for (let i = 0; i < numToAdd; i++) {
+                recentSwings.push(2000); // Add 2000ms to fill the array.
+            }
         }
+        let avgSwingTime = 0; // Time it takes to swing arms back to forward and vice versa (direction reversals).
+        // Reduce array to sum of swing times and divide by length to get average.
+        avgSwingTime = recentSwings.reduce((sum, swingTime) => sum + swingTime, 0) / recentSwings.length;
         // Compute target speed based on swing frequency (if no swings, target speed is 0).
         let targetSpeed = 0;
         const stepsPerSecond = 1000 / avgSwingTime; // Convert avgSwingTime to steps/second, assuming an arm swing is a step.
