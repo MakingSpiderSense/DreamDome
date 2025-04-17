@@ -672,7 +672,7 @@ AFRAME.registerComponent('arm-swing-movement', {
             right: {entity: this.data.rightController, lastZ: null, lastDirection: null, lastSwingTime: null, recentSwings: []}
         };
         this.currentSpeed = 0;
-        this.threshold = 0.005; // minimum change in z to consider movement (tweak as needed)
+        this.threshold = 0.01; // minimum change/frame in meters in z direction to consider movement
         this.moving = false; // flag to track whether the user is moving
     },
     tick: function(time, deltaTime) {
@@ -726,7 +726,7 @@ AFRAME.registerComponent('arm-swing-movement', {
             recentSwings = recentSwings.concat(this.hands[handKey].recentSwings);
         }
         let avgSwingTime = 0; // Time it takes to swing arms back to forward and vice versa (direction reversals).
-        if (recentSwings.length > 0) {
+        if (recentSwings.length > 5) {
             // Reduce array to sum of swing times and divide by length to get average.
             avgSwingTime = recentSwings.reduce((sum, swingTime) => sum + swingTime, 0) / recentSwings.length;
         }
@@ -749,7 +749,7 @@ AFRAME.registerComponent('arm-swing-movement', {
         // Smoothly interpolate current speed toward target speed.
         this.currentSpeed += (targetSpeed - this.currentSpeed) * (deltaTime / this.data.smoothingTime);
         // Debugging: Output speed
-        console.log(`Steps/sec: ${stepsPerSecond.toFixed(1)}, Target Speed: ${targetSpeed.toFixed(1)}, Current Speed: ${this.currentSpeed.toFixed(1)}`);
+        console.log(`Steps/sec: ${stepsPerSecond.toFixed(1)}, Target m/s: ${targetSpeed.toFixed(1)}, Current m/s: ${this.currentSpeed.toFixed(1)}, lastZLeft: ${this.hands.left.lastZ.toFixed(2)}, lastDirectionLeft: ${this.hands.left.lastDirection}, lastZRight: ${this.hands.right.lastZ.toFixed(2)}, lastDirectionRight: ${this.hands.right.lastDirection}`);
         // Move the rig forward.
         let distance = this.currentSpeed * (deltaTime / 1000);
         let forward = new THREE.Vector3();
