@@ -692,8 +692,17 @@ AFRAME.registerComponent('arm-swing-movement', {
             let worldPos = new THREE.Vector3();
             hand.entity.object3D.getWorldPosition(worldPos);
             // Convert world position to rig's (this.el) local space.
-            let localPos = this.el.object3D.worldToLocal(worldPos.clone());
-            let currentZ = localPos.z;
+            let currentZ;
+            if (this.el.debugDirectionVec) {
+                // If the direction vector is set, use it to calculate the Z position.
+                let rigPos = new THREE.Vector3();
+                this.el.object3D.getWorldPosition(rigPos);
+                let relativePos = worldPos.clone().sub(rigPos);
+                currentZ = relativePos.dot(this.el.debugDirectionVec);
+            } else {
+                let localPos = this.el.object3D.worldToLocal(worldPos.clone());
+                currentZ = localPos.z;
+            }
             if (hand.lastZ === null) {hand.lastZ = currentZ; continue;}
             let diff = currentZ - hand.lastZ;
             let newDirection = hand.lastDirection;
@@ -753,9 +762,15 @@ AFRAME.registerComponent('arm-swing-movement', {
         // Move the rig forward.
         let distance = this.currentSpeed * (deltaTime / 1000);
         let forward = new THREE.Vector3();
-        this.el.object3D.getWorldDirection(forward);
-        // Update rig's position by moving it forward.
-        forward.negate();
+        if (this.el.debugDirectionVec) {
+            // Use direction from direction‑shift if available
+            forward.copy(this.el.debugDirectionVec).negate();
+        } else {
+            // Fallback if no direction-shift component is present
+            this.el.object3D.getWorldDirection(forward);
+            // Update rig's position by moving it forward.
+            forward.negate();
+        }
         // If movement-controls is using nav-mesh, clamp movement to mesh
         let mc = this.el.components['movement-controls'];
         let navsys = this.el.sceneEl.systems.nav;
@@ -775,5 +790,67 @@ AFRAME.registerComponent('arm-swing-movement', {
             // Default unconstrained movement
             this.el.object3D.position.add(forward.multiplyScalar(distance));
         }
+    }
+});
+
+
+AFRAME.registerComponent('direction-shift', {
+    schema: {
+        sampleInterval: { type: 'number', default: 100 }, // Milliseconds between samples
+        bufferSize: { type: 'int', default: 10 } // Number of samples to store in buffer
+    },
+    init: function () {
+        // Controller arrows (left and right)
+        this.controllerArrows = Array.from(this.el.querySelectorAll('.controller-arrow'));
+        // Main debug arrow
+        this.debugArrow = this.el.querySelector('.debug-arrow');
+        // Buffer of recent samples and sampling timer
+        this.samples = [];
+        this.timeSinceLastSample = 0;
+    },
+    tick: function (time, timeDelta) {
+        this.timeSinceLastSample += timeDelta;
+        // Wait until the next sample interval
+        if (this.timeSinceLastSample < this.data.sampleInterval) return;
+        // Reset the sample timer
+        this.timeSinceLastSample -= this.data.sampleInterval;
+        const directions = [];
+        // Collect each arrow's forward direction
+        for (const arrowEl of this.controllerArrows) {
+            if (!arrowEl) continue; // Skip if missing
+            const dir = new THREE.Vector3();
+            arrowEl.object3D.getWorldDirection(dir); // Get world -Z axis
+            dir.y = 0;
+            dir.normalize(); // Project onto XZ plane
+            directions.push(dir);
+        }
+        if (directions.length === 0) return; // Nothing to average
+        // Average direction of both controllers
+        const avgDir = directions
+            .reduce((acc, v) => acc.add(v), new THREE.Vector3())
+            .divideScalar(directions.length)
+            .normalize();
+        // Store averaged sample in buffer
+        this.samples.push(avgDir.clone());
+        // Maintain a fixed-length ring buffer
+        if (this.samples.length > this.data.bufferSize) {
+            this.samples.shift();
+        }
+        // Average direction over the buffer
+        const sum = this.samples
+            .reduce((acc, v) => acc.add(v), new THREE.Vector3())
+            .divideScalar(this.samples.length);
+        // Compute yaw in degrees (world space)
+        const worldYaw = Math.atan2(sum.x, sum.z) * (180 / Math.PI);
+        // Convert to rig-local yaw so arrow stays aligned regardless of rig rotation
+        const rigYaw = this.el.object3D.rotation.y * (180 / Math.PI); // Radians to degrees
+        const localYaw = worldYaw - rigYaw;
+        // Orient the debug arrow based on averaged controller direction
+        this.debugArrow.setAttribute('rotation', { x: 0, y: localYaw, z: 0 });
+        // Store direction data on the rig element for other components
+        this.el.debugDirectionYaw = worldYaw; // Degrees relative to scene
+        this.el.debugDirectionVec = sum.clone(); // Normalized XZ vector
+        // Log direction to console
+        // console.log('Debug Direction - Yaw (deg):', worldYaw, ' Vector:', sum.x.toFixed(3), sum.z.toFixed(3));
     }
 });
