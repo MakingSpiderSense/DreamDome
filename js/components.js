@@ -712,8 +712,11 @@ AFRAME.registerComponent('arm-swing-movement', {
             if (hand.lastDirection && newDirection && newDirection !== hand.lastDirection) {
                 if (hand.lastSwingTime !== null) {
                     let period = time - hand.lastSwingTime;
-                    hand.recentSwings.push(period);
-                    if (hand.recentSwings.length > 6) {hand.recentSwings.shift();}
+                    // If the period is less than 150ms, ignore it - it's nearly impossible and probably a controller shake.
+                    if (period > 150) {
+                        hand.recentSwings.push(period);
+                        if (hand.recentSwings.length > 6) {hand.recentSwings.shift();}
+                    }
                 }
                 hand.lastSwingTime = time;
             }
