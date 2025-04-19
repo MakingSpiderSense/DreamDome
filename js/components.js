@@ -810,7 +810,7 @@ AFRAME.registerComponent('arm-swing-movement', {
 AFRAME.registerComponent('direction-shift', {
     schema: {
         sampleInterval: { type: 'number', default: 100 }, // Milliseconds between samples
-        bufferSize: { type: 'int', default: 20 }, // Number of samples to store in buffer
+        bufferSize: { type: 'number', default: 20 }, // Number of samples to store in buffer
         debug: { type: 'boolean', default: false } // Show debug arrows if true
     },
     init: function () {
@@ -856,10 +856,14 @@ AFRAME.registerComponent('direction-shift', {
     },
     tick: function (time, timeDelta) {
         this.timeSinceLastSample += timeDelta;
-        // Wait until the next sample interval
-        if (this.timeSinceLastSample < this.data.sampleInterval) return;
-        // Reset the sample timer
-        this.timeSinceLastSample -= this.data.sampleInterval;
+        // Update the direction every sampleInterval milliseconds
+        if (this.timeSinceLastSample >= this.data.sampleInterval) {
+            // Reset the sample timer
+            this.timeSinceLastSample -= this.data.sampleInterval;
+            this.updateDirection();
+        }
+    },
+    updateDirection: function () {
         const directions = [];
         // Collect each arrow's forward direction
         for (const arrowEl of this.controllerArrows) {
