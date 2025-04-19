@@ -744,7 +744,7 @@ AFRAME.registerComponent('arm-swing-movement', {
             // Push until we have 12 swings.
             let numToAdd = 12 - recentSwingsLength;
             for (let i = 0; i < numToAdd; i++) {
-                recentSwings.push(2000); // Add 2000ms to fill the array.
+                recentSwings.push(800); // Add 800ms to fill the array.
             }
         }
         let avgSwingTime = 0; // Time it takes to swing arms back to forward and vice versa (direction reversals).
