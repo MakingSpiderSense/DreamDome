@@ -771,7 +771,7 @@ AFRAME.registerComponent('arm-swing-movement', {
         // Debugging: Output speed
         // console.log(`Steps/sec: ${stepsPerSecond.toFixed(1)}, Target m/s: ${targetSpeed.toFixed(1)}, Current m/s: ${this.currentSpeed.toFixed(1)}, lastZLeft: ${this.hands.left.lastZ.toFixed(2)}, lastDirectionLeft: ${this.hands.left.lastDirection}, lastZRight: ${this.hands.right.lastZ.toFixed(2)}, lastDirectionRight: ${this.hands.right.lastDirection}, avgSwingTime: ${avgSwingTime.toFixed(1)}`);
         const recentSwingsString = recentSwings.map(swingTime => Math.round(swingTime)).join(', ');
-        console.log(`Steps/sec: ${stepsPerSecond.toFixed(1)}, Target m/s: ${targetSpeed.toFixed(1)}, Current m/s: ${this.currentSpeed.toFixed(1)}, lastZLeft: ${this.hands.left.lastZ.toFixed(2)}, lastDirectionLeft: ${this.hands.left.lastDirection}, avgSwingTime: ${avgSwingTime.toFixed(1)}, recentSwings: [${recentSwingsString}]`);
+        // console.log(`Steps/sec: ${stepsPerSecond.toFixed(1)}, Target m/s: ${targetSpeed.toFixed(1)}, Current m/s: ${this.currentSpeed.toFixed(1)}, lastZLeft: ${this.hands.left.lastZ.toFixed(2)}, lastDirectionLeft: ${this.hands.left.lastDirection}, avgSwingTime: ${avgSwingTime.toFixed(1)}, recentSwings: [${recentSwingsString}]`);
         // Move the rig forward.
         let distance = this.currentSpeed * (deltaTime / 1000);
         let forward = new THREE.Vector3();
@@ -810,16 +810,49 @@ AFRAME.registerComponent('arm-swing-movement', {
 AFRAME.registerComponent('direction-shift', {
     schema: {
         sampleInterval: { type: 'number', default: 100 }, // Milliseconds between samples
-        bufferSize: { type: 'int', default: 20 } // Number of samples to store in buffer
+        bufferSize: { type: 'int', default: 20 }, // Number of samples to store in buffer
+        debug: { type: 'boolean', default: false } // Show debug arrows if true
     },
     init: function () {
-        // Controller arrows (left and right)
-        this.controllerArrows = Array.from(this.el.querySelectorAll('.controller-arrow'));
-        // Main debug arrow
-        this.debugArrow = this.el.querySelector('.debug-arrow');
+        // Create controller arrows (left and right)
+        this.controllerArrows = [];
+        const left = this.createControllerArrow('left');
+        const right = this.createControllerArrow('right');
+        if (left) this.controllerArrows.push(left);
+        if (right) this.controllerArrows.push(right);
+        // Create main debug arrow
+        this.debugArrow = document.createElement('a-entity');
+        this.debugArrow.setAttribute('class', 'debug-arrow');
+        this.debugArrow.setAttribute('position', '0 1 -0.7');
+        this.debugArrow.setAttribute('rotation', '0 0 0');
+        this.debugArrow.innerHTML = `
+            <a-cylinder color="#FFA500" height="0.3" radius="0.02" position="0 0 0" rotation="-90 0 0"></a-cylinder>
+            <a-cone color="#FFA500" height="0.2" radius-bottom="0.05" radius-top="0" position="0 0 -0.25" rotation="-90 0 0"></a-cone>
+        `;
+        this.el.appendChild(this.debugArrow);
+        if (!this.data.debug) {
+            this.debugArrow.setAttribute('visible', false);
+        }
         // Buffer of recent samples and sampling timer
         this.samples = [];
         this.timeSinceLastSample = 0;
+    },
+    createControllerArrow: function (hand) {
+        const controller = this.el.querySelector(`#${hand}-hand`);
+        if (!controller) return null;
+        const arrow = document.createElement('a-entity');
+        arrow.setAttribute('class', 'controller-arrow');
+        arrow.setAttribute('position', '0 -0.083 -0.167');
+        arrow.setAttribute('rotation', '-30 0 0');
+        arrow.innerHTML = `
+            <a-cylinder color="#400040" height="0.5" radius="0.01" position="0 0 0" rotation="-90 0 0"></a-cylinder>
+            <a-cone color="#400040" height="0.2" radius-bottom="0.05" radius-top="0" position="0 0 -0.2" rotation="-90 0 0"></a-cone>
+        `;
+        controller.appendChild(arrow);
+        if (!this.data.debug) {
+            arrow.setAttribute('visible', false);
+        }
+        return arrow;
     },
     tick: function (time, timeDelta) {
         this.timeSinceLastSample += timeDelta;
