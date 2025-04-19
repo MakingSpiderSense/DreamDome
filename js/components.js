@@ -809,8 +809,8 @@ AFRAME.registerComponent('arm-swing-movement', {
 
 AFRAME.registerComponent('direction-shift', {
     schema: {
-        sampleInterval: { type: 'number', default: 100 }, // Milliseconds between samples
-        bufferSize: { type: 'number', default: 20 }, // Number of samples to store in buffer
+        avgDirectionSampleInterval: { type: 'number', default: 100 }, // Milliseconds between samples
+        avgDirectionBufferSize: { type: 'number', default: 20 }, // Number of samples to store in buffer
         debug: { type: 'boolean', default: false } // Show debug arrows if true
     },
     init: function () {
@@ -860,10 +860,10 @@ AFRAME.registerComponent('direction-shift', {
     },
     tick: function (time, timeDelta) {
         this.timeSinceLastSample += timeDelta;
-        // Update the direction every sampleInterval milliseconds
-        if (this.timeSinceLastSample >= this.data.sampleInterval) {
+        // Update the direction every avgDirectionSampleInterval milliseconds
+        if (this.timeSinceLastSample >= this.data.avgDirectionSampleInterval) {
             // Reset the sample timer
-            this.timeSinceLastSample -= this.data.sampleInterval;
+            this.timeSinceLastSample -= this.data.avgDirectionSampleInterval;
             this.updateDirection();
         }
     },
@@ -887,7 +887,7 @@ AFRAME.registerComponent('direction-shift', {
         // Store averaged sample in buffer
         this.samples.push(avgDir.clone());
         // Maintain a fixed-length ring buffer
-        if (this.samples.length > this.data.bufferSize) {
+        if (this.samples.length > this.data.avgDirectionBufferSize) {
             this.samples.shift();
         }
         // Average direction over the buffer
