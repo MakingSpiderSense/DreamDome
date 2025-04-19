@@ -821,18 +821,7 @@ AFRAME.registerComponent('direction-shift', {
         if (left) this.controllerArrows.push(left);
         if (right) this.controllerArrows.push(right);
         // Create main debug arrow
-        this.debugArrow = document.createElement('a-entity');
-        this.debugArrow.setAttribute('class', 'debug-arrow');
-        this.debugArrow.setAttribute('position', '0 1 -0.7');
-        this.debugArrow.setAttribute('rotation', '0 0 0');
-        this.debugArrow.innerHTML = `
-            <a-cylinder color="#FFA500" height="0.3" radius="0.02" position="0 0 0" rotation="-90 0 0"></a-cylinder>
-            <a-cone color="#FFA500" height="0.2" radius-bottom="0.05" radius-top="0" position="0 0 -0.25" rotation="-90 0 0"></a-cone>
-        `;
-        this.el.appendChild(this.debugArrow);
-        if (!this.data.debug) {
-            this.debugArrow.setAttribute('visible', false);
-        }
+        this.debugArrow = this.createAvgDirectionArrow();
         // Buffer of recent samples and sampling timer
         this.samples = [];
         this.timeSinceLastSample = 0;
@@ -849,6 +838,21 @@ AFRAME.registerComponent('direction-shift', {
             <a-cone color="#400040" height="0.2" radius-bottom="0.05" radius-top="0" position="0 0 -0.2" rotation="-90 0 0"></a-cone>
         `;
         controller.appendChild(arrow);
+        if (!this.data.debug) {
+            arrow.setAttribute('visible', false);
+        }
+        return arrow;
+    },
+    createAvgDirectionArrow: function () {
+        const arrow = document.createElement('a-entity');
+        arrow.setAttribute('class', 'debug-arrow');
+        arrow.setAttribute('position', '0 1 -0.7');
+        arrow.setAttribute('rotation', '0 0 0');
+        arrow.innerHTML = `
+            <a-cylinder color="#FFA500" height="0.3" radius="0.02" position="0 0 0" rotation="-90 0 0"></a-cylinder>
+            <a-cone color="#FFA500" height="0.2" radius-bottom="0.05" radius-top="0" position="0 0 -0.25" rotation="-90 0 0"></a-cone>
+        `;
+        this.el.appendChild(arrow);
         if (!this.data.debug) {
             arrow.setAttribute('visible', false);
         }
