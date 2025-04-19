@@ -808,7 +808,7 @@ AFRAME.registerComponent('arm-swing-movement', {
 AFRAME.registerComponent('direction-shift', {
     schema: {
         sampleInterval: { type: 'number', default: 100 }, // Milliseconds between samples
-        bufferSize: { type: 'int', default: 10 } // Number of samples to store in buffer
+        bufferSize: { type: 'int', default: 20 } // Number of samples to store in buffer
     },
     init: function () {
         // Controller arrows (left and right)
