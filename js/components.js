@@ -693,12 +693,12 @@ AFRAME.registerComponent('arm-swing-movement', {
             hand.entity.object3D.getWorldPosition(worldPos);
             // Convert world position to rig's (this.el) local space.
             let currentZ;
-            if (this.el.debugDirectionVec) {
+            if (this.el.avgDirectionVec) {
                 // If the direction vector is set, use it to calculate the Z position.
                 let rigPos = new THREE.Vector3();
                 this.el.object3D.getWorldPosition(rigPos);
                 let relativePos = worldPos.clone().sub(rigPos);
-                currentZ = relativePos.dot(this.el.debugDirectionVec);
+                currentZ = relativePos.dot(this.el.avgDirectionVec);
             } else {
                 let localPos = this.el.object3D.worldToLocal(worldPos.clone());
                 currentZ = localPos.z;
@@ -775,9 +775,9 @@ AFRAME.registerComponent('arm-swing-movement', {
         // Move the rig forward.
         let distance = this.currentSpeed * (deltaTime / 1000);
         let forward = new THREE.Vector3();
-        if (this.el.debugDirectionVec) {
+        if (this.el.avgDirectionVec) {
             // Use direction from direction‑shift if available
-            forward.copy(this.el.debugDirectionVec).negate();
+            forward.copy(this.el.avgDirectionVec).negate();
         } else {
             // Fallback if no direction-shift component is present
             this.el.object3D.getWorldDirection(forward);
@@ -820,8 +820,8 @@ AFRAME.registerComponent('direction-shift', {
         const right = this.createControllerArrow('right');
         if (left) this.controllerArrows.push(left);
         if (right) this.controllerArrows.push(right);
-        // Create main debug arrow
-        this.debugArrow = this.createAvgDirectionArrow();
+        // Create main average arrow
+        this.avgArrow = this.createAvgDirectionArrow();
         // Buffer of recent samples and sampling timer
         this.samples = [];
         this.timeSinceLastSample = 0;
@@ -845,7 +845,7 @@ AFRAME.registerComponent('direction-shift', {
     },
     createAvgDirectionArrow: function () {
         const arrow = document.createElement('a-entity');
-        arrow.setAttribute('class', 'debug-arrow');
+        arrow.setAttribute('class', 'avg-arrow');
         arrow.setAttribute('position', '0 1 -0.7');
         arrow.setAttribute('rotation', '0 0 0');
         arrow.innerHTML = `
@@ -899,11 +899,11 @@ AFRAME.registerComponent('direction-shift', {
         // Convert to rig-local yaw so arrow stays aligned regardless of rig rotation
         const rigYaw = this.el.object3D.rotation.y * (180 / Math.PI); // Radians to degrees
         const localYaw = worldYaw - rigYaw;
-        // Orient the debug arrow based on averaged controller direction
-        this.debugArrow.setAttribute('rotation', { x: 0, y: localYaw, z: 0 });
+        // Orient the average arrow based on averaged controller direction
+        this.avgArrow.setAttribute('rotation', { x: 0, y: localYaw, z: 0 });
         // Store direction data on the rig element for other components
-        this.el.debugDirectionYaw = worldYaw; // Degrees relative to scene
-        this.el.debugDirectionVec = sum.clone(); // Normalized XZ vector
+        this.el.avgDirectionYaw = worldYaw; // Degrees relative to scene
+        this.el.avgDirectionVec = sum.clone(); // Normalized XZ vector
         // Log direction to console
         // console.log('Debug Direction - Yaw (deg):', worldYaw, ' Vector:', sum.x.toFixed(3), sum.z.toFixed(3));
     }
