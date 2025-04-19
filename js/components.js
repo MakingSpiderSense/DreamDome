@@ -769,7 +769,9 @@ AFRAME.registerComponent('arm-swing-movement', {
         // Smoothly interpolate current speed toward target speed.
         this.currentSpeed += (targetSpeed - this.currentSpeed) * (deltaTime / this.data.smoothingTime);
         // Debugging: Output speed
-        console.log(`Steps/sec: ${stepsPerSecond.toFixed(1)}, Target m/s: ${targetSpeed.toFixed(1)}, Current m/s: ${this.currentSpeed.toFixed(1)}, lastZLeft: ${this.hands.left.lastZ.toFixed(2)}, lastDirectionLeft: ${this.hands.left.lastDirection}, lastZRight: ${this.hands.right.lastZ.toFixed(2)}, lastDirectionRight: ${this.hands.right.lastDirection}`);
+        // console.log(`Steps/sec: ${stepsPerSecond.toFixed(1)}, Target m/s: ${targetSpeed.toFixed(1)}, Current m/s: ${this.currentSpeed.toFixed(1)}, lastZLeft: ${this.hands.left.lastZ.toFixed(2)}, lastDirectionLeft: ${this.hands.left.lastDirection}, lastZRight: ${this.hands.right.lastZ.toFixed(2)}, lastDirectionRight: ${this.hands.right.lastDirection}, avgSwingTime: ${avgSwingTime.toFixed(1)}`);
+        const recentSwingsString = recentSwings.map(swingTime => Math.round(swingTime)).join(', ');
+        console.log(`Steps/sec: ${stepsPerSecond.toFixed(1)}, Target m/s: ${targetSpeed.toFixed(1)}, Current m/s: ${this.currentSpeed.toFixed(1)}, lastZLeft: ${this.hands.left.lastZ.toFixed(2)}, lastDirectionLeft: ${this.hands.left.lastDirection}, avgSwingTime: ${avgSwingTime.toFixed(1)}, recentSwings: [${recentSwingsString}]`);
         // Move the rig forward.
         let distance = this.currentSpeed * (deltaTime / 1000);
         let forward = new THREE.Vector3();
@@ -784,15 +786,15 @@ AFRAME.registerComponent('arm-swing-movement', {
         }
         // If movement-controls is using nav-mesh, clamp movement to mesh
         let mc = this.el.components['movement-controls'];
-        let navsys = this.el.sceneEl.systems.nav;
-        if (mc && mc.data.constrainToNavMesh && navsys) {
+        let navSystem = this.el.sceneEl.systems.nav;
+        if (mc && mc.data.constrainToNavMesh && navSystem) {
             let start = this.el.object3D.position.clone(); // Grab rig's current world‑position and make a copy to do the math on
             let end = start.clone().add(forward.clone().multiplyScalar(distance)); // Compute the *desired* end position by moving “forward” by your computed distance
             // Set to movement-controls' navNode and navGroup to the ones that are currently in use, or get them from the nav-mesh system.
-            let navGroup = mc.navGroup || navsys.getGroup(start);
-            let navNode  = mc.navNode  || navsys.getNode(start, navGroup);
+            let navGroup = mc.navGroup || navSystem.getGroup(start);
+            let navNode  = mc.navNode  || navSystem.getNode(start, navGroup);
             let clampedEnd = new THREE.Vector3(); // Prepare an empty vector to receive the *clamped* end point.
-            let newNavNode = navsys.clampStep(start, end, navGroup, navNode, clampedEnd); // Ask the nav‑mesh system to clamp your straight‑line move onto the mesh surface.
+            let newNavNode = navSystem.clampStep(start, end, navGroup, navNode, clampedEnd); // Ask the nav‑mesh system to clamp your straight‑line move onto the mesh surface.
             this.el.object3D.position.copy(clampedEnd);
             // Sync the movement-controls component's navNode and navGroup to the new ones.
             mc.navGroup = navGroup;
