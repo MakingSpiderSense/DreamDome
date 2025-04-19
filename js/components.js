@@ -662,7 +662,7 @@ AFRAME.registerComponent('arm-swing-movement', {
         rightController: {type: 'selector', default: null},
         speedFactor: {type: 'number', default: 1}, // multiplier for movement speed
         smoothingTime: {type: 'number', default: 1000}, // in ms; time to transition speed
-        minSpeed: {type: 'number', default: 1}, // minimum speed to consider the user moving
+        minSpeed: {type: 'number', default: .8}, // minimum speed (m/s) to consider the user moving
         swingTimeout: {type: 'number', default: 700} // time in ms to wait before stopping movement when no new swings are detected
     },
     init: function() {
