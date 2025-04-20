@@ -663,10 +663,25 @@ AFRAME.registerComponent('arm-swing-movement', {
         speedFactor: {type: 'number', default: 1}, // multiplier for movement speed
         smoothingTime: {type: 'number', default: 1000}, // in ms; time to transition speed
         minSpeed: {type: 'number', default: .8}, // minimum speed (m/s) to consider the user moving
-        swingTimeout: {type: 'number', default: 700} // time in ms to wait before stopping movement when no new swings are detected
+        swingTimeout: {type: 'number', default: 700}, // time in ms to wait before stopping movement when no new swings are detected
+        avgDirectionSampleInterval: { type: 'number', default: 100 }, // Milliseconds between samples
+        avgDirectionBufferSize: { type: 'number', default: 20 }, // Number of samples to store in buffer
+        debug: { type: 'boolean', default: false } // Show debug arrows if true
     },
     init: function() {
-        console.log('Arm Swing Movement Component Initialized v1.5');
+        console.log('Arm Swing Movement Component Initialized v1.6');
+        // Create controller arrows (left and right)
+        this.controllerArrows = [];
+        const left = this.createControllerArrow('left');
+        const right = this.createControllerArrow('right');
+        if (left) this.controllerArrows.push(left);
+        if (right) this.controllerArrows.push(right);
+        // Create main average arrow
+        this.avgArrow = this.createAvgDirectionArrow();
+        // Buffer of recent samples and sampling timer
+        this.samples = [];
+        this.timeSinceLastSample = 0;
+        // Set up other properties
         this.hands = {
             left: {entity: this.data.leftController, lastZ: null, lastDirection: null, lastSwingTime: null, recentSwings: []},
             right: {entity: this.data.rightController, lastZ: null, lastDirection: null, lastSwingTime: null, recentSwings: []}
@@ -675,7 +690,15 @@ AFRAME.registerComponent('arm-swing-movement', {
         this.threshold = 0.01; // minimum change/frame in meters in z direction to consider movement
         this.moving = false; // flag to track whether the user is moving
     },
-    tick: function(time, deltaTime) {
+    tick: function(time, timeDelta) {
+        // Update direction every so often
+        this.timeSinceLastSample += timeDelta;
+        // Update the direction every avgDirectionSampleInterval milliseconds
+        if (this.timeSinceLastSample >= this.data.avgDirectionSampleInterval) {
+            // Reset the sample timer
+            this.timeSinceLastSample -= this.data.avgDirectionSampleInterval;
+            this.updateDirection();
+        }
         // If controllers not provided, try to find them.
         if (!this.hands.left.entity) {
             let leftEl = this.el.sceneEl.querySelector('[oculus-touch-controls][hand="left"]');
@@ -767,13 +790,13 @@ AFRAME.registerComponent('arm-swing-movement', {
             this.moving = true;
         }
         // Smoothly interpolate current speed toward target speed.
-        this.currentSpeed += (targetSpeed - this.currentSpeed) * (deltaTime / this.data.smoothingTime);
+        this.currentSpeed += (targetSpeed - this.currentSpeed) * (timeDelta / this.data.smoothingTime);
         // Debugging: Output speed
         // console.log(`Steps/sec: ${stepsPerSecond.toFixed(1)}, Target m/s: ${targetSpeed.toFixed(1)}, Current m/s: ${this.currentSpeed.toFixed(1)}, lastZLeft: ${this.hands.left.lastZ.toFixed(2)}, lastDirectionLeft: ${this.hands.left.lastDirection}, lastZRight: ${this.hands.right.lastZ.toFixed(2)}, lastDirectionRight: ${this.hands.right.lastDirection}, avgSwingTime: ${avgSwingTime.toFixed(1)}`);
         const recentSwingsString = recentSwings.map(swingTime => Math.round(swingTime)).join(', ');
         // console.log(`Steps/sec: ${stepsPerSecond.toFixed(1)}, Target m/s: ${targetSpeed.toFixed(1)}, Current m/s: ${this.currentSpeed.toFixed(1)}, lastZLeft: ${this.hands.left.lastZ.toFixed(2)}, lastDirectionLeft: ${this.hands.left.lastDirection}, avgSwingTime: ${avgSwingTime.toFixed(1)}, recentSwings: [${recentSwingsString}]`);
         // Move the rig forward.
-        let distance = this.currentSpeed * (deltaTime / 1000);
+        let distance = this.currentSpeed * (timeDelta / 1000);
         let forward = new THREE.Vector3();
         if (this.el.avgDirectionVec) {
             // Use direction from direction‑shift if available
@@ -803,30 +826,8 @@ AFRAME.registerComponent('arm-swing-movement', {
             // Default unconstrained movement
             this.el.object3D.position.add(forward.multiplyScalar(distance));
         }
-    }
-});
-
-
-AFRAME.registerComponent('direction-shift', {
-    schema: {
-        avgDirectionSampleInterval: { type: 'number', default: 100 }, // Milliseconds between samples
-        avgDirectionBufferSize: { type: 'number', default: 20 }, // Number of samples to store in buffer
-        debug: { type: 'boolean', default: false } // Show debug arrows if true
     },
-    init: function () {
-        // Create controller arrows (left and right)
-        this.controllerArrows = [];
-        const left = this.createControllerArrow('left');
-        const right = this.createControllerArrow('right');
-        if (left) this.controllerArrows.push(left);
-        if (right) this.controllerArrows.push(right);
-        // Create main average arrow
-        this.avgArrow = this.createAvgDirectionArrow();
-        // Buffer of recent samples and sampling timer
-        this.samples = [];
-        this.timeSinceLastSample = 0;
-    },
-    createControllerArrow: function (hand) {
+    createControllerArrow: function(hand) {
         const controller = this.el.querySelector(`#${hand}-hand`);
         if (!controller) return null;
         const arrow = document.createElement('a-entity');
@@ -843,7 +844,7 @@ AFRAME.registerComponent('direction-shift', {
         }
         return arrow;
     },
-    createAvgDirectionArrow: function () {
+    createAvgDirectionArrow: function() {
         const arrow = document.createElement('a-entity');
         arrow.setAttribute('class', 'avg-arrow');
         arrow.setAttribute('position', '0 1 -0.7');
@@ -858,16 +859,7 @@ AFRAME.registerComponent('direction-shift', {
         }
         return arrow;
     },
-    tick: function (time, timeDelta) {
-        this.timeSinceLastSample += timeDelta;
-        // Update the direction every avgDirectionSampleInterval milliseconds
-        if (this.timeSinceLastSample >= this.data.avgDirectionSampleInterval) {
-            // Reset the sample timer
-            this.timeSinceLastSample -= this.data.avgDirectionSampleInterval;
-            this.updateDirection();
-        }
-    },
-    updateDirection: function () {
+    updateDirection: function() {
         const directions = [];
         // Collect each arrow's forward direction
         for (const arrowEl of this.controllerArrows) {
@@ -906,5 +898,5 @@ AFRAME.registerComponent('direction-shift', {
         this.el.avgDirectionVec = sum.clone(); // Normalized XZ vector
         // Log direction to console
         // console.log('Debug Direction - Yaw (deg):', worldYaw, ' Vector:', sum.x.toFixed(3), sum.z.toFixed(3));
-    }
+    },
 });
