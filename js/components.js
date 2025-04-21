@@ -793,16 +793,16 @@ AFRAME.registerComponent('arm-swing-movement', {
         this.currentSpeed += (targetSpeed - this.currentSpeed) * (timeDelta / this.data.smoothingTime);
         // Debugging: Output speed
         // console.log(`Steps/sec: ${stepsPerSecond.toFixed(1)}, Target m/s: ${targetSpeed.toFixed(1)}, Current m/s: ${this.currentSpeed.toFixed(1)}, lastZLeft: ${this.hands.left.lastZ.toFixed(2)}, lastDirectionLeft: ${this.hands.left.lastDirection}, lastZRight: ${this.hands.right.lastZ.toFixed(2)}, lastDirectionRight: ${this.hands.right.lastDirection}, avgSwingTime: ${avgSwingTime.toFixed(1)}`);
-        const recentSwingsString = recentSwings.map(swingTime => Math.round(swingTime)).join(', ');
+        // const recentSwingsString = recentSwings.map(swingTime => Math.round(swingTime)).join(', ');
         // console.log(`Steps/sec: ${stepsPerSecond.toFixed(1)}, Target m/s: ${targetSpeed.toFixed(1)}, Current m/s: ${this.currentSpeed.toFixed(1)}, lastZLeft: ${this.hands.left.lastZ.toFixed(2)}, lastDirectionLeft: ${this.hands.left.lastDirection}, avgSwingTime: ${avgSwingTime.toFixed(1)}, recentSwings: [${recentSwingsString}]`);
         // Move the rig forward.
         let distance = this.currentSpeed * (timeDelta / 1000);
         let forward = new THREE.Vector3();
         if (this.el.avgDirectionVec) {
-            // Use direction from direction‑shift if available
+            // Use direction from the avgDirectionVec if available
             forward.copy(this.el.avgDirectionVec).negate();
         } else {
-            // Fallback if no direction-shift component is present
+            // Fallback if avgDirectionVec is not present
             this.el.object3D.getWorldDirection(forward);
             // Update rig's position by moving it forward.
             forward.negate();
