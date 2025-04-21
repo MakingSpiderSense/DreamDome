@@ -658,8 +658,8 @@ function triggerShootingStars() {
 
 AFRAME.registerComponent('arm-swing-movement', {
     schema: {
-        leftController: {type: 'selector', default: null},
-        rightController: {type: 'selector', default: null},
+        leftController: {type: 'selector', default: '[oculus-touch-controls*="hand: left"], [oculus-touch-controls*="hand:left"], [meta-touch-controls*="hand: left"], [meta-touch-controls*="hand:left"]'},
+        rightController: {type: 'selector', default: '[oculus-touch-controls*="hand: right"], [oculus-touch-controls*="hand:right"], [meta-touch-controls*="hand: right"], [meta-touch-controls*="hand:right"]'},
         speedFactor: {type: 'number', default: 1}, // multiplier for movement speed
         smoothingTime: {type: 'number', default: 1000}, // in ms; time to transition speed
         minSpeed: {type: 'number', default: .8}, // minimum speed (m/s) to consider the user moving
@@ -669,7 +669,7 @@ AFRAME.registerComponent('arm-swing-movement', {
         debug: { type: 'boolean', default: false } // Show debug arrows if true
     },
     init: function() {
-        console.log('Arm Swing Movement Component Initialized v1.6');
+        console.log('Arm Swing Movement Component Initialized v1.7');
         // Create controller arrows (left and right)
         this.controllerArrows = [];
         const left = this.createControllerArrow('left');
@@ -698,15 +698,6 @@ AFRAME.registerComponent('arm-swing-movement', {
             // Reset the sample timer
             this.timeSinceLastSample -= this.data.avgDirectionSampleInterval;
             this.updateDirection();
-        }
-        // If controllers not provided, try to find them.
-        if (!this.hands.left.entity) {
-            let leftEl = this.el.querySelector('[oculus-touch-controls*="hand: left"], [oculus-touch-controls*="hand:left"], [meta-touch-controls*="hand: left"], [meta-touch-controls*="hand:left"]');
-            if (leftEl) {this.hands.left.entity = leftEl;}
-        }
-        if (!this.hands.right.entity) {
-            let rightEl = this.el.querySelector('[oculus-touch-controls*="hand: right"], [oculus-touch-controls*="hand:right"], [meta-touch-controls*="hand: right"], [meta-touch-controls*="hand:right"]');
-            if (rightEl) {this.hands.right.entity = rightEl;}
         }
         // Process each hand.
         for (let handKey in this.hands) {
