@@ -666,7 +666,7 @@ AFRAME.registerComponent('arm-swing-movement', {
         swingTimeout: {type: 'number', default: 700}, // time in ms to wait before stopping movement when no new swings are detected
         avgDirectionSampleInterval: { type: 'number', default: 100 }, // Milliseconds between samples
         avgDirectionBufferSize: { type: 'number', default: 20 }, // Number of samples to store in buffer
-        reverseButtonEvent: { type: 'string', default: '' }, // Event name to hold for reverse movement
+        reverseButtonEvent: { type: 'string', default: '' }, // Event name to hold for reverse movement (any of the events that end in 'down' or 'start' are valid)
         reverseButtonHand: { type: 'string', default: '' }, // Hand to use for reverse button event ('left', 'right', or '' for both)
         debug: { type: 'boolean', default: false }, // Show debug arrows if true
     },
