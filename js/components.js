@@ -667,6 +667,7 @@ AFRAME.registerComponent('arm-swing-movement', {
         avgDirectionSampleInterval: { type: 'number', default: 100 }, // Milliseconds between samples
         avgDirectionBufferSize: { type: 'number', default: 20 }, // Number of samples to store in buffer
         reverseButtonEvent: { type: 'string', default: '' }, // Event name to hold for reverse movement
+        reverseButtonHand: { type: 'string', default: '' }, // Hand to use for reverse button event ('left', 'right', or '' for both)
         debug: { type: 'boolean', default: false }, // Show debug arrows if true
     },
     init: function() {
@@ -687,8 +688,16 @@ AFRAME.registerComponent('arm-swing-movement', {
         if (this.data.reverseButtonEvent) {
             const downEvent = this.data.reverseButtonEvent;
             const upEvent = downEvent.replace(/(?:down|start)$/, match => match === 'down' ? 'up' : 'end');
-            this.el.addEventListener(downEvent, () => { this.reverseHeld = true; });
-            this.el.addEventListener(upEvent,   () => { this.reverseHeld = false; });
+            let reverseElement;
+            if (this.data.reverseButtonHand === 'left') {
+                reverseElement = this.data.leftController;
+            } else if (this.data.reverseButtonHand === 'right') {
+                reverseElement = this.data.rightController;
+            } else {
+                reverseElement = this.el;
+            }
+            reverseElement.addEventListener(downEvent, () => { this.reverseHeld = true; });
+            reverseElement.addEventListener(upEvent,   () => { this.reverseHeld = false; });
         }
         // Set up other properties
         this.hands = {
