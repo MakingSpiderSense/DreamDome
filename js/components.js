@@ -666,7 +666,8 @@ AFRAME.registerComponent('arm-swing-movement', {
         swingTimeout: {type: 'number', default: 700}, // time in ms to wait before stopping movement when no new swings are detected
         avgDirectionSampleInterval: { type: 'number', default: 100 }, // Milliseconds between samples
         avgDirectionBufferSize: { type: 'number', default: 20 }, // Number of samples to store in buffer
-        debug: { type: 'boolean', default: false } // Show debug arrows if true
+        reverseButtonEvent: { type: 'string', default: '' }, // Event name to hold for reverse movement
+        debug: { type: 'boolean', default: false }, // Show debug arrows if true
     },
     init: function() {
         console.log('Arm Swing Movement Component Initialized v1.7');
@@ -681,6 +682,14 @@ AFRAME.registerComponent('arm-swing-movement', {
         // Buffer of recent samples and sampling timer
         this.samples = [];
         this.timeSinceLastSample = 0;
+        // Track if reverse button is held
+        this.reverseHeld = false;
+        if (this.data.reverseButtonEvent) {
+            const downEvent = this.data.reverseButtonEvent;
+            const upEvent = downEvent.replace(/(?:down|start)$/, match => match === 'down' ? 'up' : 'end');
+            this.el.addEventListener(downEvent, () => { this.reverseHeld = true; });
+            this.el.addEventListener(upEvent,   () => { this.reverseHeld = false; });
+        }
         // Set up other properties
         this.hands = {
             left: {entity: this.data.leftController, lastZ: null, lastDirection: null, lastSwingTime: null, recentSwings: []},
@@ -864,10 +873,12 @@ AFRAME.registerComponent('arm-swing-movement', {
         }
         if (directions.length === 0) return; // Nothing to average
         // Average direction of both controllers
-        const avgDir = directions
+        let avgDir = directions
             .reduce((acc, v) => acc.add(v), new THREE.Vector3())
             .divideScalar(directions.length)
             .normalize();
+        // If reverse button is held, reverse the direction
+        if (this.reverseHeld) { avgDir.negate(); }
         // Store averaged sample in buffer
         this.samples.push(avgDir.clone());
         // Maintain a fixed-length ring buffer
