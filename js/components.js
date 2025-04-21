@@ -701,11 +701,11 @@ AFRAME.registerComponent('arm-swing-movement', {
         }
         // If controllers not provided, try to find them.
         if (!this.hands.left.entity) {
-            let leftEl = this.el.sceneEl.querySelector('[oculus-touch-controls][hand="left"], [meta-touch-controls][hand="left"]');
+            let leftEl = this.el.querySelector('[oculus-touch-controls*="hand: left"], [oculus-touch-controls*="hand:left"], [meta-touch-controls*="hand: left"], [meta-touch-controls*="hand:left"]');
             if (leftEl) {this.hands.left.entity = leftEl;}
         }
         if (!this.hands.right.entity) {
-            let rightEl = this.el.sceneEl.querySelector('[oculus-touch-controls][hand="right"], [meta-touch-controls][hand="right"]');
+            let rightEl = this.el.querySelector('[oculus-touch-controls*="hand: right"], [oculus-touch-controls*="hand:right"], [meta-touch-controls*="hand: right"], [meta-touch-controls*="hand:right"]');
             if (rightEl) {this.hands.right.entity = rightEl;}
         }
         // Process each hand.
