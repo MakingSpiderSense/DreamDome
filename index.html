@@ -183,7 +183,7 @@
         </a-entity>
 
 		<!-- Camera Rig -->
-		<a-entity class="user" position="0 0 6" movement-controls="speed: .5; constrainToNavMesh: true;" arm-swing-movement="reverseButtonEvent: xbuttondown; soundEntity: #footsteps-sound; oneStepPlaybackRate: .75; debug: false;" blink-control>
+		<a-entity class="user" position="0 0 6" movement-controls="speed: .5; constrainToNavMesh: true;" arm-swing-movement="reverseButtonEvent: xbuttondown; soundEntity: #footsteps; soundVolume: .25; oneStepPlaybackRate: .75; debug: false;" blink-control>
             <!-- VR Console Log -->
             <a-entity position="0 1 -2" rotation="0 0 0">
                 <a-text position="0 0.25 0" scale=".5 .5 .5" vr-logger></a-text>
@@ -220,8 +220,6 @@
                     <!-- Raycaster Actual Line -->
                     <a-entity class="actual-ray" cursor rotation="-30 0 0" raycaster="objects: .interactable; autoRefresh: false; enabled: false; far: 1.5; showLine: false; lineColor: red"></a-entity>
                 </a-entity>
-                <!-- Footsteps -->
-                <a-entity id="footsteps-sound" sound="src: #footsteps; loop: true; volume: .25;"></a-entity>
             </a-entity>
         </a-entity>
 

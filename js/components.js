@@ -670,6 +670,7 @@ AFRAME.registerComponent('arm-swing-movement', {
         reverseButtonHand: { type: 'string', default: '' }, // Hand to use for reverse button event ('left', 'right', or '' for both)
         debug: { type: 'boolean', default: false }, // Show debug arrows if true
         soundEntity: { type: 'selector', default: '' }, // Entity with sound component (typically the sound of footsteps)
+        soundVolume: { type: 'number', default: 1 }, // Volume of the sound (0 to 1)
         oneStepPlaybackRate: { type: 'number', default: 1 } // Base playback rate when moving at one step per second. Adjusts dynamically based on speed of steps.
     },
     init: function() {
@@ -701,6 +702,9 @@ AFRAME.registerComponent('arm-swing-movement', {
             reverseElement.addEventListener(downEvent, () => { this.reverseHeld = true; });
             reverseElement.addEventListener(upEvent,   () => { this.reverseHeld = false; });
         }
+        // Reference sound element and set volume
+        this.audioEl = this.data.soundEntity || null;
+        if (this.audioEl) { this.audioEl.volume = this.data.soundVolume; }
         // Set up other properties
         this.hands = {
             left: {entity: this.data.leftController, lastZ: null, lastDirection: null, lastSwingTime: null, recentSwings: []},
@@ -709,10 +713,6 @@ AFRAME.registerComponent('arm-swing-movement', {
         this.currentSpeed = 0;
         this.threshold = 0.01; // minimum change/frame in meters in z direction to consider movement
         this.moving = false; // flag to track whether the user is moving
-        // Reference sound entity and set the base playback rate
-        this.soundEl = this.data.soundEntity || this.el;
-        this.soundLoaded = false;
-        this.soundEl.addEventListener('sound-loaded', () => { this.soundLoaded = true; });
     },
     tick: function(time, timeDelta) {
         // Update direction every so often
@@ -808,14 +808,12 @@ AFRAME.registerComponent('arm-swing-movement', {
         this.currentSpeed += (targetSpeed - this.currentSpeed) * (timeDelta / this.data.smoothingTime);
         // Update sound playback rate based on current step rate
         const currentStepsPerSecond = (this.currentSpeed + 3.95) / 3.45; // Inverts the "real-world" formula above to get steps/sec from current speed
-        if (this.soundLoaded) {
-            const soundComponent = this.soundEl.components.sound;
-            const currentPlaybackRate = this.data.oneStepPlaybackRate * currentStepsPerSecond;
-            soundComponent.pool.children.forEach(audioObj => { audioObj.setPlaybackRate(currentPlaybackRate); });
+        if (this.audioEl) {
+            this.audioEl.playbackRate = this.data.oneStepPlaybackRate * currentStepsPerSecond;
             if (this.moving) {
-                if (!soundComponent.isPlaying) { soundComponent.playSound(); }
+                if (this.audioEl.paused)   { this.audioEl.play(); }
             } else {
-                if (soundComponent.isPlaying) { soundComponent.pauseSound(); }
+                if (!this.audioEl.paused)  { this.audioEl.pause(); }
             }
         }
         // Debugging: Output stats
