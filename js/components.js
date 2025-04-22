@@ -384,6 +384,7 @@ AFRAME.registerComponent('elevator-trip', {
                 elevatorController.data.isMoving = false;
                 // Re-enable movement
                 cameraEl.setAttribute('movement-controls', { enabled: true });
+                cameraEl.setAttribute('arm-swing-movement', { enabled: true });
                 return; // End of trip
             }
 
@@ -394,6 +395,7 @@ AFRAME.registerComponent('elevator-trip', {
 
             // Disable movement
             cameraEl.setAttribute('movement-controls', { enabled: false });
+            cameraEl.setAttribute('arm-swing-movement', { enabled: false });
 
             // Play all sounds for the current movement
             playSounds(sounds);
@@ -658,6 +660,7 @@ function triggerShootingStars() {
 
 AFRAME.registerComponent('arm-swing-movement', {
     schema: {
+        enabled: {type: 'boolean', default: true}, // Enable or disable the component
         leftController: {type: 'selector', default: '[oculus-touch-controls*="hand: left"], [oculus-touch-controls*="hand:left"], [meta-touch-controls*="hand: left"], [meta-touch-controls*="hand:left"]'},
         rightController: {type: 'selector', default: '[oculus-touch-controls*="hand: right"], [oculus-touch-controls*="hand:right"], [meta-touch-controls*="hand: right"], [meta-touch-controls*="hand:right"]'},
         speedFactor: {type: 'number', default: 1}, // multiplier for movement speed
@@ -675,6 +678,8 @@ AFRAME.registerComponent('arm-swing-movement', {
     },
     init: function() {
         console.log('Arm Swing Movement Component Initialized v1.7');
+        // If not enabled, return
+        if (!this.data.enabled) { return; }
         // Create controller arrows (left and right)
         this.controllerArrows = [];
         const left = this.createControllerArrow('left');
@@ -715,6 +720,8 @@ AFRAME.registerComponent('arm-swing-movement', {
         this.moving = false; // flag to track whether the user is moving
     },
     tick: function(time, timeDelta) {
+        // If not enabled, return
+        if (!this.data.enabled) { return; }
         // Update direction every so often
         this.timeSinceLastSample += timeDelta;
         // Update the direction every avgDirectionSampleInterval milliseconds
