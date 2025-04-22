@@ -818,9 +818,9 @@ AFRAME.registerComponent('arm-swing-movement', {
         if (this.audioEl) {
             this.audioEl.playbackRate = this.data.oneStepPlaybackRate * currentStepsPerSecond;
             if (this.moving) {
-                if (this.audioEl.paused)   { this.audioEl.play(); }
+                if (this.audioEl.paused) { this.audioEl.play(); }
             } else {
-                if (!this.audioEl.paused)  { this.audioEl.pause(); }
+                if (!this.audioEl.paused) { this.audioEl.pause(); }
             }
         }
         // Debugging: Output stats
