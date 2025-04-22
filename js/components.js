@@ -669,6 +669,8 @@ AFRAME.registerComponent('arm-swing-movement', {
         reverseButtonEvent: { type: 'string', default: '' }, // Event name to hold for reverse movement (any of the events that end in 'down' or 'start' are valid)
         reverseButtonHand: { type: 'string', default: '' }, // Hand to use for reverse button event ('left', 'right', or '' for both)
         debug: { type: 'boolean', default: false }, // Show debug arrows if true
+        soundEntity: { type: 'selector', default: '' }, // Entity with sound component (typically the sound of footsteps)
+        oneStepPlaybackRate: { type: 'number', default: 1 } // Base playback rate when moving at one step per second. Adjusts dynamically based on speed of steps.
     },
     init: function() {
         console.log('Arm Swing Movement Component Initialized v1.7');
@@ -707,6 +709,10 @@ AFRAME.registerComponent('arm-swing-movement', {
         this.currentSpeed = 0;
         this.threshold = 0.01; // minimum change/frame in meters in z direction to consider movement
         this.moving = false; // flag to track whether the user is moving
+        // Reference sound entity and set the base playback rate
+        this.soundEl = this.data.soundEntity || this.el;
+        this.soundLoaded = false;
+        this.soundEl.addEventListener('sound-loaded', () => { this.soundLoaded = true; });
     },
     tick: function(time, timeDelta) {
         // Update direction every so often
@@ -800,6 +806,18 @@ AFRAME.registerComponent('arm-swing-movement', {
         }
         // Smoothly interpolate current speed toward target speed.
         this.currentSpeed += (targetSpeed - this.currentSpeed) * (timeDelta / this.data.smoothingTime);
+        // Update sound playback rate based on current step rate
+        const currentStepsPerSecond = (this.currentSpeed + 3.95) / 3.45; // Inverts the "real-world" formula above to get steps/sec from current speed
+        if (this.soundLoaded) {
+            const soundComponent = this.soundEl.components.sound;
+            const currentPlaybackRate = this.data.oneStepPlaybackRate * currentStepsPerSecond;
+            soundComponent.pool.children.forEach(audioObj => { audioObj.setPlaybackRate(currentPlaybackRate); });
+            if (this.moving) {
+                if (!soundComponent.isPlaying) { soundComponent.playSound(); }
+            } else {
+                if (soundComponent.isPlaying) { soundComponent.pauseSound(); }
+            }
+        }
         // Debugging: Output stats
         if (this.data.debug) {
             const recentSwingsString = recentSwings.map(swingTime => Math.round(swingTime)).join(', ');
