@@ -1,58 +1,88 @@
 <!doctype html>
 <html>
 <head>
-    <title>Synthwave Nights</title>
-    <!-- The Inspector Recast library allows you to generate a nave mesh based on your entities. See Lesson 37 for details on how you use it. But essentially, you remove an items you don't want factored into the nav-mesh build first, which is the purpose of this file. Then you open the Aframe inspector and look for the plugin at the bottom. Lower the cellSize to .1 or .2 for more precision (although larger file size). Click "Build" and look if over, if you like it, click "Export" and swap out the newly generated navmesh.gltf file. The Inspector Recast library is no longer supported and only works up to version 1.2.0 of Aframe. -->
-	<script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://unpkg.com/aframe-environment-component@1.3.3/dist/aframe-environment-component.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.1.0/dist/aframe-extras.min.js"></script>
-    <script src="https://unpkg.com/aframe-aabb-collider-component@3.1.0/dist/aframe-aabb-collider-component.min.js"></script>
-	<script src="https://recast-api.donmccurdy.com/aframe-inspector-plugin-recast.js"></script>
-    <script src="js/components.js"></script>
+    <title>Dream Dome</title>
+    <!-- Note: I previously Inspector Recast library to generate a nav mesh, but it did not generate the mesh with enough detail - so I use Blender now. You can use this file to export a simplified version of the scene to import into Blender. See guide, "Creating A Nav Mesh from A-Frame using Blender". -->
+    <link rel="icon" type="image/png" href="assets/favicon-512.png">
+    <script>document.write(`<script src="config.js?cache_buster=${new Date().getTime()}"><\/script>`);</script>
+	<script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
+    <script src="https://unpkg.com/aframe-environment-component@1.5.x/dist/aframe-environment-component.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.5.4/dist/aframe-extras.min.js"></script>
+    <script src="https://unpkg.com/aframe-aabb-collider-component@3.2.2/dist/aframe-aabb-collider-component.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/MozillaReality/ammo.js@8bbc0ea/builds/ammo.wasm.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-physics-system@v4.2.2/dist/aframe-physics-system.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-particle-system-component@1.2.0/dist/aframe-particle-system-component.min.js"></script>
+    <script src="https://unpkg.com/aframe-haptics-component/dist/aframe-haptics-component.min.js"></script>
+    <script>document.write(`<script src="js/mss-aframe-kit.js?cache_buster=${new Date().getTime()}"><\/script>`);</script>
+    <script>document.write(`<script src="js/components.js?cache_buster=${new Date().getTime()}"><\/script>`);</script>
+    <link href="style1.css" rel="stylesheet">
 </head>
 
 <body>
 	<!-- <a-scene vr-mode-ui="enabled: false"> -->
-    <a-scene stats physics="driver: ammo; debug: true;" inspector-plugin-recast>
+    <a-scene physics="driver: ammo; debug: false;" reset-storage raycaster-listener raycaster-manager vr-mode-detect>
 
         <!-- Asset Management System -->
         <a-assets>
-            <img id="neon-sky" src="assets/neon-sky-2.jpg">
-            <img id="moon" src="assets/moon-3.png">
+            <img id="neon-sky" src="assets/neon-sky-4.jpg">
+            <img id="moon" src="assets/moon-4.png">
             <img id="speaker" src="assets/metal_dotted_2-specular.jpg">
-            <img id="cpanel" src="assets/cpanel.jpg">
+            <img id="cpanel" src="assets/cpanel-2.jpg">
+            <img id="star-head" src="assets/star-head.png">
+            <img id="star-tail" src="assets/star-tail.png">
         	<audio id="ghosthustlers" src="assets/ghosthustlers--some-elses-ride.mp3"></audio>
         	<audio id="door-moving" src="assets/door-moving.mp3"></audio>
         	<audio id="elevator-moving" src="assets/elevator-moving.mp3"></audio>
+            <audio id="elevator-fall-1" src="assets/elevator-fall-1.mp3"></audio>
+            <audio id="elevator-plunge" src="assets/elevator-plunge.mp3"></audio>
+            <audio id="skybox-theme" src="assets/skybox-theme.mp3"></audio>
+            <audio id="raycaster-beep" src="assets/raycaster.mp3"></audio>
+            <audio id="button-a" src="assets/button-a.mp3"></audio>
+            <audio id="footsteps" src="assets/footsteps-v1.mp3"></audio>
             <img id="billboard-front" src="assets/billboard-front.png">
-			<a-asset-item id="my-nav-mesh" src="assets/navmesh.gltf"></a-asset-item>
+			<a-asset-item id="my-nav-mesh" src="assets/env-ground.glb"></a-asset-item>
         </a-assets>
-        
-        <!-- Environment -->
-        <a-entity class="env-dream" environment="preset: dream; groundColor: #445; grid: cross; fog: 0; skyType: none; seed: 3;"></a-entity>
 
-		<!-- Navigation Mesh -->
-        <!-- Left here for testing. -->
-		<!-- <a-entity gltf-model="#my-nav-mesh" nav-mesh position="0 -0.1 0" visible="true">
-		</a-entity> -->
+        <!-- Environment -->
+        <a-entity class="env-dream" environment="preset: dream; groundColor: #445; grid: cross; fog: 0; skyType: none; seed: 3; dressing: none;"></a-entity>
+
+        <!-- Billboard -->
+        <a-entity class="billboard" position="80 9.5 -16">
+            <!-- Poles -->
+            <a-entity>
+                <a-cylinder color="#333" radius="0.1" position="0 0 -1" scale="2 20 1" rotation="0 90 0"></a-cylinder>
+                <a-cylinder color="#333" radius="0.1" position="0 0 0" scale="2 20 1" rotation="0 90 0"></a-cylinder>
+                <a-cylinder color="#333" radius="0.1" position="0 0 1" scale="2 20 1" rotation="0 90 0"></a-cylinder>
+            </a-entity>
+        </a-entity>
 
         <!-- Elevator -->
-        <a-entity class="elevator" position="-16 0 -14">
+        <a-entity class="elevator" id="elevator" position="-16 0 -14" elevator-controller>
+            <!-- Glass -->
             <a-entity class="el-glass">
-                <a-cylinder ammo-body="type: static" ammo-shape class="el-mainbody" position="0 2.5 0" color="blue" height="5" opacity=".2" radius="3" geometry="thetaLength: 300; thetaStart: 30;" material="side: double; roughness: 0;" open-ended="true"></a-cylinder>
+                <a-cylinder ammo-body="type: static" ammo-shape class="el-mainbody" position="0 2.5 0" color="white" height="5" opacity=".2" radius="3" geometry="thetaLength: 300; thetaStart: 30;" material="side: double; roughness: 0;" open-ended="true"></a-cylinder>
             </a-entity>
         </a-entity>
 
         <!-- Speaker -->
-        <a-entity class="speaker" position="7 0 8" animation="property: rotation; to: 0 -360 0; loop: true; dur: 30000;">
+        <a-entity class="speaker" position="7 0 7.7" animation="property: rotation; to: 0 -360 0; loop: true; dur: 30000;">
             <!-- Speaker Body -->
             <a-cylinder ammo-body="type: static" ammo-shape color="#333" height="10" scale="1 1 1" rotation="0 0 0" material="src: #speaker; repeat: 9 9; roughness: .7;">
             </a-cylinder>
         </a-entity>
+        <!-- Power Switch -->
+        <a-entity class="power-switch" position="7 0 7.7">
+            <!-- Base -->
+            <a-sphere class="ps-base" color="#1a1a1a" radius="1.4" scale="1 .4 1"></a-sphere>
+        </a-entity>
 
 		<!-- Camera Rig -->
-        <!-- Comment this out when generating nav mesh. Left here for testing. -->
-		<!-- <a-entity class="user" position="0 0 6" movement-controls="speed: 1; constrainToNavMesh: true;">
+		<a-entity class="user" position="0 0 6" movement-controls="speed: .5; constrainToNavMesh: true;" arm-swing-movement="reverseButtonEvent: xbuttondown; soundEntity: #footsteps; soundVolume: .25; oneStepPlaybackRate: .75; debug: false;" blink-control>
+            <!-- VR Console Log -->
+            <a-entity position="0 1 -2" rotation="0 0 0">
+                <a-text position="0 0.25 0" scale=".5 .5 .5" vr-logger></a-text>
+            </a-entity>
+			<!-- Camera -->
 			<a-entity camera position="0 1.6 0"
 					  look-controls="pointerLockEnabled: false"
                       aabb-collider="objects: #elevator-door-trigger"
@@ -60,19 +90,39 @@
                       open-door
                       ammo-body="type: kinematic" ammo-shape="type: box; fit: manual; sphereRadius:0.5"
                       >
-                    <a-entity cursor position="0 0 -1"
+                    <!-- Reticle -->
+                    <a-entity id="reticle" cursor position="0 0 -1"
                                 geometry="primitive: sphere; radius: 0.005"
                                 material="color: #FFFFFF; shader: flat; opacity: 0.5"
-                                raycaster="objects: .clickable">
+                                raycaster="objects: .interactable; autoRefresh: false;">
                     </a-entity>
+                    <!-- Eyelids-->
+                    <a-plane class="upper-eyelid" visible="true" material="shader: flat;" color="black" width="10" height="5" position="0 4 -1"></a-plane>
+                    <a-plane class="lower-eyelid" visible="true" material="shader: flat;" color="black" width="10" height="5" position="0 -4 -1"></a-plane>
 			</a-entity>
+            <!-- Controllers -->
             <a-entity class="controllers">
-                <a-entity oculus-touch-controls="hand: left"></a-entity>
-                <a-entity oculus-touch-controls="hand: right"></a-entity>
+                <a-entity id="left-hand" meta-touch-controls="hand: left" haptics__trigger="events: trigger-vibration;">
+                    <!-- Raycaster Style Line -->
+                    <a-cylinder class="styled-ray ar-left" visible="false" position="0 -.389 -.673" height="1.455" radius="0.002" color="#ffffff" rotation="60 0 0" opacity=".4" sound="src: #raycaster-beep; volume: .1;"></a-cylinder>
+                    <!-- Raycaster Actual Line -->
+                    <a-entity class="actual-ray" cursor rotation="-30 0 0" raycaster="objects: .interactable; autoRefresh: false; enabled: false; far: 1.5; showLine: false; lineColor: red"></a-entity>
+                </a-entity>
+                <a-entity id="right-hand" meta-touch-controls="hand: right" haptics__trigger="events: trigger-vibration;">
+                    <!-- Raycaster Style Line -->
+                    <a-cylinder class="styled-ray ar-right" visible="false" position="0 -.389 -.673" height="1.455" radius="0.002" color="#ffffff" rotation="60 0 0" opacity=".4" sound="src: #raycaster-beep; volume: .1;"></a-cylinder>
+                    <!-- Raycaster Actual Line -->
+                    <a-entity class="actual-ray" cursor rotation="-30 0 0" raycaster="objects: .interactable; autoRefresh: false; enabled: false; far: 1.5; showLine: false; lineColor: red"></a-entity>
+                </a-entity>
             </a-entity>
-        </a-entity> -->
+        </a-entity>
 
     </a-scene>
+
+    <!-- "Enable Sensors" button -->
+    <button id="enableSensors" style="display: none;">
+        Enable Sensors
+    </button>
 
 </body>
 </html>
