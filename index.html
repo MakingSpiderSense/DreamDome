@@ -46,10 +46,10 @@
         <a-entity class="env-dream" environment="preset: dream; groundColor: #445; grid: cross; fog: 0; skyType: none; seed: 3;"></a-entity>
         <!-- Particle System -->
         <a-entity class="dome-particles" position="0 2.25 -15" particle-system="preset: dust; positionSpread: 300 300 300;"></a-entity>
-        <!-- Add a fake floor - this is temporary until I can work out the floor physics with environment component -->
-        <a-box width="200" height="0.1" depth="200" ammo-body="type: static" ammo-shape visible="false"></a-box>
 		<!-- Navigation Mesh -->
 		<a-entity gltf-model="#my-nav-mesh" nav-mesh position="0 -0.1 0" visible="false"></a-entity>
+        <!-- Floor Physics Mesh -->
+		<a-entity position="0 -0.1 0" visible="false" add-model-after-load="model: #my-nav-mesh; body: static; shape: mesh;"></a-entity>
 
         <!-- Sky -->
         <a-sky src="#neon-sky" rotation="0 -90 0"></a-sky>
