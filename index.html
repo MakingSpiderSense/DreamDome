@@ -40,6 +40,7 @@
             <audio id="footsteps" src="assets/footsteps-v1.mp3"></audio>
             <img id="billboard-front" src="assets/billboard-front.png">
 			<a-asset-item id="my-nav-mesh" src="assets/navmesh-v1.1.glb"></a-asset-item>
+			<a-asset-item id="walls-mesh" src="assets/walls-v1.0.glb"></a-asset-item>
         </a-assets>
 
         <!-- Environment -->
@@ -50,6 +51,8 @@
 		<a-entity gltf-model="#my-nav-mesh" nav-mesh position="0 -0.1 0" visible="false"></a-entity>
         <!-- Floor Physics Mesh -->
 		<a-entity position="0 -0.1 0" visible="false" add-model-after-load="model: #my-nav-mesh; body: static; shape: mesh;"></a-entity>
+        <!-- Walls Physics Mesh -->
+        <a-entity position="0 0 0" visible="false" add-model-after-load="model: #walls-mesh; body: static; shape: mesh;"></a-entity>
 
         <!-- Sky -->
         <a-sky src="#neon-sky" rotation="0 -90 0"></a-sky>
