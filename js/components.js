@@ -782,12 +782,12 @@ AFRAME.registerComponent('arm-swing-movement', {
         for (let handKey in this.hands) {
             recentSwings = recentSwings.concat(this.hands[handKey].recentSwings);
         }
-        // Make sure there are at least 12 swings and none are zero. If so, add or update 0 swings to 2000ms.
+        // Make sure there are at least 10 swings and none are zero.
         const recentSwingsLength = recentSwings.length;
         recentSwings = recentSwings.filter(swingTime => swingTime > 0);
-        if (recentSwingsLength < 12) {
-            // Push until we have 12 swings.
-            let numToAdd = 12 - recentSwingsLength;
+        if (recentSwingsLength < 10) {
+            // Push until we have exactly 10 swings.
+            let numToAdd = 10 - recentSwingsLength;
             for (let i = 0; i < numToAdd; i++) {
                 recentSwings.push(800); // Add 800ms to fill the array.
             }
