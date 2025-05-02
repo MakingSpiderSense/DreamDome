@@ -50,9 +50,9 @@
 		<!-- Navigation Mesh -->
 		<a-entity gltf-model="#my-nav-mesh" nav-mesh position="0 -0.1 0" visible="false"></a-entity>
         <!-- Floor Physics Mesh -->
-		<a-entity position="0 -0.1 0" visible="false" add-model-after-load="model: #my-nav-mesh; body: static; shape: mesh;"></a-entity>
+		<a-entity position="0 -0.1 0" visible="false" add-model-after-load="model: #my-nav-mesh; body: static; shape: mesh; restitution: .4;"></a-entity>
         <!-- Walls Physics Mesh -->
-        <a-entity position="0 0 0" visible="false" add-model-after-load="model: #walls-mesh; body: static; shape: mesh;"></a-entity>
+        <a-entity position="0 0 0" visible="false" add-model-after-load="model: #walls-mesh; body: static; shape: mesh; restitution: .6;"></a-entity>
 
         <!-- Sky -->
         <a-sky src="#neon-sky" rotation="0 -90 0"></a-sky>
