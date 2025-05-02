@@ -664,8 +664,8 @@ AFRAME.registerComponent('arm-swing-movement', {
         leftController: {type: 'selector', default: '[oculus-touch-controls*="hand: left"], [oculus-touch-controls*="hand:left"], [meta-touch-controls*="hand: left"], [meta-touch-controls*="hand:left"]'},
         rightController: {type: 'selector', default: '[oculus-touch-controls*="hand: right"], [oculus-touch-controls*="hand:right"], [meta-touch-controls*="hand: right"], [meta-touch-controls*="hand:right"]'},
         speedFactor: {type: 'number', default: 1}, // multiplier for movement speed
-        smoothingTime: {type: 'number', default: 1000}, // in ms; time to transition speed
-        minSpeed: {type: 'number', default: .8}, // minimum speed (m/s) to consider the user moving
+        smoothingTime: {type: 'number', default: 1000}, // in ms; time to transition speed (of what?)
+        minSpeed: {type: 'number', default: .6}, // minimum speed (m/s) to consider the user moving
         swingTimeout: {type: 'number', default: 700}, // time in ms to wait before stopping movement when no new swings are detected
         avgDirectionSampleInterval: { type: 'number', default: 100 }, // Milliseconds between samples
         avgDirectionBufferSize: { type: 'number', default: 20 }, // Number of samples to store in buffer
@@ -950,6 +950,7 @@ AFRAME.registerComponent('add-model-after-load', {
         model: { default: '' },
         body: { type: 'string', default: 'dynamic' },
         shape: { type: 'string', default: 'hull' },
+        restitution: { type: 'number', default: 0 },
     },
     init() {
         const gltfModel = document.createElement('a-entity');
@@ -957,7 +958,7 @@ AFRAME.registerComponent('add-model-after-load', {
         gltfModel.setAttribute('gltf-model', this.data.model);
         gltfModel.setAttribute('shadow', { receive: false });
         // Specify what type of ammo-body (dynamic, static, kinematic)
-        gltfModel.setAttribute('ammo-body', { type: this.data.body });
+        gltfModel.setAttribute('ammo-body', { type: this.data.body, restitution: this.data.restitution });
         // Wait for model to load before adding ammo-shape (box, cylinder, sphere, capsule, cone, hull)
         this.el.addEventListener('model-loaded', () => {
             gltfModel.setAttribute('ammo-shape', { type: this.data.shape });
