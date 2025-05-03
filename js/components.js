@@ -665,7 +665,7 @@ AFRAME.registerComponent('arm-swing-movement', {
         rightController: {type: 'selector', default: '[oculus-touch-controls*="hand: right"], [oculus-touch-controls*="hand:right"], [meta-touch-controls*="hand: right"], [meta-touch-controls*="hand:right"]'},
         speedFactor: {type: 'number', default: 1}, // multiplier for movement speed
         smoothingTime: {type: 'number', default: 1000}, // in ms; time to transition speed (of what?)
-        minSpeed: {type: 'number', default: .6}, // minimum speed (m/s) to consider the user moving
+        minSpeed: {type: 'number', default: null}, // minimum speed (m/s) to consider the user moving. If null, .6 * speedFactor is used.
         swingTimeout: {type: 'number', default: 700}, // time in ms to wait before stopping movement when no new swings are detected
         avgDirectionSampleInterval: { type: 'number', default: 100 }, // Milliseconds between samples
         avgDirectionBufferSize: { type: 'number', default: 20 }, // Number of samples to store in buffer
@@ -805,7 +805,8 @@ AFRAME.registerComponent('arm-swing-movement', {
             targetSpeed *= this.data.speedFactor;
         }
         // If the computed speed is below the minimum, stop moving.
-        if (targetSpeed < this.data.minSpeed) {
+        const minSpeedThreshold = this.data.minSpeed || (0.6 * this.data.speedFactor);
+        if (targetSpeed < minSpeedThreshold) {
             targetSpeed = 0;
             this.moving = false;
         } else {
