@@ -666,6 +666,7 @@ AFRAME.registerComponent('arm-swing-movement', {
         speedFactor: {type: 'number', default: 1}, // multiplier for movement speed
         smoothingTime: {type: 'number', default: 1000}, // in ms; time to transition speed (of what?)
         minSpeed: {type: 'number', default: null}, // minimum speed (m/s) to consider the user moving. If null, .6 * speedFactor is used.
+        maxSpeed: {type: 'number', default: null}, // Maximum speed (m/s) the user can move. If null, 10 * speedFactor is used.
         swingTimeout: {type: 'number', default: 700}, // time in ms to wait before stopping movement when no new swings are detected
         avgDirectionSampleInterval: { type: 'number', default: 100 }, // Milliseconds between samples
         avgDirectionBufferSize: { type: 'number', default: 20 }, // Number of samples to store in buffer
@@ -803,6 +804,12 @@ AFRAME.registerComponent('arm-swing-movement', {
             targetSpeed = 3.45 * stepsPerSecond - 3.95;
             // Multiply by speedFactor to adjust speed
             targetSpeed *= this.data.speedFactor;
+            // Clamp target speed to maxSpeed if set
+            if (this.data.maxSpeed) {
+                targetSpeed = Math.min(targetSpeed, this.data.maxSpeed);
+            } else {
+                targetSpeed = Math.min(targetSpeed, 10 * this.data.speedFactor); // Default max speed is 10 m/s
+            }
         }
         // If the computed speed is below the minimum, stop moving.
         const minSpeedThreshold = this.data.minSpeed || (0.6 * this.data.speedFactor);
