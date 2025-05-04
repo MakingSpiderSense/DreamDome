@@ -821,6 +821,7 @@ AFRAME.registerComponent('arm-swing-movement', {
         }
         // Smoothly interpolate current speed toward target speed.
         this.currentSpeed += (targetSpeed - this.currentSpeed) * (timeDelta / this.data.smoothingTime);
+        this.currentSpeed = Math.max(0, this.currentSpeed); // Avoid edge case of negative speed
         // Update sound playback rate based on current step rate
         if (this.audioEl) {
             this.audioEl.playbackRate = this.data.oneStepPlaybackRate * stepsPerSecond;
