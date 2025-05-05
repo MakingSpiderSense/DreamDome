@@ -661,24 +661,23 @@ function triggerShootingStars() {
 AFRAME.registerComponent('arm-swing-movement', {
     schema: {
         enabled: {type: 'boolean', default: true}, // Enable or disable the component
-        leftController: {type: 'selector', default: '[oculus-touch-controls*="hand: left"], [oculus-touch-controls*="hand:left"], [meta-touch-controls*="hand: left"], [meta-touch-controls*="hand:left"]'},
-        rightController: {type: 'selector', default: '[oculus-touch-controls*="hand: right"], [oculus-touch-controls*="hand:right"], [meta-touch-controls*="hand: right"], [meta-touch-controls*="hand:right"]'},
-        speedFactor: {type: 'number', default: 1}, // multiplier for movement speed
-        smoothingTime: {type: 'number', default: 1000}, // in ms; time to transition speed (of what?)
-        minSpeed: {type: 'number', default: null}, // minimum speed (m/s) to consider the user moving. If null, .6 * speedFactor is used.
+        leftController: {type: 'selector', default: '[oculus-touch-controls*="hand: left"], [oculus-touch-controls*="hand:left"], [meta-touch-controls*="hand: left"], [meta-touch-controls*="hand:left"]'}, // Selector for left controller
+        rightController: {type: 'selector', default: '[oculus-touch-controls*="hand: right"], [oculus-touch-controls*="hand:right"], [meta-touch-controls*="hand: right"], [meta-touch-controls*="hand:right"]'}, // Selector for right controller
+        speedFactor: {type: 'number', default: 1}, // Multiplier for movement speed
+        smoothingTime: {type: 'number', default: 1000}, // Time (ms) to smooth speed changes (e.g., at 1000ms, a sudden stop from 5 m/s takes 1s to reach 0)
+        minSpeed: {type: 'number', default: null}, // Minimum speed (m/s) to consider the user moving. If null, .6 * speedFactor is used.
         maxSpeed: {type: 'number', default: null}, // Maximum speed (m/s) the user can move. If null, 10 * speedFactor is used.
-        swingTimeout: {type: 'number', default: 700}, // time in ms to wait before stopping movement when no new swings are detected
-        avgDirectionSampleInterval: { type: 'number', default: 100 }, // Milliseconds between samples
-        avgDirectionBufferSize: { type: 'number', default: 20 }, // Number of samples to store in buffer
+        swingTimeout: {type: 'number', default: 700}, // Time in ms to wait before stopping movement when no new swings are detected
+        avgDirectionSampleInterval: { type: 'number', default: 100 }, // Milliseconds between directional samples
+        avgDirectionBufferSize: { type: 'number', default: 20 }, // Number of directional samples to store in buffer
         reverseButtonEvent: { type: 'string', default: '' }, // Event name to hold for reverse movement (any of the events that end in 'down' or 'start' are valid)
         reverseButtonHand: { type: 'string', default: '' }, // Hand to use for reverse button event ('left', 'right', or '' for both)
-        debug: { type: 'boolean', default: false }, // Show debug arrows if true
+        debug: { type: 'boolean', default: false }, // Show debug arrows and console logs if true
         soundEntity: { type: 'selector', default: '' }, // Entity with sound component (typically the sound of footsteps)
         soundVolume: { type: 'number', default: 1 }, // Volume of the sound (0 to 1)
         oneStepPlaybackRate: { type: 'number', default: 1 } // Base playback rate when moving at one step per second. Adjusts dynamically based on speed of steps.
     },
     init: function() {
-        console.log('Arm Swing Movement Component Initialized v1.7');
         // If not enabled, return
         if (!this.data.enabled) { return; }
         // Create controller arrows (left and right)
@@ -687,9 +686,9 @@ AFRAME.registerComponent('arm-swing-movement', {
         const right = this.createControllerArrow('right');
         if (left) this.controllerArrows.push(left);
         if (right) this.controllerArrows.push(right);
-        // Create main average arrow
+        // Create main average arrow (averages direction of both hands)
         this.avgArrow = this.createAvgDirectionArrow();
-        // Buffer of recent samples and sampling timer
+        // Set up buffer of recent directional samples and sampling timer
         this.samples = [];
         this.timeSinceLastSample = 0;
         // Track if reverse button is held
@@ -708,7 +707,7 @@ AFRAME.registerComponent('arm-swing-movement', {
             reverseElement.addEventListener(downEvent, () => { this.reverseHeld = true; });
             reverseElement.addEventListener(upEvent,   () => { this.reverseHeld = false; });
         }
-        // Reference sound element and set volume
+        // Set up sound element and set volume
         this.audioEl = this.data.soundEntity || null;
         if (this.audioEl) { this.audioEl.volume = this.data.soundVolume; }
         // Set up other properties
@@ -717,15 +716,15 @@ AFRAME.registerComponent('arm-swing-movement', {
             right: {entity: this.data.rightController, lastZ: null, lastDirection: null, lastSwingTime: null, recentSwings: []}
         };
         this.currentSpeed = 0;
-        this.threshold = 0.01; // minimum change/frame in meters in z direction to consider movement
-        this.moving = false; // flag to track whether the user is moving
+        this.swingDetectThreshold = 0.01; // Minimum change/frame in meters in z direction to consider movement
+        this.moving = false; // Flag to track whether the user is moving
     },
     tick: function(time, timeDelta) {
         // If not enabled, return
         if (!this.data.enabled) { return; }
         // Update direction every so often
         this.timeSinceLastSample += timeDelta;
-        // Update the direction every avgDirectionSampleInterval milliseconds
+        //     Update the direction every `avgDirectionSampleInterval` milliseconds
         if (this.timeSinceLastSample >= this.data.avgDirectionSampleInterval) {
             // Reset the sample timer
             this.timeSinceLastSample -= this.data.avgDirectionSampleInterval;
@@ -734,7 +733,7 @@ AFRAME.registerComponent('arm-swing-movement', {
         // Process each hand.
         for (let handKey in this.hands) {
             let hand = this.hands[handKey];
-            if (!hand.entity) {continue;}
+            if (!hand.entity) { continue; }
             let worldPos = new THREE.Vector3();
             hand.entity.object3D.getWorldPosition(worldPos);
             // Convert world position to rig's (this.el) local space.
@@ -749,11 +748,11 @@ AFRAME.registerComponent('arm-swing-movement', {
                 let localPos = this.el.object3D.worldToLocal(worldPos.clone());
                 currentZ = localPos.z;
             }
-            if (hand.lastZ === null) {hand.lastZ = currentZ; continue;}
+            if (hand.lastZ === null) { hand.lastZ = currentZ; continue; }
             let diff = currentZ - hand.lastZ;
             let newDirection = hand.lastDirection;
-            if (diff > this.threshold) {newDirection = 'positive';}
-            else if (diff < -this.threshold) {newDirection = 'negative';}
+            if (diff > this.swingDetectThreshold) { newDirection = 'positive'; }
+            else if (diff < -this.swingDetectThreshold) { newDirection = 'negative'; }
             // When a direction reversal is detected, record a swing event.
             if (hand.lastDirection && newDirection && newDirection !== hand.lastDirection) {
                 if (hand.lastSwingTime !== null) {
@@ -761,7 +760,7 @@ AFRAME.registerComponent('arm-swing-movement', {
                     // If the period is less than 150ms, ignore it - it's nearly impossible and probably a controller shake.
                     if (period > 150) {
                         hand.recentSwings.push(period);
-                        if (hand.recentSwings.length > 6) {hand.recentSwings.shift();}
+                        if (hand.recentSwings.length > 6) { hand.recentSwings.shift(); }
                     }
                 }
                 hand.lastSwingTime = time;
@@ -939,8 +938,6 @@ AFRAME.registerComponent('arm-swing-movement', {
         // Store direction data on the rig element for other components
         this.el.avgDirectionYaw = worldYaw; // Degrees relative to scene
         this.el.avgDirectionVec = sum.clone(); // Normalized XZ vector
-        // Log direction to console
-        // console.log('Debug Direction - Yaw (deg):', worldYaw, ' Vector:', sum.x.toFixed(3), sum.z.toFixed(3));
     },
 });
 
