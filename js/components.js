@@ -658,6 +658,14 @@ function triggerShootingStars() {
 // });
 
 
+/**
+ * Arm Swing Movement Component
+ *
+ * Description: This component turns a player's arm swings into locomotion. Each time either controller's Z‑axis motion reverses, it registers a "step", averages the last ten swing periods, converts that cadence into meters‑per‑second with a speed factor, then eases toward that target over a smoothing window. The rig moves forward along the live average of both controllers' forward vectors (clamped to a nav‑mesh if active on movement‑controls) and can reverse when a specified button is held. Speed is bounded by optional min/max values and drops to zero after a swing‑timeout of inactivity. While moving, an optional sound entity plays footstep audio whose playback‑rate tracks step rate.
+ *
+ * Limitations:
+ * - The formula that converts steps/sec to m/s to is based on the average adult height. A height parameter could be added to the schema in the future.
+ */
 AFRAME.registerComponent('arm-swing-movement', {
     schema: {
         enabled: {type: 'boolean', default: true}, // Enable or disable the component
