@@ -664,7 +664,7 @@ AFRAME.registerComponent('arm-swing-movement', {
         leftController: {type: 'selector', default: '[oculus-touch-controls*="hand: left"], [oculus-touch-controls*="hand:left"], [meta-touch-controls*="hand: left"], [meta-touch-controls*="hand:left"]'}, // Selector for left controller
         rightController: {type: 'selector', default: '[oculus-touch-controls*="hand: right"], [oculus-touch-controls*="hand:right"], [meta-touch-controls*="hand: right"], [meta-touch-controls*="hand:right"]'}, // Selector for right controller
         speedFactor: {type: 'number', default: 1}, // Multiplier for movement speed
-        smoothingTime: {type: 'number', default: 1000}, // Time (ms) to smooth speed changes (e.g., at 1000ms, a sudden stop from 5 m/s takes 1s to reach 0)
+        smoothingTime: {type: 'number', default: 500}, // Time (ms) to smooth speed changes (e.g., at 500ms, a sudden stop from 6 m/s takes 500ms to reach 0)
         minSpeed: {type: 'number', default: null}, // Minimum speed (m/s) to consider the user moving. If null, .6 * speedFactor is used.
         maxSpeed: {type: 'number', default: null}, // Maximum speed (m/s) the user can move. If null, 10 * speedFactor is used.
         swingTimeout: {type: 'number', default: 700}, // Time in ms to wait before stopping movement when no new swings are detected
