@@ -686,3 +686,168 @@ AFRAME.registerComponent('add-model-after-load', {
         })
     }
 });
+
+
+
+
+/**
+ * Orb Collection Minigame
+ *
+ * Description: Spawns collectible glowing orbs above a nav mesh, spaces them apart, removes them when the player gets close, and plays optional sounds for orb collection and full completion.
+ *
+ * Example: <a-scene orb-collection-minigame="navMeshEl: #my-nav-mesh; collectSound: #orb-collect; allCollectedSound: #orb-win"></a-scene>
+ *
+ * Use the IDs of the entities for the nav mesh and sounds (not the asset IDs).
+ */
+AFRAME.registerComponent('orb-collection-minigame', {
+    schema: {
+        navMeshEl: { type: 'selector', default: '[nav-mesh]' },
+        count: { type: 'int', default: 20  },
+        height: { type: 'number', default: 1.5 },
+        minDistance: { type: 'number', default: 6 },
+        collectRadius: { type: 'number', default: 1.8 },
+        collectSound: { type: 'string', default: '' },
+        allCollectedSound: { type: 'string', default: '' },
+    },
+
+    init: function () {
+        this.orbs = [];
+        this.collected = 0;
+        this.cameraWorldPosition = new THREE.Vector3();
+        this.tickFrameCounter = 0;
+        this.hasCollectedAllOrbs = false;
+
+        // Make sure nav mesh is loaded before spawning orbs
+        const navMeshEl = this.data.navMeshEl;
+        if (!navMeshEl) { console.warn('orb-collection-minigame: navMeshEl not found'); return; }
+        // Spawn orbs once nav mesh is ready.
+        if (navMeshEl.getObject3D('mesh')) {
+            this.spawnOrbs();
+        } else {
+            navMeshEl.addEventListener('model-loaded', () => this.spawnOrbs(), { once: true });
+        }
+    },
+
+    spawnOrbs: function () {
+        const navMeshEl = this.data.navMeshEl;
+        const navMeshObject3D = navMeshEl.getObject3D('mesh');
+        if (!navMeshObject3D) { console.warn('orb-collection-minigame: nav mesh Object3D not ready'); return; }
+        const navMeshBounds = new THREE.Box3().setFromObject(navMeshObject3D);
+        const surfaceRaycaster = new THREE.Raycaster();
+        const downwardRayDirection = new THREE.Vector3(0, -1, 0);
+        const rayOrigin = new THREE.Vector3();
+        const targetOrbCount = this.data.count;
+        const orbHeightOffset = this.data.height;
+        const minSpacingSquared = this.data.minDistance * this.data.minDistance;
+        const placedOrbPositions = [];
+        let spawnAttempts = 0;
+
+        // Attempt to place all orbs
+        while (placedOrbPositions.length < targetOrbCount && spawnAttempts < targetOrbCount * 150) {
+            spawnAttempts++; // Keep track to prevent infinite loop if nav mesh is too small or minDistance too large
+            const randomX = THREE.MathUtils.lerp(navMeshBounds.min.x, navMeshBounds.max.x, Math.random());
+            const randomZ = THREE.MathUtils.lerp(navMeshBounds.min.z, navMeshBounds.max.z, Math.random());
+            // Cast a ray downward from above the nav mesh to find the surface height at the random (x, z) position
+            rayOrigin.set(randomX, navMeshBounds.max.y + 5, randomZ);
+            surfaceRaycaster.set(rayOrigin, downwardRayDirection);
+            // Check if the ray intersects with the nav mesh
+            const rayHits = surfaceRaycaster.intersectObject(navMeshObject3D, true);
+            if (!rayHits.length) continue;
+            // Candidate orb position is `orbHeightOffset` meters above the nav mesh surface at the ray hit point
+            const candidateOrbPosition = new THREE.Vector3(
+                rayHits[0].point.x,
+                rayHits[0].point.y + orbHeightOffset,
+                rayHits[0].point.z
+            );
+            // Check if candidate position is too close to any already placed orb. If so discard attempt and try again
+            let isTooCloseToExistingOrb = false;
+            for (const placedOrbPosition of placedOrbPositions) {
+                const deltaX = candidateOrbPosition.x - placedOrbPosition.x;
+                const deltaZ = candidateOrbPosition.z - placedOrbPosition.z;
+                if (deltaX * deltaX + deltaZ * deltaZ < minSpacingSquared) {
+                    isTooCloseToExistingOrb = true;
+                    break;
+                }
+            }
+            if (isTooCloseToExistingOrb) continue;
+            // Candidate position is valid, add to list of placed orbs
+            placedOrbPositions.push(candidateOrbPosition);
+        }
+
+        // Send warning if we weren't able to place the target number of orbs
+        if (placedOrbPositions.length < targetOrbCount) {
+            console.warn(`orb-collection-minigame: placed ${placedOrbPositions.length}/${targetOrbCount} orbs — nav mesh may be too small or minDistance too large`);
+        }
+
+        // Create and place orbs at the valid positions we found
+        placedOrbPositions.forEach(orbPosition => {
+            const orb = document.createElement('a-sphere');
+            orb.setAttribute('radius', '0.3');
+            orb.setAttribute('position', `${orbPosition.x} ${orbPosition.y} ${orbPosition.z}`);
+            orb.setAttribute('material', 'color: #3DFFA0; emissive: #0D6B3A; emissiveIntensity: 0.4; opacity: 0.5; transparent: true; shader: standard');
+            this.el.sceneEl.appendChild(orb);
+            this.orbs.push({ el: orb, pos: orbPosition.clone(), collected: false }); // Store orb element, position, and collected state
+        });
+    },
+
+    tick: function () {
+        if (!this.orbs.length || this.hasCollectedAllOrbs) return; // Exit if no orbs or game is already completed
+
+        // Only check for orb collection every 10 frames for performance
+        this.tickFrameCounter++;
+        if (this.tickFrameCounter < 10) return;
+        this.tickFrameCounter = 0;
+
+        // Setup vars
+        const sceneCamera = this.el.sceneEl.camera;
+        if (!sceneCamera) return;
+        sceneCamera.getWorldPosition(this.cameraWorldPosition); // Update this.cameraWorldPosition each frame to keep track of where the player is in the world
+        const collectRadiusSquared = this.data.collectRadius * this.data.collectRadius;
+
+        // Check each orb to see if player is within collect radius. If so, mark orb as collected, hide it, and play sounds as needed.
+        for (const orb of this.orbs) {
+            // If orb is already collected, skip to the next one.
+            if (orb.collected) continue;
+            // If the player is too far from the orb, skip to the next one.
+            const deltaX = this.cameraWorldPosition.x - orb.pos.x;
+            const deltaY = this.cameraWorldPosition.y - orb.pos.y;
+            const deltaZ = this.cameraWorldPosition.z - orb.pos.z;
+            if (deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ > collectRadiusSquared) continue;
+            // Player is within collect radius of this orb, mark it as collected and hide it
+            orb.collected = true;
+            orb.el.setAttribute('visible', false);
+            this.collected++;
+            // Play collect sound if specified
+            if (this.data.collectSound) {
+                const collectSoundEl = document.querySelector(this.data.collectSound);
+                if (collectSoundEl && collectSoundEl.components && collectSoundEl.components.sound) {
+                    collectSoundEl.components.sound.playSound();
+                }
+            }
+            // If all orbs are collected, play all-collected sound if specified, and mark the minigame as completed
+            if (this.collected >= this.orbs.length && this.data.allCollectedSound) {
+                this.hasCollectedAllOrbs = true;
+                const allCollectedSoundEl = document.querySelector(this.data.allCollectedSound);
+                if (allCollectedSoundEl && allCollectedSoundEl.components && allCollectedSoundEl.components.sound) {
+                    allCollectedSoundEl.components.sound.playSound();
+                }
+                return;
+            }
+
+            // Mark the minigame as completed if all orbs are collected (even when no sound to play)
+            if (this.collected >= this.orbs.length) {
+                this.hasCollectedAllOrbs = true;
+                return;
+            }
+        }
+    },
+
+    remove: function () {
+        // Remove orbs if component is removed from the scene
+        this.orbs.forEach(orb => {
+            if (orb.el && orb.el.parentNode) orb.el.parentNode.removeChild(orb.el);
+        });
+        this.orbs = [];
+        this.hasCollectedAllOrbs = false;
+    }
+});

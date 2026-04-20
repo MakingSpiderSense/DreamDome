@@ -19,7 +19,15 @@
 
 <body>
     <!-- <a-scene vr-mode-ui="enabled: false"> -->
-    <a-scene physics="driver: ammo; debug: false;" reset-storage twinkling-stars raycaster-listener raycaster-manager vr-mode-detect>
+    <a-scene
+        reset-storage
+        twinkling-stars
+        raycaster-listener
+        raycaster-manager
+        vr-mode-detect
+        physics="driver: ammo; debug: false;"
+        orb-collection-minigame="navMeshEl: #my-nav-mesh-entity; collectSound: #orb-collect-sound; allCollectedSound: #all-collected-sound"
+    >
 
         <!-- Asset Management System -->
         <a-assets>
@@ -48,11 +56,15 @@
         <!-- Particle System -->
         <a-entity class="dome-particles" position="0 2.25 -15" particle-system="preset: dust; positionSpread: 300 300 300;"></a-entity>
         <!-- Navigation Mesh -->
-        <a-entity gltf-model="#my-nav-mesh" nav-mesh position="0 -0.1 0" visible="false"></a-entity>
+        <a-entity id="my-nav-mesh-entity" gltf-model="#my-nav-mesh" nav-mesh position="0 -0.1 0" visible="false"></a-entity>
         <!-- Floor Physics Mesh -->
         <a-entity position="0 -0.1 0" visible="false" add-model-after-load="model: #my-nav-mesh; body: static; shape: mesh; restitution: .4;"></a-entity>
         <!-- Walls Physics Mesh -->
         <a-entity position="0 0 0" visible="false" add-model-after-load="model: #walls-mesh; body: static; shape: mesh; restitution: .6;"></a-entity>
+
+        <!-- Orb Collection Sounds -->
+        <a-entity id="orb-collect-sound" sound="src: #button-a; volume: .1; positional: false;"></a-entity>
+        <a-entity id="all-collected-sound" sound="src: #skybox-theme; volume: .3; positional: false;"></a-entity>
 
         <!-- Sky -->
         <a-sky src="#neon-sky" rotation="0 -90 0"></a-sky>
