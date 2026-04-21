@@ -786,11 +786,16 @@ AFRAME.registerComponent('orb-collection-minigame', {
             const randomAnimationDelay = Math.floor(Math.random() * 4001);
             const randomStartingColorIndex = Math.floor(Math.random() * orbColors.length);
             const startingColor = orbColors[randomStartingColorIndex];
+            const bobStartY = (orbPosition.y - 0.05).toFixed(3);
+            const bobEndY = (orbPosition.y + 0.05).toFixed(3);
             orb.setAttribute('radius', '0.3');
             orb.setAttribute('position', `${orbPosition.x} ${orbPosition.y} ${orbPosition.z}`);
             orb.setAttribute('material', `color: ${startingColor}; emissive: #1A1A2E; emissiveIntensity: 0.5; opacity: 0.75; transparent: true; shader: standard`);
 
-            // Pulsing scale: each orb randomly varies between 0.9 and 1.1 scale, with a random delay and a slow easeInOutSine animation for a calming effect.
+            // Vertical bob: each orb floats 10 cm total on the Y axis with a randomized startup offset
+            orb.setAttribute('animation__float', `property: position; from: ${orbPosition.x} ${bobStartY} ${orbPosition.z}; to: ${orbPosition.x} ${bobEndY} ${orbPosition.z}; dir: alternate; dur: 2200; easing: easeInOutSine; loop: true; delay: ${randomAnimationDelay}`);
+
+            // Pulsing scale: each orb randomly varies between 0.9 and 1.1 scale, with the same randomized startup offset
             const randomFromScaleX = (Math.random() * 0.2 + 0.9).toFixed(2);
             const randomFromScaleY = (Math.random() * 0.2 + 0.9).toFixed(2);
             const randomFromScaleZ = (Math.random() * 0.2 + 0.9).toFixed(2);
