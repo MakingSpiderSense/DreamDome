@@ -780,11 +780,45 @@ AFRAME.registerComponent('orb-collection-minigame', {
         }
 
         // Create and place orbs at the valid positions we found
+        const orbColors = ['#96fffe', '#3DFFA0', '#FFE45E', '#d7ffe7'];
         placedOrbPositions.forEach(orbPosition => {
             const orb = document.createElement('a-sphere');
+            const randomAnimationDelay = Math.floor(Math.random() * 4001);
+            const randomStartingColorIndex = Math.floor(Math.random() * orbColors.length);
+            const startingColor = orbColors[randomStartingColorIndex];
             orb.setAttribute('radius', '0.3');
             orb.setAttribute('position', `${orbPosition.x} ${orbPosition.y} ${orbPosition.z}`);
-            orb.setAttribute('material', 'color: #3DFFA0; emissive: #0D6B3A; emissiveIntensity: 0.4; opacity: 0.5; transparent: true; shader: standard');
+            orb.setAttribute('material', `color: ${startingColor}; emissive: #1A1A2E; emissiveIntensity: 0.5; opacity: 0.75; transparent: true; shader: standard`);
+
+            // Pulsing scale: each orb randomly varies between 0.9 and 1.1 scale, with a random delay and a slow easeInOutSine animation for a calming effect.
+            const randomFromScaleX = (Math.random() * 0.2 + 0.9).toFixed(2);
+            const randomFromScaleY = (Math.random() * 0.2 + 0.9).toFixed(2);
+            const randomFromScaleZ = (Math.random() * 0.2 + 0.9).toFixed(2);
+            const randomToScaleX = (Math.random() * 0.2 + 0.9).toFixed(2);
+            const randomToScaleY = (Math.random() * 0.2 + 0.9).toFixed(2);
+            const randomToScaleZ = (Math.random() * 0.2 + 0.9).toFixed(2);
+            orb.setAttribute('animation__pulse', `property: scale; from: ${randomFromScaleX} ${randomFromScaleY} ${randomFromScaleZ}; to: ${randomToScaleX} ${randomToScaleY} ${randomToScaleZ}; dir: alternate; dur: 1800; easing: easeInOutSine; loop: true; delay: ${randomAnimationDelay}`);
+
+            // Color cycle keeps the same order for every orb, but each orb can begin at a different color in that sequence.
+            for (let colorStepIndex = 0; colorStepIndex < orbColors.length; colorStepIndex++) {
+                const currentColorIndex = (randomStartingColorIndex + colorStepIndex) % orbColors.length;
+                const nextColorIndex = (currentColorIndex + 1) % orbColors.length;
+                const animationName = `animation__color${colorStepIndex + 1}`;
+                const previousAnimationName = colorStepIndex === 0
+                    ? `start-color-cycle, animationcomplete__color${orbColors.length}`
+                    : `animationcomplete__color${colorStepIndex}`;
+
+                orb.setAttribute(animationName, `property: material.color; from: ${orbColors[currentColorIndex]}; to: ${orbColors[nextColorIndex]}; dur: 1600; easing: easeInOutSine; startEvents: ${previousAnimationName}`);
+            }
+
+            // Kick off the color cycle once the entity is ready
+            orb.addEventListener('loaded', () => {
+                window.setTimeout(() => {
+                    if (!orb.parentNode) return;
+                    orb.emit('start-color-cycle');
+                }, randomAnimationDelay);
+            }, { once: true });
+
             this.el.sceneEl.appendChild(orb);
             this.orbs.push({ el: orb, pos: orbPosition.clone(), collected: false }); // Store orb element, position, and collected state
         });
