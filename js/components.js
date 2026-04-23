@@ -711,11 +711,28 @@ AFRAME.registerComponent('orb-collection-minigame', {
     },
 
     init: function () {
-        this.orbs = [];
-        this.collected = 0;
-        this.cameraWorldPosition = new THREE.Vector3();
-        this.tickFrameCounter = 0;
+        this.orbs = []; // Array to hold references to the spawned orbs
+        this.collected = 0; // Counter for collected orbs
+        this.cameraWorldPosition = new THREE.Vector3(); // To store camera world position for distance calculations
+        this.tickFrameCounter = 0; // Counter to track frames for throttling distance checks
         this.hasCollectedAllOrbs = false;
+        this.gameStartTime = null; // Set to Date.now() when the first orb is collected
+        this.hudEl = null; // HUD container entity (parented to camera)
+        this.hudOrbCountTextEl = null; // Text element showing orbs collected count
+        this.hudTimerTextEl = null; // Text element showing elapsed time
+        this.leaderboardEl = null; // Leaderboard container entity (parented to camera)
+
+        // Hidden reset: add ?reset-scores to the URL to wipe the leaderboard
+        if (new URLSearchParams(window.location.search).has('reset-scores')) {
+            localStorage.removeItem('orb-minigame-scores');
+        }
+
+        // Create the HUD attached to camera. Defer if camera isn't ready yet.
+        if (this.el.sceneEl.camera) {
+            this.createHud();
+        } else {
+            this.el.sceneEl.addEventListener('camera-set-active', () => this.createHud(), { once: true });
+        }
 
         // Make sure nav mesh is loaded before spawning orbs
         const navMeshEl = this.data.navMeshEl;
@@ -829,6 +846,188 @@ AFRAME.registerComponent('orb-collection-minigame', {
         });
     },
 
+    createHud: function () {
+        const cameraEl = this.el.sceneEl.camera.el;
+
+        // Parent container to camera and position it just below center view
+        const hudContainerEl = document.createElement('a-entity');
+        hudContainerEl.setAttribute('position', '0 -0.15 -0.6');
+
+        // Transparent background panel
+        const hudPanelEl = document.createElement('a-entity');
+        hudPanelEl.setAttribute('width', '0.3');
+        hudPanelEl.setAttribute('height', '0.07');
+        hudContainerEl.appendChild(hudPanelEl);
+
+        // Orb count on the left side
+        this.hudOrbCountTextEl = document.createElement('a-text');
+        this.hudOrbCountTextEl.setAttribute('value', `0 / ${this.data.count} orbs`);
+        this.hudOrbCountTextEl.setAttribute('position', '-0.130 0 0.001');
+        this.hudOrbCountTextEl.setAttribute('color', '#FFFFFF');
+        this.hudOrbCountTextEl.setAttribute('width', '0.48');
+        this.hudOrbCountTextEl.setAttribute('align', 'left');
+        this.hudOrbCountTextEl.setAttribute('anchor', 'left'); // starts at x position and extends rightward
+        this.hudOrbCountTextEl.setAttribute('baseline', 'center');
+        hudContainerEl.appendChild(this.hudOrbCountTextEl);
+
+        // Timer on the right side
+        this.hudTimerTextEl = document.createElement('a-text');
+        this.hudTimerTextEl.setAttribute('value', '00:00');
+        this.hudTimerTextEl.setAttribute('position', '0.130 0 0.001');
+        this.hudTimerTextEl.setAttribute('color', '#FFFFFF');
+        this.hudTimerTextEl.setAttribute('width', '0.48');
+        this.hudTimerTextEl.setAttribute('align', 'right');
+        this.hudTimerTextEl.setAttribute('anchor', 'right'); // ends at x position and extends leftward
+        this.hudTimerTextEl.setAttribute('baseline', 'center');
+        hudContainerEl.appendChild(this.hudTimerTextEl);
+
+        hudContainerEl.setAttribute('visible', false);
+        cameraEl.appendChild(hudContainerEl);
+        this.hudEl = hudContainerEl;
+    },
+
+    // Format time in milliseconds to MM:SS
+    formatTime: function (totalMilliseconds) {
+        const totalSeconds = Math.floor(totalMilliseconds / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    },
+
+    // When an orb is collected, update the HUD and check for completion
+    saveScoreToLeaderboard: function (playerTimeMs) {
+        const storageKey = 'orb-minigame-scores';
+        let savedScores = [];
+        // Attempt to retrieve existing scores from localStorage
+        try {
+            const stored = localStorage.getItem(storageKey);
+            if (stored) savedScores = JSON.parse(stored);
+        } catch (e) {
+            savedScores = [];
+        }
+        // Store both the time and the date the score was set
+        const today = new Date();
+        const dateDisplay = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`; // YYYY-MM-DD format
+        // Add the new score, sort the list, and keep only the top 10 scores
+        savedScores.push({ timeMs: playerTimeMs, date: dateDisplay });
+        savedScores.sort((a, b) => a.timeMs - b.timeMs);
+        if (savedScores.length > 10) savedScores = savedScores.slice(0, 10);
+        // Attempt to save the updated scores back to localStorage
+        try {
+            localStorage.setItem(storageKey, JSON.stringify(savedScores));
+        } catch (e) {
+            console.warn('orb-collection-minigame: Could not save score to localStorage');
+        }
+        return savedScores;
+    },
+
+    showLeaderboard: function (playerTimeMs) {
+        const scores = this.saveScoreToLeaderboard(playerTimeMs);
+        const playerRankIndex = scores.findIndex(s => s.timeMs === playerTimeMs);
+        const cameraEl = this.el.sceneEl.camera.el;
+
+        // Fade the HUD out first, then show the leaderboard once it's gone
+        const hudFadeOutDurationMs = 500;
+        if (this.hudEl) {
+            this.hudEl.setAttribute('animation__fadeout', `property: object3D.visible; dur: ${hudFadeOutDurationMs}`);
+            // Fade out opacity on the panel child
+            const hudChildren = this.hudEl.querySelectorAll('[material], a-text');
+            hudChildren.forEach(child => {
+                const isText = child.tagName.toLowerCase() === 'a-text';
+                const opacityProp = isText ? 'text.opacity' : 'material.opacity';
+                child.setAttribute('animation__hudout', `property: ${opacityProp}; to: 0; dur: ${hudFadeOutDurationMs}; easing: easeInSine`);
+            });
+        }
+
+        // Wait for HUD to finish fading before building the leaderboard
+        window.setTimeout(() => {
+            if (this.hudEl) this.hudEl.setAttribute('visible', false);
+
+            const leaderboardContainerEl = document.createElement('a-entity');
+            leaderboardContainerEl.setAttribute('position', '0 0.05 -1.5');
+
+            // Background panel fades in on load
+            const leaderboardPanelEl = document.createElement('a-plane');
+            leaderboardPanelEl.setAttribute('width', '0.9');
+            leaderboardPanelEl.setAttribute('height', '0.82');
+            leaderboardPanelEl.setAttribute('material', 'color: #000020; opacity: 0; transparent: true; shader: flat');
+            leaderboardPanelEl.setAttribute('animation__fadein', 'property: material.opacity; from: 0; to: 0.8; dur: 600; easing: easeOutSine');
+            leaderboardContainerEl.appendChild(leaderboardPanelEl);
+
+            // Title
+            const titleTextEl = document.createElement('a-text');
+            titleTextEl.setAttribute('value', 'LEADERBOARD');
+            titleTextEl.setAttribute('position', '0 0.34 0.002');
+            titleTextEl.setAttribute('color', '#FFFFFF');
+            titleTextEl.setAttribute('align', 'center');
+            titleTextEl.setAttribute('width', '0.85');
+            titleTextEl.setAttribute('opacity', '0');
+            titleTextEl.setAttribute('animation__fadein', 'property: text.opacity; from: 0; to: 1; dur: 600; easing: easeOutSine');
+            leaderboardContainerEl.appendChild(titleTextEl);
+
+            // Column headings
+            const headingTextEl = document.createElement('a-text');
+            headingTextEl.setAttribute('value', 'DURATION          DATE');
+            headingTextEl.setAttribute('position', '-0.030 0.235 0.002');
+            headingTextEl.setAttribute('color', '#FFFFFF');
+            headingTextEl.setAttribute('align', 'center');
+            headingTextEl.setAttribute('width', '0.85');
+            headingTextEl.setAttribute('font', 'sourcecodepro');
+            headingTextEl.setAttribute('opacity', '0');
+            headingTextEl.setAttribute('animation__fadein', 'property: text.opacity; from: 0; to: 1; dur: 600; easing: easeOutSine');
+            leaderboardContainerEl.appendChild(headingTextEl);
+
+            // Keep refs to all text elements so we can fade them out together later
+            const allLeaderboardTextEls = [titleTextEl, headingTextEl];
+
+            // Ten score rows — each shows how long it took to complete and when
+            for (let rankIndex = 0; rankIndex < 10; rankIndex++) {
+                const score = scores[rankIndex];
+                const isPlayerEntry = rankIndex === playerRankIndex;
+                const durationDisplay = score ? this.formatTime(score.timeMs) : '00:00';
+                const dateDisplay = score && score.date ? score.date : '2015-10-21'; // Default date is Back to the Future day
+                const rowText = `${String(rankIndex + 1).padStart(2)}.  ${durationDisplay}       ${dateDisplay}`;
+                const rowYPosition = (0.175 - rankIndex * 0.055).toFixed(3);
+
+                const rowTextEl = document.createElement('a-text');
+                rowTextEl.setAttribute('value', rowText);
+                // Slight nudge to the left for the 10th place entry so the text doesn't look off-center with the extra digit
+                if (rankIndex === 9) {
+                    rowTextEl.setAttribute('position', `-0.01 ${rowYPosition} 0.002`);
+                } else {
+                    rowTextEl.setAttribute('position', `0 ${rowYPosition} 0.002`);
+                }
+                rowTextEl.setAttribute('color', isPlayerEntry ? '#5CFDCA' : '#FFFFFF');
+                rowTextEl.setAttribute('align', 'center');
+                rowTextEl.setAttribute('width', '0.85');
+                rowTextEl.setAttribute('font', 'sourcecodepro');
+                rowTextEl.setAttribute('opacity', '0');
+                rowTextEl.setAttribute('animation__fadein', 'property: text.opacity; from: 0; to: 1; dur: 600; easing: easeOutSine');
+                leaderboardContainerEl.appendChild(rowTextEl);
+                allLeaderboardTextEls.push(rowTextEl);
+            }
+
+            cameraEl.appendChild(leaderboardContainerEl);
+            this.leaderboardEl = leaderboardContainerEl;
+
+            // After 15 seconds, fade out the panel and all text, then remove the entity
+            const fadeOutDurationMs = 800;
+            window.setTimeout(() => {
+                if (!this.leaderboardEl) return;
+                leaderboardPanelEl.setAttribute('animation__fadeout', `property: material.opacity; from: 0.8; to: 0; dur: ${fadeOutDurationMs}; easing: easeInSine`);
+                allLeaderboardTextEls.forEach(textEl => {
+                    textEl.setAttribute('animation__fadeout', `property: text.opacity; from: 1; to: 0; dur: ${fadeOutDurationMs}; easing: easeInSine`);
+                });
+                window.setTimeout(() => {
+                    if (this.leaderboardEl && this.leaderboardEl.parentNode) {
+                        this.leaderboardEl.parentNode.removeChild(this.leaderboardEl);
+                        this.leaderboardEl = null;
+                    }
+                }, fadeOutDurationMs + 100);
+            }, 15000);
+        }, hudFadeOutDurationMs + 100);
+    },
+
     tick: function () {
         if (!this.orbs.length || this.hasCollectedAllOrbs) return; // Exit if no orbs or game is already completed
 
@@ -843,7 +1042,12 @@ AFRAME.registerComponent('orb-collection-minigame', {
         sceneCamera.getWorldPosition(this.cameraWorldPosition); // Update this.cameraWorldPosition each frame to keep track of where the player is in the world
         const collectRadiusSquared = this.data.collectRadius * this.data.collectRadius;
 
-        // Check each orb to see if player is within collect radius. If so, mark orb as collected, hide it, and play sounds as needed.
+        // Update HUD timer while the game is in progress
+        if (this.gameStartTime !== null && this.hudTimerTextEl) {
+            this.hudTimerTextEl.setAttribute('value', this.formatTime(Date.now() - this.gameStartTime));
+        }
+
+        // Check each orb to see if the player is within collect radius.  If so, mark orb as collected, hide it, and play sounds as needed.
         for (const orb of this.orbs) {
             // If orb is already collected, skip to the next one.
             if (orb.collected) continue;
@@ -856,6 +1060,18 @@ AFRAME.registerComponent('orb-collection-minigame', {
             orb.collected = true;
             orb.el.setAttribute('visible', false);
             this.collected++;
+
+            // On the first orb: start the timer and show the HUD
+            if (this.collected === 1) {
+                this.gameStartTime = Date.now();
+                if (this.hudEl) this.hudEl.setAttribute('visible', true);
+            }
+
+            // Update orb count display on HUD
+            if (this.hudOrbCountTextEl) {
+                this.hudOrbCountTextEl.setAttribute('value', `${this.collected} / ${this.orbs.length} orbs`);
+            }
+
             // Play collect sound if specified
             if (this.data.collectSound) {
                 const collectSoundEl = document.querySelector(this.data.collectSound);
@@ -863,19 +1079,26 @@ AFRAME.registerComponent('orb-collection-minigame', {
                     collectSoundEl.components.sound.playSound();
                 }
             }
-            // If all orbs are collected, play all-collected sound if specified, and mark the minigame as completed
-            if (this.collected >= this.orbs.length && this.data.allCollectedSound) {
-                this.hasCollectedAllOrbs = true;
-                const allCollectedSoundEl = document.querySelector(this.data.allCollectedSound);
-                if (allCollectedSoundEl && allCollectedSoundEl.components && allCollectedSoundEl.components.sound) {
-                    allCollectedSoundEl.components.sound.playSound();
-                }
-                return;
-            }
 
-            // Mark the minigame as completed if all orbs are collected (even when no sound to play)
+            // If all orbs are collected, freeze timer, show leaderboard, and play victory sound
             if (this.collected >= this.orbs.length) {
                 this.hasCollectedAllOrbs = true;
+                const finalTimeMs = Date.now() - this.gameStartTime;
+
+                if (this.hudTimerTextEl) {
+                    this.hudTimerTextEl.setAttribute('value', this.formatTime(finalTimeMs));
+                }
+
+                // Show the leaderboard with the player's final time
+                this.showLeaderboard(finalTimeMs);
+
+                // Play all collected sound if specified
+                if (this.data.allCollectedSound) {
+                    const allCollectedSoundEl = document.querySelector(this.data.allCollectedSound);
+                    if (allCollectedSoundEl && allCollectedSoundEl.components && allCollectedSoundEl.components.sound) {
+                        allCollectedSoundEl.components.sound.playSound();
+                    }
+                }
                 return;
             }
         }
@@ -888,5 +1111,14 @@ AFRAME.registerComponent('orb-collection-minigame', {
         });
         this.orbs = [];
         this.hasCollectedAllOrbs = false;
+        // Remove HUD and leaderboard if they exist
+        if (this.hudEl && this.hudEl.parentNode) {
+            this.hudEl.parentNode.removeChild(this.hudEl);
+            this.hudEl = null;
+        }
+        if (this.leaderboardEl && this.leaderboardEl.parentNode) {
+            this.leaderboardEl.parentNode.removeChild(this.leaderboardEl);
+            this.leaderboardEl = null;
+        }
     }
 });
