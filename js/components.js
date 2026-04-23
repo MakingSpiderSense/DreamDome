@@ -702,6 +702,7 @@ AFRAME.registerComponent('add-model-after-load', {
 AFRAME.registerComponent('orb-collection-minigame', {
     schema: {
         navMeshEl: { type: 'selector', default: '[nav-mesh]' },
+        orbRadius: { type: 'number', default: 0.5 },
         count: { type: 'int', default: 20  },
         height: { type: 'number', default: 1.5 },
         minDistance: { type: 'number', default: 6 },
@@ -805,7 +806,7 @@ AFRAME.registerComponent('orb-collection-minigame', {
             const startingColor = orbColors[randomStartingColorIndex];
             const bobStartY = (orbPosition.y - 0.05).toFixed(3);
             const bobEndY = (orbPosition.y + 0.05).toFixed(3);
-            orb.setAttribute('radius', '0.3');
+            orb.setAttribute('radius', this.data.orbRadius);
             orb.setAttribute('position', `${orbPosition.x} ${orbPosition.y} ${orbPosition.z}`);
             orb.setAttribute('material', `color: ${startingColor}; emissive: #1A1A2E; emissiveIntensity: 0.5; opacity: 0.75; transparent: true; shader: standard`);
 
