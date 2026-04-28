@@ -511,6 +511,11 @@ AFRAME.registerComponent('blink-control', {
 AFRAME.registerComponent('twinkling-stars', {
     init: function () {
         const starTemplate = document.querySelector('#standard-star-template');
+        // Return if the template is not found
+        if (!starTemplate) {
+            console.warn('Standard star template not found!');
+            return;
+        }
         // Append clones to each cluster
         for (let i = 1; i <= 6; i++) {
             let cluster = document.querySelector('#star-cluster-' + i);
