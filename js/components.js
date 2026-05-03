@@ -813,7 +813,7 @@ AFRAME.registerComponent('orb-collection-minigame', {
             const bobEndY = (orbPosition.y + 0.05).toFixed(3);
             orb.setAttribute('radius', this.data.orbRadius);
             orb.setAttribute('position', `${orbPosition.x} ${orbPosition.y} ${orbPosition.z}`);
-            orb.setAttribute('material', `color: ${startingColor}; emissive: #1A1A2E; emissiveIntensity: 0.5; opacity: 0.75; transparent: true; shader: standard`);
+            orb.setAttribute('material', `color: ${startingColor}; emissive: #1A1A2E; emissiveIntensity: 0.5; opacity: 0.75; transparent: true; shader: standard; depthWrite: false;`);
 
             // Vertical bob: each orb floats 10 cm total on the Y axis with a randomized startup offset
             orb.setAttribute('animation__float', `property: position; from: ${orbPosition.x} ${bobStartY} ${orbPosition.z}; to: ${orbPosition.x} ${bobEndY} ${orbPosition.z}; dir: alternate; dur: 2200; easing: easeInOutSine; loop: true; delay: ${randomAnimationDelay}`);
