@@ -46,6 +46,7 @@
             <audio id="raycaster-beep" src="assets/raycaster.mp3"></audio>
             <audio id="button-a" src="assets/button-a.mp3"></audio>
             <audio id="footsteps" src="assets/footsteps-v1.mp3"></audio>
+            <audio id="whoosh" src="assets/whoosh.mp3"></audio>
             <img id="billboard-slide-1" src="assets/dream-dome-billboard.png">
             <img id="billboard-slide-2" src="assets/slide-elevator.png">
             <img id="billboard-static-1" src="assets/static-1.jpg">
@@ -69,6 +70,7 @@
 
         <!-- Orb Collection Sounds -->
         <a-entity id="orb-collect-sound" sound="src: #button-a; volume: .1; positional: false;"></a-entity>
+        <a-entity id="speed-boost-sound" sound="src: #whoosh; volume: .5; positional: false;"></a-entity>
         <a-entity id="all-collected-sound" sound="src: #skybox-theme; volume: .3; positional: false;"></a-entity>
 
         <!-- Sky -->
@@ -203,7 +205,12 @@
         </a-entity>
 
         <!-- Camera Rig -->
-        <a-entity class="user" position="0 0 6" movement-controls="speed: .5; constrainToNavMesh: true;" arm-swing-movement="reverseButtonEvent: xbuttondown; soundEntity: #footsteps; soundVolume: .25; oneStepPlaybackRate: .75; debug: false;" blink-control>
+        <a-entity class="user" position="0 0 6"
+        movement-controls="speed: .5; constrainToNavMesh: true;"
+        arm-swing-movement="reverseButtonEvent: xbuttondown; soundEntity: #footsteps; soundVolume: .25; oneStepPlaybackRate: .75; debug: false;"
+        movement-speed-modifier="boostSound: #speed-boost-sound"
+        blink-control
+        >
             <!-- VR Console Log -->
             <a-entity position="0 1 -2" rotation="0 0 0">
                 <a-text position="0 0.25 0" scale=".5 .5 .5" vr-logger></a-text>
