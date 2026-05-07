@@ -132,8 +132,15 @@
             </a-entity>
             <!-- Canvas -->
             <a-box color="#fff" width="2.33" scale="9.75 9.75 1" depth=".8" position="0 7.5 0" rotation="0 90 0"></a-box>
-            <!-- Poster Front -->
-            <a-image src="#billboard-front" scale="10 10 1" width="2.33" rotation="0 -90 0" position="-.75 7.42 0"></a-image>
+            <!-- Slideshow -->
+            <a-image src="#billboard-slide-1" scale="10 10 1" width="2.33" rotation="0 -90 0" position="-.75 7.42 0"
+            billboard-slideshow="
+                slides: #billboard-slide-1, #billboard-slide-2;
+                staticFrames: #billboard-static-1, #billboard-static-2, #billboard-static-3, #billboard-static-4;
+                slideDuration: 15000;
+                staticLoops: 2;
+                staticFrameDuration: 30;
+            "></a-image>
         </a-entity>
 
         <!-- Elevator -->
