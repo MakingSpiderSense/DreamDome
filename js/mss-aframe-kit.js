@@ -1,4 +1,4 @@
-/*! mss-aframe-kit v1.0.4 */
+/*! mss-aframe-kit v2.2.0 */
 (function(global, factory) {
   typeof exports === "object" && typeof module !== "undefined" ? factory(exports) : typeof define === "function" && define.amd ? define(["exports"], factory) : (global = typeof globalThis !== "undefined" ? globalThis : global || self, factory(global.MSSAFrameKit = {}));
 })(this, function(exports2) {
@@ -65,9 +65,9 @@
     schema: {
       enabled: { type: "boolean", default: true },
       // Enable or disable the component
-      leftController: { type: "selector", default: '[oculus-touch-controls*="hand: left"], [oculus-touch-controls*="hand:left"], [meta-touch-controls*="hand: left"], [meta-touch-controls*="hand:left"]' },
+      leftController: { type: "selector", default: '[oculus-touch-controls*="hand: left"], [oculus-touch-controls*="hand:left"], [meta-touch-controls*="hand: left"], [meta-touch-controls*="hand:left"], [hand-controls*="hand: left"], [hand-controls*="hand:left"]' },
       // Selector for left controller
-      rightController: { type: "selector", default: '[oculus-touch-controls*="hand: right"], [oculus-touch-controls*="hand:right"], [meta-touch-controls*="hand: right"], [meta-touch-controls*="hand:right"]' },
+      rightController: { type: "selector", default: '[oculus-touch-controls*="hand: right"], [oculus-touch-controls*="hand:right"], [meta-touch-controls*="hand: right"], [meta-touch-controls*="hand:right"], [hand-controls*="hand: right"], [hand-controls*="hand:right"]' },
       // Selector for right controller
       speedFactor: { type: "number", default: 1 },
       // Multiplier for movement speed
@@ -97,9 +97,7 @@
       // Base playback rate when moving at one step per second. Adjusts dynamically based on speed of steps.
     },
     init: function() {
-      if (!this.data.enabled) {
-        return;
-      }
+      if (!this.data.enabled) return;
       this.controllerArrows = [];
       const left = this.createControllerArrow("left");
       const right = this.createControllerArrow("right");
@@ -140,9 +138,7 @@
       this.moving = false;
     },
     tick: function(time, timeDelta) {
-      if (!this.data.enabled) {
-        return;
-      }
+      if (!this.data.enabled) return;
       this.timeSinceLastSample += timeDelta;
       if (this.timeSinceLastSample >= this.data.avgDirectionSampleInterval) {
         this.timeSinceLastSample -= this.data.avgDirectionSampleInterval;
@@ -336,32 +332,16 @@
   const __vite_glob_0_1 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
     __proto__: null
   }, Symbol.toStringTag, { value: "Module" }));
-  AFRAME.registerComponent("delayed-dynamic-body", {
-    schema: {
-      delay: { type: "number", default: 2e3 }
-      // delay in milliseconds
-    },
-    init: function() {
-      const sceneEl = this.el.sceneEl;
-      const addBody = () => {
-        setTimeout(() => {
-          this.el.setAttribute("dynamic-body", "");
-        }, this.data.delay);
-      };
-      if (sceneEl.hasLoaded) {
-        addBody();
-      } else {
-        sceneEl.addEventListener("loaded", addBody);
-      }
-    }
-  });
-  const __vite_glob_0_2 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
-    __proto__: null
-  }, Symbol.toStringTag, { value: "Module" }));
   AFRAME.registerComponent("holdable", {
     schema: {
       position: { type: "vec3", default: { x: 0, y: 0, z: 0 } },
-      rotation: { type: "vec3", default: { x: 0, y: 0, z: 0 } }
+      rotation: { type: "vec3", default: { x: 0, y: 0, z: 0 } },
+      leftHandRotationInvert: { type: "array", default: ["y", "z"] },
+      // Pick the rotation axes to invert for left hand (if using local-custom rotation)
+      insideMeshDetection: { type: "boolean", default: true },
+      // Enable/disable inside-mesh raycast detection
+      debug: { type: "boolean", default: false }
+      // Show debug logs in console (helpful for getting grab position/rotation)
     },
     // dependencies: ['raycaster'], // This causes huge performance issues and is not needed at all, but good for benchmarking performance of models
     init: function() {
@@ -377,6 +357,10 @@
       this.insideMesh = {};
       this.insideTestRaycaster = new THREE.Raycaster();
       this.insideTestRaycaster.far = 10;
+      this.savedComponentStates = {};
+      this.gripModifiers = {};
+      this.releaseModifiers = {};
+      this.scanModifierAttributes();
       this.onGripDown = this.onGripDown.bind(this);
       this.onGripUp = this.onGripUp.bind(this);
       this.onHitStart = this.onHitStart.bind(this);
@@ -384,8 +368,105 @@
       this.el.addEventListener("raycaster-intersected", this.onHitStart);
       this.el.addEventListener("raycaster-intersected-cleared", this.onHitEnd);
       this.physicsDriver = this.el.sceneEl.getAttribute("physics");
-      if (!this.el.classList.contains("interactable")) {
-        this.el.classList.add("interactable");
+      let intersectionClass = "interactable";
+      const sceneIntersectionClass = this.el.sceneEl.getAttribute("data-holdable-intersection-class");
+      if (sceneIntersectionClass) {
+        intersectionClass = sceneIntersectionClass;
+      }
+      if (!this.el.classList.contains(intersectionClass)) {
+        this.el.classList.add(intersectionClass);
+      }
+      if (this.data.insideMeshDetection) {
+        const makeDoubleSided = (mesh) => {
+          if (!mesh) return;
+          mesh.traverse((node) => {
+            if (node.isMesh && node.material) {
+              node.material.side = THREE.DoubleSide;
+              node.material.needsUpdate = true;
+            }
+          });
+        };
+        const initialMesh = this.el.getObject3D("mesh");
+        if (initialMesh) {
+          makeDoubleSided(initialMesh);
+        }
+        this.el.addEventListener("model-loaded", () => {
+          makeDoubleSided(this.el.getObject3D("mesh"));
+        });
+      }
+    },
+    // Modifiers - Scan for grip and release modifier attributes
+    scanModifierAttributes: function() {
+      const attributes = this.el.getAttributeNames();
+      for (let attr of attributes) {
+        if (attr.startsWith("holdable-grip-")) {
+          const componentName = attr.substring("holdable-grip-".length);
+          const attributeString = this.el.getAttribute(attr);
+          const parsedProps = this.parseAttributeString(attributeString);
+          this.gripModifiers[componentName] = parsedProps;
+        } else if (attr.startsWith("holdable-release-")) {
+          const componentName = attr.substring("holdable-release-".length);
+          const attributeString = this.el.getAttribute(attr);
+          const parsedProps = this.parseAttributeString(attributeString);
+          this.releaseModifiers[componentName] = parsedProps;
+        }
+      }
+    },
+    // Modifiers - Parse an A-Frame attribute string into a JavaScript object or direct value
+    parseAttributeString: function(attributeString) {
+      if (!attributeString || attributeString.trim() === "") {
+        return { __is_flag: true };
+      }
+      if (attributeString.indexOf(":") === -1) {
+        return { __direct_value: attributeString.trim() };
+      }
+      const result = {};
+      const kvPairs = attributeString.split(";");
+      for (let kvPair of kvPairs) {
+        if (!kvPair.trim()) continue;
+        const colonIndex = kvPair.indexOf(":");
+        if (colonIndex === -1) continue;
+        const key = kvPair.substring(0, colonIndex).trim();
+        let value = kvPair.substring(colonIndex + 1).trim();
+        if (value === "true") value = true;
+        else if (value === "false") value = false;
+        else if (!isNaN(parseFloat(value)) && isFinite(value)) {
+          value = parseFloat(value);
+        }
+        result[key] = value;
+      }
+      return result;
+    },
+    // Modifiers - Apply component modifications handling different component types
+    // Note: newProps can be a flag component (e.g., __is_flag: true), a direct value component (e.g., __direct_value: "3 1 2"), or a property-based component with many properties (e.g., { prop1: "value1", prop2: "value2" })
+    applyComponentModifications: function(componentName, newProps, saveOriginal = false) {
+      if (!newProps || Object.keys(newProps).length === 0) return;
+      if (saveOriginal && !this.savedComponentStates[componentName]) {
+        if (this.el.hasAttribute(componentName)) {
+          this.savedComponentStates[componentName] = AFRAME.utils.clone(this.el.getAttribute(componentName));
+        } else {
+          this.savedComponentStates[componentName] = null;
+        }
+      }
+      if (newProps.__is_flag) {
+        this.el.setAttribute(componentName, "");
+      } else if (newProps.__direct_value) {
+        this.el.setAttribute(componentName, newProps.__direct_value);
+      } else {
+        for (const propName in newProps) {
+          this.el.setAttribute(componentName, propName, newProps[propName]);
+        }
+      }
+    },
+    // Modifiers - Restore original component state
+    restoreComponentState: function(componentName) {
+      if (componentName in this.savedComponentStates) {
+        const originalState = this.savedComponentStates[componentName];
+        if (originalState === null) {
+          this.el.removeAttribute(componentName);
+        } else {
+          this.el.setAttribute(componentName, originalState);
+        }
       }
     },
     tick: function(time, delta) {
@@ -400,12 +481,12 @@
     },
     onHitStart: function(evt) {
       const handEl = evt.detail.el.closest("[meta-touch-controls], [oculus-touch-controls], [hand-controls]");
-      if (!handEl) {
-        return;
-      }
-      if (this.isHeld) {
-        return;
-      }
+      if (!handEl) return;
+      if (this.isHeld) return;
+      this.el.emit("hit-start", {
+        hand: handEl,
+        entity: this.el
+      });
       this.rayActive = true;
       this.holdingHand = handEl;
       this.holdingHand.removeEventListener("gripdown", this.onGripDown);
@@ -415,45 +496,65 @@
     },
     onHitEnd: function(evt) {
       const handEl = evt.detail.el.closest("[meta-touch-controls], [oculus-touch-controls], [hand-controls]");
-      if (!handEl) {
-        return;
+      if (!handEl) return;
+      this.el.emit("hit-end", {
+        hand: handEl,
+        entity: this.el
+      });
+      let isInside = false;
+      if (this.data.insideMeshDetection) {
+        isInside = this.isHandInsideMesh(handEl);
       }
-      const handId = handEl.getAttribute("id") || handEl.object3D.uuid;
-      const origin = handEl.object3D.getWorldPosition(new THREE.Vector3());
-      const direction = new THREE.Vector3();
-      handEl.object3D.getWorldDirection(direction);
-      this.insideTestRaycaster.set(origin, direction.normalize());
-      const intersections = this.insideTestRaycaster.intersectObject(this.el.object3D, true);
-      const isInside = intersections.length % 2 === 1;
-      this.insideMesh[handId] = isInside;
-      if (!this.insideMesh[handId] && !(this.isHeld && handEl === this.holdingHand)) {
+      if (!isInside && !(this.isHeld && handEl === this.holdingHand)) {
         handEl.removeEventListener("gripdown", this.onGripDown);
         handEl.removeEventListener("gripup", this.onGripUp);
+      } else {
+        if (isInside && this.data.insideMeshDetection) {
+          setTimeout(() => {
+            isInside = this.isHandInsideMesh(handEl);
+            if (!isInside && !(this.isHeld && handEl === this.holdingHand)) {
+              handEl.removeEventListener("gripdown", this.onGripDown);
+              handEl.removeEventListener("gripup", this.onGripUp);
+            }
+          }, 200);
+        }
       }
       this.rayActive = false;
     },
     onGripDown: function(evt) {
       const hasHoldableDynamicBody = this.el.hasAttribute("holdable-dynamic-body");
       const hasShapeComponents = Object.keys(this.el.components).some((key) => key.includes("shape__"));
-      if (this.isHeld) {
-        return;
-      }
+      if (this.isHeld) return;
       const handEl = evt.target.closest("[meta-touch-controls], [oculus-touch-controls], [hand-controls]");
-      if (!handEl) {
-        return;
+      if (!handEl) return;
+      this.el.emit("grip-down", {
+        hand: handEl,
+        entity: this.el
+      });
+      for (const componentName in this.gripModifiers) {
+        this.applyComponentModifications(
+          componentName,
+          this.gripModifiers[componentName],
+          true
+          // Save original state
+        );
       }
       this.holdingHand = handEl;
       if (this.el.hasAttribute("dynamic-body")) {
-        this.savedPhysics = [{
-          type: "dynamic-body",
-          config: this.el.getAttribute("dynamic-body")
-        }];
+        this.savedPhysics = [
+          {
+            type: "dynamic-body",
+            config: this.el.getAttribute("dynamic-body")
+          }
+        ];
         this.el.removeAttribute("dynamic-body");
       } else if (this.el.hasAttribute("ammo-body")) {
-        this.savedPhysics = [{
-          type: "ammo-body",
-          config: this.el.getAttribute("ammo-body")
-        }];
+        this.savedPhysics = [
+          {
+            type: "ammo-body",
+            config: this.el.getAttribute("ammo-body")
+          }
+        ];
         this.el.removeAttribute("ammo-body");
       } else if (this.el.hasAttribute("body") || hasHoldableDynamicBody && hasShapeComponents) {
         const bodyAttributes = this.el.getAttribute("body");
@@ -466,10 +567,12 @@
         const bodyCylinderAxis = bodyAttributes ? bodyAttributes.cylinderAxis : "";
         this.savedPhysics = [];
         if (bodyType === "dynamic") {
-          this.savedPhysics = [{
-            type: "body",
-            config: { type: bodyType, shape: bodyShape, mass: bodyMass, linearDamping: bodyLinearDamping, angularDamping: bodyAngularDamping, sphereRadius: bodySphereRadius, cylinderAxis: bodyCylinderAxis }
-          }];
+          this.savedPhysics = [
+            {
+              type: "body",
+              config: { type: bodyType, shape: bodyShape, mass: bodyMass, linearDamping: bodyLinearDamping, angularDamping: bodyAngularDamping, sphereRadius: bodySphereRadius, cylinderAxis: bodyCylinderAxis }
+            }
+          ];
           this.el.removeAttribute("body");
         }
         const shapeComponents = this.el.components;
@@ -525,7 +628,7 @@
         customGrabPos.x = handType === "left" ? -customGrabPos.x : customGrabPos.x;
         useCustomPos = true;
       } else {
-        const sceneGrabPosAttr = this.el.sceneEl.getAttribute("data-grab-position");
+        const sceneGrabPosAttr = this.el.sceneEl.getAttribute("data-holdable-grab-position");
         if (sceneGrabPosAttr) {
           customGrabPos = new THREE.Vector3().copy(AFRAME.utils.coordinates.parse(sceneGrabPosAttr));
           customGrabPos.x = handType === "left" ? -customGrabPos.x : customGrabPos.x;
@@ -534,18 +637,45 @@
         } else {
           customGrabPos = pos;
           useCustomPos = false;
+          if (this.data.debug) {
+            if (handType === "left") {
+              console.log("Use right hand to get position and rotation values. The left hand automatically mirrors the right.");
+            } else {
+              this.generateDebugGrabAttributes(pos, quat, handType);
+            }
+          }
         }
       }
       let customGrabQuat;
       if (this.data.rotation.x !== 0 || this.data.rotation.y !== 0 || this.data.rotation.z !== 0) {
-        let customGrabRotationY = handType === "left" ? -this.data.rotation.y : this.data.rotation.y;
-        let customGrabRotationZ = handType === "left" ? -this.data.rotation.z : this.data.rotation.z;
+        let customGrabRotationX = this.data.rotation.x;
+        let customGrabRotationY = this.data.rotation.y;
+        let customGrabRotationZ = this.data.rotation.z;
+        if (handType === "left") {
+          if (this.data.leftHandRotationInvert.includes("x")) {
+            customGrabRotationX = -customGrabRotationX;
+          }
+          if (this.data.leftHandRotationInvert.includes("y")) {
+            customGrabRotationY = -customGrabRotationY;
+          }
+          if (this.data.leftHandRotationInvert.includes("z")) {
+            customGrabRotationZ = -customGrabRotationZ;
+          }
+        }
         const euler = new THREE.Euler(
-          THREE.MathUtils.degToRad(this.data.rotation.x),
+          THREE.MathUtils.degToRad(customGrabRotationX),
           THREE.MathUtils.degToRad(customGrabRotationY),
-          THREE.MathUtils.degToRad(customGrabRotationZ)
+          THREE.MathUtils.degToRad(customGrabRotationZ),
+          "YXZ"
+          // The rotation order
         );
-        customGrabQuat = new THREE.Quaternion().setFromEuler(euler);
+        const origPosition = this.el.object3D.position.clone();
+        const origQuaternion = this.el.object3D.quaternion.clone();
+        const rotationQuat = new THREE.Quaternion().setFromEuler(euler);
+        this.el.object3D.quaternion.copy(rotationQuat);
+        customGrabQuat = this.el.object3D.quaternion.clone();
+        this.el.object3D.position.copy(origPosition);
+        this.el.object3D.quaternion.copy(origQuaternion);
       } else {
         customGrabQuat = quat;
       }
@@ -577,10 +707,27 @@
       this.el.object3D.quaternion.copy(customGrabQuat);
       this.el.object3D.updateMatrixWorld(true);
     },
+    // Generate debug grab attributes for easy copy-paste configuration for specific grab position/rotation
+    generateDebugGrabAttributes: function(pos, quat) {
+      const eulerForAttr = new THREE.Euler().setFromQuaternion(quat, "YXZ");
+      const rotX = THREE.MathUtils.radToDeg(eulerForAttr.x);
+      let rotY = THREE.MathUtils.radToDeg(eulerForAttr.y);
+      let rotZ = THREE.MathUtils.radToDeg(eulerForAttr.z);
+      const tempObj = this.el.object3D.clone();
+      tempObj.quaternion.copy(quat);
+      tempObj.updateMatrixWorld(true);
+      const bbox = new THREE.Box3().setFromObject(tempObj);
+      const size = bbox.getSize(new THREE.Vector3());
+      const bottomCornerOffset = new THREE.Vector3();
+      let posForAttr;
+      bottomCornerOffset.set(size.x / 2, -size.y / 2, size.z / 2);
+      posForAttr = pos.clone().add(bottomCornerOffset);
+      const posStr = posForAttr.x.toFixed(3) + " " + posForAttr.y.toFixed(3) + " " + posForAttr.z.toFixed(3);
+      const rotStr = rotX.toFixed(1) + " " + rotY.toFixed(1) + " " + rotZ.toFixed(1);
+      console.log(`holdable="position: ${posStr}; rotation: ${rotStr}"`);
+    },
     onGripUp: function(evt) {
-      if (!this.isHeld || !this.holdingHand) {
-        return;
-      }
+      if (!this.isHeld || !this.holdingHand) return;
       this.el.object3D.updateMatrixWorld(true);
       this.originalParent.object3D.attach(this.el.object3D);
       this.el.object3D.updateMatrixWorld(true);
@@ -622,6 +769,24 @@
           }
         }
       }, 50);
+      for (const componentName in this.releaseModifiers) {
+        this.applyComponentModifications(
+          componentName,
+          this.releaseModifiers[componentName],
+          false
+          // Don't save original state
+        );
+      }
+      for (const componentName in this.savedComponentStates) {
+        if (!(componentName in this.releaseModifiers)) {
+          this.restoreComponentState(componentName);
+        }
+      }
+      this.savedComponentStates = {};
+      this.el.emit("grip-up", {
+        hand: this.holdingHand,
+        entity: this.el
+      });
       const handEls = document.querySelectorAll("[meta-touch-controls], [oculus-touch-controls], [hand-controls]");
       if (handEls) {
         handEls.forEach((handEl) => {
@@ -643,13 +808,26 @@
           }
         });
       }
-      const handPos = this.holdingHand.object3D.getWorldPosition(new THREE.Vector3());
-      const bbox = new THREE.Box3().setFromObject(this.el.object3D);
-      if (!bbox.containsPoint(handPos)) {
+      let isInside = false;
+      if (this.data.insideMeshDetection) {
+        isInside = this.isHandInsideMesh(this.holdingHand);
+      }
+      if (!isInside) {
         this.holdingHand.removeEventListener("gripdown", this.onGripDown);
         this.holdingHand.removeEventListener("gripup", this.onGripUp);
         this.holdingHand = null;
       }
+    },
+    isHandInsideMesh: function(handEl) {
+      const handId = handEl.getAttribute("id") || handEl.object3D.uuid;
+      const origin = handEl.object3D.getWorldPosition(new THREE.Vector3());
+      const direction = new THREE.Vector3();
+      handEl.object3D.getWorldDirection(direction);
+      this.insideTestRaycaster.set(origin, direction.normalize());
+      const intersections = this.insideTestRaycaster.intersectObject(this.el.object3D, true);
+      const isInside = intersections.length % 2 === 1;
+      this.insideMesh[handId] = isInside;
+      return isInside;
     },
     remove: function() {
       this.el.removeEventListener("raycaster-intersected", this.onHitStart);
@@ -660,27 +838,472 @@
       }
     }
   });
+  const __vite_glob_0_2 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+    __proto__: null
+  }, Symbol.toStringTag, { value: "Module" }));
+  const movementSpeedModifierComponent = {
+    schema: {
+      enabled: { type: "boolean", default: true },
+      multiplier: { type: "number", default: 1.5 },
+      // Multiplier to apply when active
+      joystickEnabled: { type: "boolean", default: true },
+      // If true, left joystick click controls whether the multiplier is active
+      keyboardEnabled: { type: "boolean", default: true },
+      // If true, holding left shift and W on desktop controls whether the multiplier is active
+      leftController: { type: "selector", default: '[oculus-touch-controls*="hand: left"], [oculus-touch-controls*="hand:left"], [meta-touch-controls*="hand: left"], [meta-touch-controls*="hand:left"], [hand-controls*="hand: left"], [hand-controls*="hand:left"]' },
+      // Selector for left controller
+      linesEnabled: { type: "boolean", default: true },
+      // Show speed lines while the applied multiplier is above 1
+      lineColor: { type: "color", default: "#ffffff" },
+      // Color of the speed lines
+      lineCount: { type: "number", default: 16 },
+      // Number of speed line entities to create
+      lineOpacity: { type: "number", default: 0.1 },
+      // Opacity of visible speed lines
+      lineDistance: { type: "number", default: 0.5 },
+      // Distance (meters) in front of the camera for speed lines
+      linePatternInterval: { type: "number", default: 100 },
+      // Time in ms between random speed line pattern changes
+      boostSound: { type: "selector", default: "" }
+      // Optional entity with sound component to play when multiplier increases
+    },
+    init: function() {
+      if (!this.data.enabled) return;
+      this.baseMovementControlsSpeed = null;
+      this.baseArmSwingSpeedFactor = null;
+      this.joystickActive = false;
+      this.keyboardShiftActive = false;
+      this.keyboardForwardActive = false;
+      this.manualBoostActive = false;
+      this.currentAppliedMultiplier = 1;
+      this.axisX = 0;
+      this.axisY = 0;
+      this.timeSinceLastLinePattern = 0;
+      this.onThumbstickDown = this.onThumbstickDown.bind(this);
+      this.onAxisMove = this.onAxisMove.bind(this);
+      this.onKeyDown = this.onKeyDown.bind(this);
+      this.onKeyUp = this.onKeyUp.bind(this);
+      this.onWindowBlur = this.onWindowBlur.bind(this);
+      this.leftControllerEl = this.data.leftController;
+      this.addLeftControllerListeners();
+      this.addKeyboardListeners();
+      this.lineContainer = null;
+      this.lineElements = [];
+      this.createSpeedLines();
+      this.cacheBaseSpeeds();
+    },
+    update: function(oldData) {
+      if (!this.data.enabled) {
+        this.resetSpeeds();
+        this.setSpeedLinesVisible(false);
+        return;
+      }
+      if (oldData.leftController !== this.data.leftController) {
+        this.removeLeftControllerListeners();
+        this.joystickActive = false;
+        this.leftControllerEl = this.data.leftController;
+        this.addLeftControllerListeners();
+      }
+      if (oldData.keyboardEnabled && !this.data.keyboardEnabled) {
+        this.keyboardShiftActive = false;
+        this.keyboardForwardActive = false;
+      }
+      if (oldData.lineCount !== this.data.lineCount || oldData.lineDistance !== this.data.lineDistance || oldData.linePatternInterval !== this.data.linePatternInterval) {
+        this.removeSpeedLines();
+        this.createSpeedLines();
+      }
+      if (oldData.lineColor !== this.data.lineColor) {
+        this.updateSpeedLineColor();
+      }
+      this.cacheBaseSpeeds();
+      this.applySpeedMultiplier();
+    },
+    tick: function(time, timeDelta) {
+      if (!this.data.enabled) return;
+      if (this.data.joystickEnabled && this.joystickActive && !this.isJoystickForward()) {
+        this.joystickActive = false;
+        this.applySpeedMultiplier();
+      }
+      this.updateSpeedLines(time, timeDelta);
+    },
+    remove: function() {
+      this.removeLeftControllerListeners();
+      this.removeKeyboardListeners();
+      this.resetSpeeds();
+      this.removeSpeedLines();
+    },
+    /**
+     * Add left controller input listeners
+     *
+     * Adds the left joystick click and axis listeners to the left controller.
+     */
+    addLeftControllerListeners: function() {
+      if (!this.leftControllerEl || !this.data.joystickEnabled) return;
+      this.leftControllerEl.addEventListener("thumbstickdown", this.onThumbstickDown);
+      this.leftControllerEl.addEventListener("axismove", this.onAxisMove);
+    },
+    /**
+     * Remove left controller input listeners
+     *
+     * Removes the left joystick click and axis listeners from the left controller.
+     */
+    removeLeftControllerListeners: function() {
+      if (!this.leftControllerEl) return;
+      this.leftControllerEl.removeEventListener("thumbstickdown", this.onThumbstickDown);
+      this.leftControllerEl.removeEventListener("axismove", this.onAxisMove);
+    },
+    /**
+     * Add keyboard listeners
+     *
+     * Adds desktop keyboard listeners so holding left shift and W enables the boost.
+     */
+    addKeyboardListeners: function() {
+      window.addEventListener("keydown", this.onKeyDown);
+      window.addEventListener("keyup", this.onKeyUp);
+      window.addEventListener("blur", this.onWindowBlur);
+    },
+    /**
+     * Remove keyboard listeners
+     *
+     * Removes the desktop keyboard listeners used for keyboard sprint.
+     */
+    removeKeyboardListeners: function() {
+      window.removeEventListener("keydown", this.onKeyDown);
+      window.removeEventListener("keyup", this.onKeyUp);
+      window.removeEventListener("blur", this.onWindowBlur);
+    },
+    /**
+     * Thumbstick down handler
+     *
+     * Activates boost only when the left joystick is clicked while it is being pushed forward at all.
+     */
+    onThumbstickDown: function() {
+      if (!this.data.joystickEnabled || !this.isJoystickForward()) return;
+      this.joystickActive = true;
+      this.applySpeedMultiplier();
+    },
+    /**
+     * Axis move handler
+     *
+     * Stores the latest joystick axis values so we can make sure the boost can stay active while the stick is forward.
+     *
+     * @param {Event} event The controller axis event.
+     */
+    onAxisMove: function(event) {
+      const axis = event.detail.axis || [];
+      this.axisX = axis[2] || 0;
+      this.axisY = axis[3] || 0;
+    },
+    /**
+     * Key down handler
+     *
+     * Tracks desktop sprint keys so boost is active only while left shift and W are both held.
+     *
+     * @param {KeyboardEvent} event The keyboard event.
+     */
+    onKeyDown: function(event) {
+      if (!this.data.keyboardEnabled) return;
+      const wasKeyboardBoostActive = this.keyboardShiftActive && this.keyboardForwardActive;
+      let boostKeysChangedState = false;
+      if (event.code === "ShiftLeft" && !this.keyboardShiftActive) {
+        this.keyboardShiftActive = true;
+        boostKeysChangedState = true;
+      }
+      if (event.code === "KeyW" && !this.keyboardForwardActive) {
+        this.keyboardForwardActive = true;
+        boostKeysChangedState = true;
+      }
+      if (!boostKeysChangedState) return;
+      const isKeyboardBoostActive = this.keyboardShiftActive && this.keyboardForwardActive;
+      if (wasKeyboardBoostActive !== isKeyboardBoostActive) {
+        this.applySpeedMultiplier();
+      }
+    },
+    /**
+     * Key up handler
+     *
+     * Deactivates boost when either desktop sprint key is released.
+     *
+     * @param {KeyboardEvent} event The keyboard event.
+     */
+    onKeyUp: function(event) {
+      const wasKeyboardBoostActive = this.keyboardShiftActive && this.keyboardForwardActive;
+      let boostKeysChangedState = false;
+      if (event.code === "ShiftLeft" && this.keyboardShiftActive) {
+        this.keyboardShiftActive = false;
+        boostKeysChangedState = true;
+      }
+      if (event.code === "KeyW" && this.keyboardForwardActive) {
+        this.keyboardForwardActive = false;
+        boostKeysChangedState = true;
+      }
+      if (!boostKeysChangedState) return;
+      const isKeyboardBoostActive = this.keyboardShiftActive && this.keyboardForwardActive;
+      if (wasKeyboardBoostActive !== isKeyboardBoostActive) {
+        this.applySpeedMultiplier();
+      }
+    },
+    /**
+     * Window blur handler
+     *
+     * Clears held keyboard sprint state if the window loses focus.
+     */
+    onWindowBlur: function() {
+      if (!this.keyboardShiftActive && !this.keyboardForwardActive) return;
+      this.keyboardShiftActive = false;
+      this.keyboardForwardActive = false;
+      this.applySpeedMultiplier();
+    },
+    /**
+     * Is joystick forward
+     *
+     * Returns true when the left joystick is pushed forward at all.
+     *
+     * @returns {boolean} Whether the joystick is forward.
+     */
+    isJoystickForward: function() {
+      return this.axisY < 0;
+    },
+    /**
+     * Cache base speeds
+     *
+     * Stores the original movement speed values so the multiplier can be applied relative to those values.
+     */
+    cacheBaseSpeeds: function() {
+      const movementControls = this.el.components["movement-controls"];
+      const armSwingMovement = this.el.components["arm-swing-movement"];
+      if (movementControls && this.baseMovementControlsSpeed === null) {
+        this.baseMovementControlsSpeed = movementControls.data.speed;
+      }
+      if (armSwingMovement && this.baseArmSwingSpeedFactor === null) {
+        this.baseArmSwingSpeedFactor = armSwingMovement.data.speedFactor;
+      }
+    },
+    /**
+     * Get applied multiplier
+     *
+     * Returns the multiplier that should currently affect movement.
+     *
+     * @returns {number} The active movement multiplier.
+     */
+    getAppliedMultiplier: function() {
+      const controllerBoostActive = this.data.joystickEnabled && this.joystickActive;
+      const keyboardBoostActive = this.data.keyboardEnabled && this.keyboardShiftActive && this.keyboardForwardActive;
+      const manualBoostActive = this.manualBoostActive;
+      return controllerBoostActive || keyboardBoostActive || manualBoostActive ? this.data.multiplier : 1;
+    },
+    /**
+     * Set manual boost active
+     *
+     * Allows another component to manually turn the multiplier on or off.
+     *
+     * @param {boolean} active Whether the manual boost should be active.
+     */
+    setManualBoost: function(active) {
+      const nextManualBoostState = !!active;
+      if (this.manualBoostActive === nextManualBoostState) return;
+      this.manualBoostActive = nextManualBoostState;
+      this.applySpeedMultiplier();
+    },
+    /**
+     * Apply speed multiplier
+     *
+     * Applies the current multiplier to supported movement components and toggles speed line visibility.
+     */
+    applySpeedMultiplier: function() {
+      const appliedMultiplier = this.getAppliedMultiplier();
+      const movementControls = this.el.components["movement-controls"];
+      const armSwingMovement = this.el.components["arm-swing-movement"];
+      const keyboardSprintCompensation = this.data.keyboardEnabled && this.keyboardShiftActive ? 0.5 : 1;
+      const canAffectMovement = movementControls && this.baseMovementControlsSpeed !== null || armSwingMovement && this.baseArmSwingSpeedFactor !== null;
+      const didAppliedMultiplierIncrease = appliedMultiplier > this.currentAppliedMultiplier;
+      this.currentAppliedMultiplier = appliedMultiplier;
+      if (movementControls && this.baseMovementControlsSpeed !== null) {
+        this.el.setAttribute("movement-controls", "speed", this.baseMovementControlsSpeed * keyboardSprintCompensation * appliedMultiplier);
+      }
+      if (armSwingMovement && this.baseArmSwingSpeedFactor !== null) {
+        this.el.setAttribute("arm-swing-movement", "speedFactor", this.baseArmSwingSpeedFactor * appliedMultiplier);
+      }
+      if (didAppliedMultiplierIncrease && canAffectMovement) {
+        this.playMultiplierSound();
+      }
+      this.setSpeedLinesVisible(this.data.linesEnabled && appliedMultiplier > 1);
+    },
+    /**
+     * Reset speeds
+     *
+     * Restores supported movement components to their cached base speed values.
+     */
+    resetSpeeds: function() {
+      if (this.baseMovementControlsSpeed !== null && this.el.components["movement-controls"]) {
+        this.el.setAttribute("movement-controls", "speed", this.baseMovementControlsSpeed);
+      }
+      if (this.baseArmSwingSpeedFactor !== null && this.el.components["arm-swing-movement"]) {
+        this.el.setAttribute("arm-swing-movement", "speedFactor", this.baseArmSwingSpeedFactor);
+      }
+    },
+    /**
+     * Create speed lines
+     *
+     * Creates a camera-attached container with simple line objects arranged like a lampshade opening toward the camera.
+     */
+    createSpeedLines: function() {
+      var _a;
+      if (!this.data.linesEnabled) return;
+      const camera = ((_a = this.el.sceneEl.camera) == null ? void 0 : _a.el) || document.querySelector("[camera]");
+      if (!camera) return;
+      this.lineContainer = document.createElement("a-entity");
+      this.lineContainer.setAttribute("class", "movement-speed-lines");
+      this.lineContainer.setAttribute("position", `0 0 -${this.data.lineDistance}`);
+      this.lineContainer.setAttribute("visible", false);
+      camera.appendChild(this.lineContainer);
+      this.timeSinceLastLinePattern = 0;
+      for (let i = 0; i < this.data.lineCount; i++) {
+        const line = document.createElement("a-entity");
+        line.setAttribute("class", "movement-speed-line");
+        line.setAttribute("geometry", "primitive: icosahedron;");
+        line.setAttribute("scale", "0.003 0.15 0.002");
+        line.setAttribute("material", `color: ${this.data.lineColor}; transparent: true; opacity: 0; depthWrite: false;`);
+        this.lineContainer.appendChild(line);
+        this.lineElements.push({
+          el: line
+        });
+      }
+      this.randomizeSpeedLinePattern();
+    },
+    /**
+     * Remove speed lines
+     *
+     * Removes the camera-attached speed line container.
+     */
+    removeSpeedLines: function() {
+      var _a;
+      if ((_a = this.lineContainer) == null ? void 0 : _a.parentNode) {
+        this.lineContainer.parentNode.removeChild(this.lineContainer);
+      }
+      this.lineContainer = null;
+      this.lineElements = [];
+    },
+    /**
+     * Update speed line color
+     *
+     * Applies the configured line color to all existing speed line materials.
+     */
+    updateSpeedLineColor: function() {
+      for (const line of this.lineElements) {
+        line.el.setAttribute("material", "color", this.data.lineColor);
+      }
+    },
+    /**
+     * Set speed lines visible
+     *
+     * Shows or hides the speed line container.
+     *
+     * @param {boolean} visible Whether the speed lines should be visible.
+     */
+    setSpeedLinesVisible: function(visible) {
+      if (!this.lineContainer) return;
+      this.lineContainer.setAttribute("visible", visible);
+    },
+    /**
+     * Update speed lines
+     *
+     * Randomizes the speed line pattern a few times per second instead. The data property `linePatternInterval` controls how often the pattern changes in milliseconds.
+     *
+     * @param {number} time Current scene time.
+     * @param {number} timeDelta Time since the last frame.
+     */
+    updateSpeedLines: function(time, timeDelta) {
+      if (!this.lineContainer || !this.lineContainer.getAttribute("visible")) return;
+      this.timeSinceLastLinePattern += timeDelta;
+      if (this.timeSinceLastLinePattern < this.data.linePatternInterval) return;
+      this.timeSinceLastLinePattern = 0;
+      this.randomizeSpeedLinePattern();
+    },
+    /**
+     * Randomize speed line pattern
+     *
+     * Places speed lines along an invisible tapered cone shape, like a lampshade opening toward the camera.
+     */
+    randomizeSpeedLinePattern: function() {
+      const backZ = -0.45;
+      const frontZ = 0.05;
+      const frontRadius = 0.85;
+      const backRadius = 0.42;
+      for (const line of this.lineElements) {
+        const shouldShow = Math.random() > 0.35;
+        if (!shouldShow) {
+          line.el.setAttribute("material", "opacity", 0);
+          continue;
+        }
+        const angle = Math.random() * Math.PI * 2;
+        const depthPercent = Math.random();
+        const z = frontZ + (backZ - frontZ) * depthPercent;
+        const radius = frontRadius + (backRadius - frontRadius) * depthPercent;
+        const x = Math.cos(angle) * radius;
+        const y = Math.sin(angle) * radius;
+        const nextDepthPercent = Math.min(1, depthPercent + 0.2);
+        const nextZ = frontZ + (backZ - frontZ) * nextDepthPercent;
+        const nextRadius = frontRadius + (backRadius - frontRadius) * nextDepthPercent;
+        const nextX = Math.cos(angle) * nextRadius;
+        const nextY = Math.sin(angle) * nextRadius;
+        const direction = new THREE.Vector3(nextX - x, nextY - y, nextZ - z).normalize();
+        const quaternion = new THREE.Quaternion();
+        quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
+        line.el.object3D.position.set(x, y, z);
+        line.el.object3D.quaternion.copy(quaternion);
+        line.el.setAttribute("material", "opacity", this.data.lineOpacity);
+      }
+    },
+    /**
+     * Play multiplier sound
+     *
+     * Plays the optional speed boost sound when the multiplier increases.
+     */
+    playMultiplierSound: function() {
+      var _a;
+      const soundEntity = this.data.boostSound;
+      const soundComponent = (_a = soundEntity == null ? void 0 : soundEntity.components) == null ? void 0 : _a.sound;
+      if (!soundComponent) return;
+      soundComponent.stopSound();
+      soundComponent.playSound();
+    }
+  };
+  AFRAME.registerComponent("movement-speed-modifier", movementSpeedModifierComponent);
   const __vite_glob_0_3 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
     __proto__: null
   }, Symbol.toStringTag, { value: "Module" }));
   AFRAME.registerComponent("music-player", {
-    schema: { songs: { type: "array", default: [] } },
+    schema: {
+      songs: { type: "array", default: [] },
+      // Array of song names (e.g., ["song1.mp3", "song2.mp3"])
+      playOrder: { type: "string", default: "shuffle" },
+      // options: 'shuffle', 'alphabetical', 'listed'
+      loopMode: { type: "string", default: "maintain" },
+      // options: 'maintain', 'shuffle', 'disable'
+      audioDirectory: { type: "string", default: "assets/audio/music/" },
+      // Directory where audio files are stored
+      controlsEnabled: { type: "boolean", default: true },
+      // Enable/disable controller and keyboard controls
+      togglePauseSelector: { type: "string", default: "#left-hand" },
+      // Selector for the controller element for toggling pause
+      togglePauseBtn: { type: "string", default: "xbuttonup" },
+      // Button to toggle pause on the controller
+      togglePauseKey: { type: "string", default: "Space" },
+      // Key to toggle pause on the keyboard
+      nextTrackSelector: { type: "string", default: "#left-hand" },
+      // Selector for the controller element for next track
+      nextTrackBtn: { type: "string", default: "ybuttonup" },
+      // Button to skip to the next track on the controller
+      nextTrackKey: { type: "string", default: "KeyN" }
+      // Key to skip to the next track on the keyboard
+    },
     init: function() {
       const sceneEl = this.el.sceneEl;
-      const leftController = document.querySelector("#left-hand");
-      if (!leftController) {
-        console.error("No #left-hand controller found for music-player");
-        return;
+      if (this.data.controlsEnabled) {
+        this.setupControllerListeners();
+        this.setupKeyboardListeners();
       }
-      leftController.addEventListener("xbuttonup", () => this.togglePause());
-      leftController.addEventListener("ybuttonup", () => this.nextTrack());
-      document.addEventListener("keyup", (e) => {
-        if (e.code === "Space") {
-          this.togglePause();
-        } else if (e.code === "KeyN") {
-          this.nextTrack();
-        }
-      });
       if (this.data.songs.length === 0) {
         let storedSongs = localStorage.getItem("musicPlayerSongs");
         if (storedSongs) {
@@ -698,7 +1321,8 @@
         console.warn("No songs found for music-player");
         return;
       }
-      this.currentPlaylist = this.shuffle(this.data.songs.slice());
+      this.currentPlaylist = this.generatePlaylist(this.data.songs.slice());
+      this.originalPlaylist = this.currentPlaylist.slice();
       this.audio = new Audio();
       this.audio.addEventListener("ended", () => {
         this.playNextSong();
@@ -722,20 +1346,24 @@
     },
     playNextSong: function() {
       if (this.currentPlaylist.length === 0) {
-        this.currentPlaylist = this.shuffle(this.data.songs.slice());
-        console.log("Playlist resetting");
+        if (this.data.loopMode === "disable") {
+          return;
+        } else if (this.data.loopMode === "shuffle") {
+          this.currentPlaylist = this.shuffle(this.data.songs.slice());
+        } else if (this.data.loopMode === "maintain") {
+          this.currentPlaylist = this.originalPlaylist.slice();
+        } else {
+          console.warn(`Unexpected loopMode: "${this.data.loopMode}". Defaulting to "maintain".`);
+          this.currentPlaylist = this.originalPlaylist.slice();
+        }
       }
       let nextSong = this.currentPlaylist.pop();
       nextSong = nextSong.trim();
-      if (nextSong.startsWith("'")) {
-        nextSong = nextSong.slice(1);
-      }
-      if (nextSong.endsWith("'")) {
-        nextSong = nextSong.slice(0, -1);
-      }
+      if (nextSong.startsWith("'")) nextSong = nextSong.slice(1);
+      if (nextSong.endsWith("'")) nextSong = nextSong.slice(0, -1);
       this.currentSong = nextSong;
       console.log("Playing: " + nextSong);
-      this.audio.src = "assets/audio/music/" + encodeURI(nextSong);
+      this.audio.src = this.data.audioDirectory + encodeURI(nextSong);
       this.audio.play();
     },
     // Toggle pause/resume
@@ -756,9 +1384,97 @@
         [array[i], array[j]] = [array[j], array[i]];
       }
       return array;
+    },
+    generatePlaylist: function(songs) {
+      switch (this.data.playOrder) {
+        case "alphabetical":
+          return songs.sort().reverse();
+        case "listed":
+          return songs.reverse();
+        case "shuffle":
+        default:
+          return this.shuffle(songs);
+      }
+    },
+    setupControllerListeners: function() {
+      const pauseControllerEl = document.querySelector(this.data.togglePauseSelector);
+      if (pauseControllerEl) {
+        pauseControllerEl.addEventListener(this.data.togglePauseBtn, () => this.togglePause());
+      } else {
+        console.warn("Controller not found:", this.data.togglePauseSelector);
+      }
+      const nextControllerEl = document.querySelector(this.data.nextTrackSelector);
+      if (nextControllerEl) {
+        nextControllerEl.addEventListener(this.data.nextTrackBtn, () => this.nextTrack());
+      } else {
+        console.warn("Controller not found:", this.data.nextTrackSelector);
+      }
+    },
+    setupKeyboardListeners: function() {
+      document.addEventListener("keyup", (e) => {
+        if (e.code === this.data.togglePauseKey) {
+          this.togglePause();
+        } else if (e.code === this.data.nextTrackKey) {
+          this.nextTrack();
+        }
+      });
     }
   });
   const __vite_glob_0_4 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+    __proto__: null
+  }, Symbol.toStringTag, { value: "Module" }));
+  AFRAME.registerComponent("post-model-load-refresh", {
+    schema: {
+      refreshRaycasters: { type: "boolean", default: true },
+      refreshPhysics: { type: "boolean", default: true }
+    },
+    init: function() {
+      const checkAllLoaded = () => {
+        if (loadedModels === modelsToLoad) {
+          if (this.data.refreshRaycasters) refreshRaycasters();
+          if (this.data.refreshPhysics) refreshPhysicsBodies();
+        }
+      };
+      const refreshRaycasters = () => {
+        document.querySelectorAll("[raycaster]").forEach((ray) => {
+          ray.components.raycaster.refreshObjects();
+        });
+      };
+      const refreshPhysicsBodies = () => {
+        document.querySelectorAll("[delayed-dynamic-body]").forEach((el) => {
+          const config = el.getAttribute("delayed-dynamic-body");
+          el.removeAttribute("delayed-dynamic-body");
+          el.setAttribute("dynamic-body", config);
+        });
+        document.querySelectorAll("[delayed-static-body]").forEach((el) => {
+          const config = el.getAttribute("delayed-static-body");
+          el.removeAttribute("delayed-static-body");
+          el.setAttribute("static-body", config);
+        });
+      };
+      const models = document.querySelectorAll("[gltf-model]:not(a-mixin)");
+      let loadedModels = Array.from(models).filter((el) => {
+        var _a, _b;
+        return (_b = (_a = el.components) == null ? void 0 : _a["gltf-model"]) == null ? void 0 : _b.model;
+      }).length;
+      const modelsToLoad = models.length;
+      checkAllLoaded();
+      models.forEach((el) => {
+        el.addEventListener("model-loaded", () => {
+          loadedModels++;
+          checkAllLoaded();
+        });
+      });
+      setTimeout(() => {
+        if (loadedModels < modelsToLoad) {
+          console.warn(`Not all models loaded after 5 seconds (${loadedModels}/${modelsToLoad}). Forcing refresh anyway.`);
+          if (this.data.refreshRaycasters) refreshRaycasters();
+          if (this.data.refreshPhysics) refreshPhysicsBodies();
+        }
+      }, 5e3);
+    }
+  });
+  const __vite_glob_0_5 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
     __proto__: null
   }, Symbol.toStringTag, { value: "Module" }));
   AFRAME.registerComponent("raycaster-listener", {
@@ -792,25 +1508,141 @@
       });
     }
   });
-  const __vite_glob_0_5 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  const __vite_glob_0_6 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
     __proto__: null
   }, Symbol.toStringTag, { value: "Module" }));
   AFRAME.registerComponent("raycaster-manager", {
+    schema: {
+      rayLength: { type: "number", default: 1.5 },
+      intersectionBuffer: { type: "number", default: 0.02 }
+    },
     init: function() {
       console.log("Raycaster Manager initialized");
       const leftController = document.querySelector("#left-hand");
       const rightController = document.querySelector("#right-hand");
+      this.handElements = {
+        left: { actualRay: null, styledRay: null },
+        right: { actualRay: null, styledRay: null }
+      };
       if (leftController && rightController) {
         leftController.addEventListener("triggerdown", () => this.toggleRaycaster("left"));
         rightController.addEventListener("triggerdown", () => this.toggleRaycaster("right"));
       }
     },
-    // Toggle logic for raycaster
+    update: function() {
+      this.resetRayLength("left");
+      this.resetRayLength("right");
+      this.syncRayLength("left");
+      this.syncRayLength("right");
+    },
+    tick: function() {
+      this.syncRayLength("left");
+      this.syncRayLength("right");
+    },
+    /**
+     * Hand elements
+     *
+     * Returns the cached actual ray and styled ray elements for the requested controller hand.
+     *
+     * @param {"left"|"right"} hand The controller side whose ray elements should be retrieved.
+     */
+    getHandElements: function(hand) {
+      var _a, _b;
+      const cachedHandElements = this.handElements[hand];
+      if (((_a = cachedHandElements.actualRay) == null ? void 0 : _a.isConnected) && ((_b = cachedHandElements.styledRay) == null ? void 0 : _b.isConnected)) {
+        return cachedHandElements;
+      }
+      cachedHandElements.actualRay = document.querySelector(`#${hand}-hand .actual-ray`);
+      cachedHandElements.styledRay = document.querySelector(`#${hand}-hand .styled-ray`);
+      return cachedHandElements;
+    },
+    /**
+     * Returns the distance to the closest current intersection for the given controller ray, or null when nothing is being hit.
+     *
+     * @param {"left"|"right"} hand The controller side to inspect.
+     * @returns {number|null} The nearest hit distance, if available.
+     */
+    getClosestIntersectionDistance: function(hand) {
+      var _a, _b, _c;
+      const { actualRay } = this.getHandElements(hand);
+      const raycasterComponent = (_a = actualRay == null ? void 0 : actualRay.components) == null ? void 0 : _a.raycaster;
+      if (!((_b = raycasterComponent == null ? void 0 : raycasterComponent.intersections) == null ? void 0 : _b.length)) {
+        return null;
+      }
+      return ((_c = raycasterComponent.intersections[0]) == null ? void 0 : _c.distance) ?? null;
+    },
+    /**
+     * Shortens the active raycaster and styled ray so they stop at the current hit point, while keeping a small buffer on the actual ray for reliable interaction.
+     *
+     * @param {"left"|"right"} hand The controller side whose ray should be adjusted.
+     * @param {number} intersectionDistance The current distance to the nearest hit.
+     */
+    applyIntersectionLength: function(hand, intersectionDistance) {
+      const { actualRay, styledRay } = this.getHandElements(hand);
+      const rayLength = this.data.rayLength;
+      const styledScale = styledRay == null ? void 0 : styledRay.getAttribute("scale");
+      if (!actualRay || typeof rayLength !== "number") {
+        return;
+      }
+      const buffer = Math.max(0, this.data.intersectionBuffer);
+      const adjustedFar = Math.min(rayLength, intersectionDistance + buffer);
+      actualRay.setAttribute("raycaster", "far", adjustedFar);
+      if (!styledRay || !styledScale || rayLength <= 0) {
+        return;
+      }
+      const nextScaleY = Math.min(rayLength, intersectionDistance);
+      styledRay.setAttribute("scale", { x: styledScale.x, y: nextScaleY, z: styledScale.z });
+    },
+    /**
+     * Restores the actual raycaster distance and styled-ray scale for the given controller back to the schema-defined default value.
+     *
+     * @param {"left"|"right"} hand The controller side whose ray lengths should be reset.
+     */
+    resetRayLength: function(hand) {
+      const { actualRay, styledRay } = this.getHandElements(hand);
+      const rayLength = this.data.rayLength;
+      const styledScale = styledRay == null ? void 0 : styledRay.getAttribute("scale");
+      if (actualRay && typeof rayLength === "number") {
+        actualRay.setAttribute("raycaster", "far", rayLength);
+      }
+      if (styledRay && styledScale && typeof rayLength === "number") {
+        styledRay.setAttribute("scale", { x: styledScale.x, y: rayLength, z: styledScale.z });
+      }
+    },
+    /**
+     * Updates the active ray to match the nearest current intersection, or restores the schema-defined default ray length when nothing is being hit.
+     *
+     * @param {"left"|"right"} hand The controller side whose ray should be synced.
+     */
+    syncRayLength: function(hand) {
+      const { actualRay } = this.getHandElements(hand);
+      const raycasterData = actualRay == null ? void 0 : actualRay.getAttribute("raycaster");
+      if (!actualRay || !(raycasterData == null ? void 0 : raycasterData.enabled)) {
+        return;
+      }
+      const intersectionDistance = this.getClosestIntersectionDistance(hand);
+      if (typeof intersectionDistance === "number") {
+        this.applyIntersectionLength(hand, intersectionDistance);
+        return;
+      }
+      this.resetRayLength(hand);
+    },
+    /**
+     * Toggle the raycaster
+     *
+     * If the raycaster is already enabled, it only disables it when the ray is not currently intersecting any interactable elements as we assume the user intends to interact with them. If the raycaster is disabled, it enables it and lets the component handle switching away from the other hand.
+     *
+     * @param {"left"|"right"} hand The controller side whose raycaster should be toggled.
+     */
     toggleRaycaster: function(hand) {
-      const actualRay = document.querySelector(`#${hand}-hand .actual-ray`);
-      if (actualRay.getAttribute("raycaster").enabled) {
+      var _a;
+      const { actualRay } = this.getHandElements(hand);
+      if (!actualRay) return;
+      const raycasterData = actualRay.getAttribute("raycaster") || {};
+      const raycasterComponent = actualRay.components.raycaster;
+      if (raycasterData.enabled) {
         console.log("Raycaster already active on this controller:", hand);
-        if (!actualRay.components.raycaster.intersectedEls.length) {
+        if (!((_a = raycasterComponent == null ? void 0 : raycasterComponent.intersectedEls) == null ? void 0 : _a.length)) {
           console.log("No intersection detected. Disabling raycaster on:", hand);
           this.disableRaycaster(hand);
         }
@@ -819,58 +1651,50 @@
         this.enableRaycaster(hand);
       }
     },
-    // Disable raycaster
+    /**
+     * Disable raycaster
+     *
+     * Restores the cached default ray lengths, hides the styled ray, and then disables the actual controller raycaster.
+     *
+     * @param {"left"|"right"} hand The controller side whose raycaster should be disabled.
+     */
     disableRaycaster: function(hand) {
-      const styledRay = document.querySelector(`#${hand}-hand .styled-ray`);
-      const actualRay = document.querySelector(`#${hand}-hand .actual-ray`);
+      const { actualRay, styledRay } = this.getHandElements(hand);
+      this.resetRayLength(hand);
       styledRay == null ? void 0 : styledRay.setAttribute("visible", false);
       actualRay == null ? void 0 : actualRay.setAttribute("raycaster", "enabled", false);
     },
-    // Enable raycaster
+    /**
+     * Enable raycaster
+     *
+     * Restores the cached default ray lengths, shows the styled ray, enables the actual controller raycaster, plays the optional activation sound, syncs the ray to any current intersection, and disables the other controller's raycaster.
+     *
+     * @param {"left"|"right"} hand The controller side whose raycaster should be enabled.
+     */
     enableRaycaster: function(hand) {
-      const styledRay = document.querySelector(`#${hand}-hand .styled-ray`);
-      const actualRay = document.querySelector(`#${hand}-hand .actual-ray`);
+      const { actualRay, styledRay } = this.getHandElements(hand);
+      this.resetRayLength(hand);
       styledRay == null ? void 0 : styledRay.setAttribute("visible", true);
       actualRay == null ? void 0 : actualRay.setAttribute("raycaster", { enabled: true });
       if (styledRay) {
         this.playSound(styledRay);
       }
+      this.syncRayLength(hand);
       const otherHand = hand === "left" ? "right" : "left";
       this.disableRaycaster(otherHand);
     },
-    // Play sound
+    /**
+     * Play sound
+     *
+     * Plays the styled ray's attached sound effect if the entity has a sound component.
+     *
+     * @param {Element} styledRay The styled ray entity that may contain the sound component.
+     */
     playSound: function(styledRay) {
       let soundComp = styledRay.components.sound;
       if (soundComp) {
         soundComp.playSound();
       }
-    }
-  });
-  const __vite_glob_0_6 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
-    __proto__: null
-  }, Symbol.toStringTag, { value: "Module" }));
-  AFRAME.registerComponent("refresh-raycaster-on-model-load", {
-    init: function() {
-      const models = document.querySelectorAll("[gltf-model]");
-      let loadedModels = Array.from(models).filter((el) => {
-        var _a, _b;
-        return (_b = (_a = el.components) == null ? void 0 : _a["gltf-model"]) == null ? void 0 : _b.model;
-      }).length;
-      const modelsToLoad = models.length;
-      const checkAllLoaded = () => {
-        if (loadedModels === modelsToLoad) {
-          document.querySelectorAll("[raycaster]").forEach((ray) => {
-            ray.components.raycaster.refreshObjects();
-          });
-        }
-      };
-      checkAllLoaded();
-      models.forEach((el) => {
-        el.addEventListener("model-loaded", () => {
-          loadedModels++;
-          checkAllLoaded();
-        });
-      });
     }
   });
   const __vite_glob_0_7 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
@@ -900,7 +1724,11 @@
       const originalConsoleLog = console.log;
       console.log = (...args) => {
         originalConsoleLog(...args);
-        this.addMessage(args.map((a) => a.toString()).join(" "));
+        this.addMessage(args.map((a) => {
+          if (a === null) return "null";
+          if (a === void 0) return "undefined";
+          return a.toString();
+        }).join(" "));
       };
     },
     // Add a message to the console
@@ -938,7 +1766,7 @@
   const __vite_glob_0_9 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
     __proto__: null
   }, Symbol.toStringTag, { value: "Module" }));
-  const components = /* @__PURE__ */ Object.assign({ "./components/_helpers/helpers.js": __vite_glob_0_0, "./components/arm-swing-movement/arm-swing-movement.js": __vite_glob_0_1, "./components/delayed-dynamic-body/delayed-dynamic-body.js": __vite_glob_0_2, "./components/holdable/holdable.js": __vite_glob_0_3, "./components/music-player/music-player.js": __vite_glob_0_4, "./components/raycaster-listener/raycaster-listener.js": __vite_glob_0_5, "./components/raycaster-manager/raycaster-manager.js": __vite_glob_0_6, "./components/refresh-raycaster-on-model-load/refresh-raycaster-on-model-load.js": __vite_glob_0_7, "./components/vr-logger/vr-logger.js": __vite_glob_0_8, "./components/vr-mode-detect/vr-mode-detect.js": __vite_glob_0_9 });
+  const components = /* @__PURE__ */ Object.assign({ "./components/_helpers/helpers.js": __vite_glob_0_0, "./components/arm-swing-movement/arm-swing-movement.js": __vite_glob_0_1, "./components/holdable/holdable.js": __vite_glob_0_2, "./components/movement-speed-modifier/movement-speed-modifier.js": __vite_glob_0_3, "./components/music-player/music-player.js": __vite_glob_0_4, "./components/post-model-load-refresh/post-model-load-refresh.js": __vite_glob_0_5, "./components/raycaster-listener/raycaster-listener.js": __vite_glob_0_6, "./components/raycaster-manager/raycaster-manager.js": __vite_glob_0_7, "./components/vr-logger/vr-logger.js": __vite_glob_0_8, "./components/vr-mode-detect/vr-mode-detect.js": __vite_glob_0_9 });
   console.log("MSS A-Frame Kit Loaded", components);
   exports2.initVibration = initVibration;
   exports2.triggerHapticPattern = triggerHapticPattern;
