@@ -17,6 +17,7 @@ Dream Dome has been primarily tested with the Quest 3 and occasionally with the 
 - **Sprint Mechanic:** Holding `Shift` or clicking the left joystick in while moving forward allows the user to sprint, with visual feedback to enhance the sensation of speed.
 - **Arm Swinging Locomotion:** Players can use arm swinging locomotion, which allows them to move by swinging their arms while holding the controllers. Essentially, running or walking in place will cause the player to move forward. This is an alternative to using the joystick for movement and can provide a more immersive experience.
 - **Orb Collection Minigame:** A minigame where users can collect animated orbs that spawn in the environment. Collecting an orb triggers a sound effect and the HUD updates to show the number of orbs collected. Once all orbs are collected, a scoreboard appears showing where the player ranks among their previous attempts.
+- **Billboard:** A billboard displays humorous ads that change every 15 seconds. Ads are transitioned with a retro TV static effect to match the synthwave aesthetic.
 
 ## Dependencies
 
