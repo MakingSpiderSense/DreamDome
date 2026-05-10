@@ -1,12 +1,16 @@
 // A-frame Components
 
 
-// Prompt enabling motion sensors for mobile devices
+/**
+ * Prompt enabling motion sensors for mobile devices
+ */
 function setupMotionSensors() {
     // Check if DeviceMotionEvent is available and the user agent indicates a mobile device
     if (typeof DeviceMotionEvent !== 'undefined' && /Mobi|Android/i.test(navigator.userAgent)) {
         let motionReceived = false;
-        // Test if motion sensors are already active
+        /**
+         * Test if motion sensors are already active
+         */
         function motionTest(event) {
             if ((event.acceleration.x !== null || event.accelerationIncludingGravity.x !== null) && !motionReceived) {
                 // Motion data is active, so hide the button
@@ -61,22 +65,29 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 
-// Reset Local Storage
-AFRAME.registerComponent('reset-storage', {
+/**
+ * Reset Local Storage
+ */
+const resetStorage = {
     init: function () {
         localStorage.setItem('movementState', 'inactive');
     }
-});
+};
+AFRAME.registerComponent('reset-storage', resetStorage);
 
 
-// Dim the lights
-// Note: This is specifically for the "Dreams" environment.
-AFRAME.registerComponent('dim-lights', {
+/**
+ * Dim the lights
+ *
+ * Note: This is specifically for the "Dreams" environment.
+ */
+const dimLights = {
     init: function () {
         const defaultLights = document.querySelector("a-entity.env-dream a-entity.environment:nth-child(2)");
         defaultLights.setAttribute("visible", false);
     }
-});
+};
+AFRAME.registerComponent('dim-lights', dimLights);
 
 
 // Use fuse cursor on tablets too
@@ -90,8 +101,10 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 
-// Toggle Music
-AFRAME.registerComponent('toggle-music', {
+/**
+ * Toggle Music
+ */
+const toggleMusic = {
     init: function () {
         const el = this.el;
         // Reset Local Storage
@@ -118,11 +131,14 @@ AFRAME.registerComponent('toggle-music', {
             }
         }
     }
-});
+};
+AFRAME.registerComponent('toggle-music', toggleMusic);
 
 
-// Open/close the elevator door and play sound
-AFRAME.registerComponent('open-door', {
+/**
+ * Open/close the elevator door and play sound
+ */
+const openDoor = {
     init: function () {
         const elDoor = document.querySelector('.el-door');
         const soundEntity = document.querySelector('#elevator-door-trigger');
@@ -130,7 +146,9 @@ AFRAME.registerComponent('open-door', {
         this.playDoorSound = function () {
             soundEntity.components.sound.playSound();
         };
-        // Open the door
+        /**
+         * Open the door
+         */
         this.openElevatorDoor = function (evt) {
             console.log('Door opened');
 
@@ -141,7 +159,9 @@ AFRAME.registerComponent('open-door', {
                 elDoor.components.animation__theta.play();
             }
         };
-        // Close the door
+        /**
+         * Close the door
+         */
         this.closeElevatorDoor = function (evt) {
             if (evt.target.components["aabb-collider"].hitClosestEventDetail.el.id == "elevator-door-trigger") {
                 this.playDoorSound(); // Play the door sound
@@ -153,11 +173,14 @@ AFRAME.registerComponent('open-door', {
         this.el.addEventListener('hitstart', this.openElevatorDoor.bind(this));
         this.el.addEventListener('hitend', this.closeElevatorDoor.bind(this));
     }
-});
+};
+AFRAME.registerComponent('open-door', openDoor);
 
 
-// Elevator Ride
-AFRAME.registerComponent('elevator-trip', {
+/**
+ * Elevator Ride
+ */
+const elevatorTrip = {
     schema: {
         rideType: { type: 'string', default: 'skybox-tour' }
     },
@@ -190,7 +213,9 @@ AFRAME.registerComponent('elevator-trip', {
             }, 500);
         });
     },
-    // Start the elevator trip
+    /**
+     * Start the elevator trip
+     */
     startElevatorTrip: function (elevatorEl, cameraEl) {
         const elevatorDoorTriggerEl = document.querySelector('#elevator-door-trigger');
         const elevatorFloorEl = document.querySelector('.el-floor');
@@ -436,15 +461,19 @@ AFRAME.registerComponent('elevator-trip', {
 
         moveElevator();
     },
-});
+};
+AFRAME.registerComponent('elevator-trip', elevatorTrip);
 
 
-// Elevator Controller
-AFRAME.registerComponent('elevator-controller', {
+/**
+ * Elevator Controller
+ */
+const elevatorController = {
     schema: {
         isMoving: { type: 'boolean', default: false }
     },
-});
+};
+AFRAME.registerComponent('elevator-controller', elevatorController);
 
 
 /**
@@ -501,7 +530,9 @@ const billboardSlideshow = {
         this.isTransitioning = true;
         const totalStaticFrames = this.data.staticFrames.length * this.data.staticLoops;
         let staticFrameIndex = 0;
-        // Loop through static frames for the transition effect, then show the next slide when done
+        /**
+         * Loop through static frames for the transition effect, then show the next slide when done
+         */
         const flashNextStaticFrame = () => {
             // Show next slide and exit loop when we've flashed through all static frames
             if (staticFrameIndex >= totalStaticFrames) {
@@ -531,9 +562,12 @@ const billboardSlideshow = {
 AFRAME.registerComponent("billboard-slideshow", billboardSlideshow);
 
 
-// Simulate Eyes Blinking
-// Description: You can finely control blink functions that simulate eyelid movements. Any of these methods can be called from other components when needed. This is useful for when there may be a jarring transition between scene changes or camera movements.
-AFRAME.registerComponent('blink-control', {
+/**
+ * Simulate Eyes Blinking
+ *
+ * Description: You can finely control blink functions that simulate eyelid movements. Any of these methods can be called from other components when needed. This is useful for when there may be a jarring transition between scene changes or camera movements.
+ */
+const blinkControl = {
     init: function () {
         // Attach the blink method to the A-Frame element for global access
         this.el.blinkShut = this.blinkShut.bind(this);
@@ -589,10 +623,11 @@ AFRAME.registerComponent('blink-control', {
         cameraEl.querySelector('.upper-eyelid').setAttribute('visible', true);
         cameraEl.querySelector('.lower-eyelid').setAttribute('visible', true);
     },
-});
+};
+AFRAME.registerComponent('blink-control', blinkControl);
 
 
-AFRAME.registerComponent('twinkling-stars', {
+const twinklingStars = {
     init: function () {
         const starTemplate = document.querySelector('#standard-star-template');
         // Return if the template is not found
@@ -658,10 +693,13 @@ AFRAME.registerComponent('twinkling-stars', {
         starHead.setAttribute('animation__visible', 'property: opacity; to: 1; startEvents: animationcomplete__fadein; dur: 500');
         starHead.setAttribute('animation__fadeout', 'property: opacity; from: 1; to: 0; startEvents: animationcomplete__visible; dur: 500');
     }
-});
+};
+AFRAME.registerComponent('twinkling-stars', twinklingStars);
 
 
-// Trigger shooting star animations
+/**
+ * Trigger shooting star animations
+ */
 let clonesCreated = false; // Flag to track if clones are created
 function triggerShootingStars() {
     const shootingStars = document.querySelectorAll('.shooting-star');
@@ -755,7 +793,7 @@ function triggerShootingStars() {
  * Credit: Based on snippet from icurtis1 🙏 (https://github.com/n5ro/aframe-physics-system/issues/192)
  *
  */
-AFRAME.registerComponent('add-model-after-load', {
+const addModelAfterLoad = {
     schema: {
         model: { default: '' },
         body: { type: 'string', default: 'dynamic' },
@@ -774,7 +812,8 @@ AFRAME.registerComponent('add-model-after-load', {
             gltfModel.setAttribute('ammo-shape', { type: this.data.shape });
         })
     }
-});
+};
+AFRAME.registerComponent('add-model-after-load', addModelAfterLoad);
 
 
 
@@ -788,7 +827,7 @@ AFRAME.registerComponent('add-model-after-load', {
  *
  * Use the IDs of the entities for the nav mesh and sounds (not the asset IDs).
  */
-AFRAME.registerComponent('orb-collection-minigame', {
+const orbCollectionMinigame = {
     schema: {
         navMeshEl: { type: 'selector', default: '[nav-mesh]' },
         orbRadius: { type: 'number', default: 0.5 },
@@ -976,7 +1015,9 @@ AFRAME.registerComponent('orb-collection-minigame', {
         this.hudEl = hudContainerEl;
     },
 
-    // Format time in milliseconds to MM:SS
+    /**
+     * Format time in milliseconds to MM:SS
+     */
     formatTime: function (totalMilliseconds) {
         const totalSeconds = Math.floor(totalMilliseconds / 1000);
         const minutes = Math.floor(totalSeconds / 60);
@@ -984,7 +1025,9 @@ AFRAME.registerComponent('orb-collection-minigame', {
         return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
     },
 
-    // When an orb is collected, update the HUD and check for completion
+    /**
+     * When an orb is collected, update the HUD and check for completion
+     */
     saveScoreToLeaderboard: function (playerTimeMs) {
         const storageKey = 'orb-minigame-scores';
         let savedScores = [];
@@ -1211,4 +1254,5 @@ AFRAME.registerComponent('orb-collection-minigame', {
             this.leaderboardEl = null;
         }
     }
-});
+};
+AFRAME.registerComponent("orb-collection-minigame", orbCollectionMinigame);
