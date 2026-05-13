@@ -498,7 +498,7 @@ const billboardSlideshow = {
             return;
         }
         this.el.setAttribute("src", this.data.slides[this.currentSlideIndex]); // Set source to first slide
-        this.scheduleNextSlideTransition(); // 🔖0
+        this.scheduleNextSlideTransition();
     },
     remove: function () {
         // Clear timeout so that the slide doesn't continue to change after the component is removed
@@ -513,7 +513,7 @@ const billboardSlideshow = {
      */
     scheduleNextSlideTransition: function () {
         this.timeoutId = setTimeout(() => {
-            this.playStaticTransition(); // 🔖1
+            this.playStaticTransition();
         }, this.data.slideDuration);
     },
     /**
@@ -522,7 +522,7 @@ const billboardSlideshow = {
      * Plays a static-frame transition sequence before advancing to the next slide.
      */
     playStaticTransition: function () {
-        // If the isTransitioning is already true, that means we've already... // 🔖2
+        // If the isTransitioning is already true, that means we've already...
         if (this.isTransitioning || !this.data.staticFrames.length) {
             this.showNextSlide();
             return;
@@ -850,6 +850,15 @@ const orbCollectionMinigame = {
         this.hudOrbCountTextEl = null; // Text element showing orbs collected count
         this.hudTimerTextEl = null; // Text element showing elapsed time
         this.leaderboardEl = null; // Leaderboard container entity (parented to camera)
+        this.boostDuration = 5000; // Duration of movement speed boost in ms after collecting an orb
+        this.currentBoostLevel = 0; // Boost levels of 0 (no boost), 1 (small boost), 2 (large boost), 3 (max boost)
+        this.boostTimeoutId = null; // To remove unused boost timeout when collecting another orb before current boost expires
+        this.movementSpeedModifierEl = null; // Used for speed boosts
+        this.movementSpeedModifierComponent = null; // Used for speed boosts
+        this.originalMovementSpeedModifierSettings = null; // Store original settings to restore later
+        this.blockShiftDuringMinigame = this.blockShiftDuringMinigame.bind(this);
+        window.addEventListener('keydown', this.blockShiftDuringMinigame, true);
+        window.addEventListener('keyup', this.blockShiftDuringMinigame, true);
 
         // Hidden reset: add ?reset-scores to the URL to wipe the leaderboard
         if (new URLSearchParams(window.location.search).has('reset-scores')) {
@@ -1054,6 +1063,154 @@ const orbCollectionMinigame = {
         return savedScores;
     },
 
+    /**
+     * Block Shift sprint
+     *
+     * Prevents ShiftLeft key events from reaching the "movement-controls" component while the minigame is active so sprint does not bypass the temporary boost rules.
+     */
+    blockShiftDuringMinigame: function (event) {
+        if (!this.gameStartTime || this.hasCollectedAllOrbs || event.code !== 'ShiftLeft') return;
+        // Prevent default behavior and stop event from propagating to movement-controls
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+    },
+
+    /**
+     * Get speed modifier
+     *
+     * Finds and caches the movement-speed-modifier component from the scene so other minigame code can quickly reuse it without searching again each time.
+     *
+     * @returns {object|null} The movement-speed-modifier component when found, or null if the element/component is missing.
+     */
+    getMovementSpeedModifier: function () {
+        // Return component if already cached
+        if (this.movementSpeedModifierEl && this.movementSpeedModifierComponent) {
+            return this.movementSpeedModifierComponent;
+        }
+        // Find the movement speed modifier element and component, cache them, and return the component
+        const movementSpeedModifierEl = this.el.sceneEl.querySelector('[movement-speed-modifier]');
+        if (!movementSpeedModifierEl) return null;
+        const movementSpeedModifierComponent = movementSpeedModifierEl.components['movement-speed-modifier'];
+        if (!movementSpeedModifierComponent) return null;
+        this.movementSpeedModifierEl = movementSpeedModifierEl;
+        this.movementSpeedModifierComponent = movementSpeedModifierComponent;
+        return movementSpeedModifierComponent;
+    },
+
+    /**
+     * Configure speed modifier for minigame
+     *
+     * Grabs the movement speed modifier component and, if we haven't already saved the player's original speed settings, saves a snapshot of them so we can restore them later when the minigame ends.
+     *
+     * @returns {object|null} The movement speed modifier component if found, or null if it doesn't exist.
+     */
+    getOriginalMovementSpeedModifierSettings: function () {
+        const movementSpeedModifierComponent = this.getMovementSpeedModifier();
+        if (!movementSpeedModifierComponent) return null;
+        if (!this.originalMovementSpeedModifierSettings) {
+            this.originalMovementSpeedModifierSettings = {
+                multiplier: movementSpeedModifierComponent.data.multiplier,
+                linePatternInterval: movementSpeedModifierComponent.data.linePatternInterval,
+                lineColor: movementSpeedModifierComponent.data.lineColor,
+                joystickEnabled: movementSpeedModifierComponent.data.joystickEnabled,
+                keyboardEnabled: movementSpeedModifierComponent.data.keyboardEnabled,
+            };
+        }
+        return movementSpeedModifierComponent;
+    },
+
+    /**
+     * Apply minigame boost level
+     *
+     * Sets the player speed boost settings for the given boost level, enables manual boost mode, and starts or resets the timer that will automatically remove the boost after a short duration.
+     *
+     * @param {number} boostLevel - The boost level to apply (1, 2, or 3).
+     * @returns {void} Does not return a value.
+     */
+    applyMinigameBoostLevel: function (boostLevel) {
+        const movementSpeedModifierComponent = this.getOriginalMovementSpeedModifierSettings();
+        if (!movementSpeedModifierComponent) return;
+        const boostSettingsByLevel = {
+            1: { multiplier: 1.25, lineColor: '#ffffff', linePatternInterval: 100, lineOpacity: 0.1 },
+            2: { multiplier: 1.4, lineColor: '#ababf5', linePatternInterval: 80, lineOpacity: 0.2 },
+            3: { multiplier: 1.5, lineColor: '#f99898', linePatternInterval: 60, lineOpacity: 0.3 },
+        };
+        const boostSettings = boostSettingsByLevel[boostLevel];
+        if (!boostSettings) return;
+        // If a boost is already active, clear the existing timeout
+        if (this.boostTimeoutId) {
+            window.clearTimeout(this.boostTimeoutId);
+        }
+        this.currentBoostLevel = boostLevel;
+        // Update boost settings on the movement speed modifier component
+        this.movementSpeedModifierEl.setAttribute('movement-speed-modifier', {
+            joystickEnabled: false,
+            keyboardEnabled: false,
+            multiplier: boostSettings.multiplier,
+            lineColor: boostSettings.lineColor,
+            linePatternInterval: boostSettings.linePatternInterval,
+            lineOpacity: boostSettings.lineOpacity,
+        });
+        movementSpeedModifierComponent.setManualBoost(true); // Manually trigger boost effect
+        // Set boost for a limited time
+        this.boostTimeoutId = window.setTimeout(() => {
+            this.expireMinigameBoost();
+        }, this.boostDuration);
+    },
+
+    /**
+     * Expire minigame boost
+     *
+     * Resets the player's speed boost back to normal after the boost timer runs out, restoring the original visual line settings and turning off the manual boost effect.
+     *
+     * @returns {void}
+     */
+    expireMinigameBoost: function () {
+        this.boostTimeoutId = null;
+        this.currentBoostLevel = 0;
+        const movementSpeedModifierComponent = this.getMovementSpeedModifier();
+        if (!movementSpeedModifierComponent) return;
+        // Restore original settings except for joystick/keyboard enable which we want to keep off during the minigame
+        const originalSettings = this.originalMovementSpeedModifierSettings;
+        this.movementSpeedModifierEl.setAttribute('movement-speed-modifier', {
+            joystickEnabled: false,
+            keyboardEnabled: false,
+            multiplier: 1,
+            lineColor: originalSettings ? originalSettings.lineColor : movementSpeedModifierComponent.data.lineColor,
+            linePatternInterval: originalSettings ? originalSettings.linePatternInterval : movementSpeedModifierComponent.data.linePatternInterval,
+        });
+        movementSpeedModifierComponent.setManualBoost(false); // Disable boost effect
+    },
+
+    /**
+     * Restore movement settings
+     *
+     * Stops any active boost timer, resets the current boost level to normal, and puts the movement-speed-modifier values back to the saved original settings so player controls and visuals work the way they did before the minigame boost.
+     *
+     * @returns {void}
+     */
+    restoreMovementSpeedModifier: function () {
+        // Remove timeout as it's no longer needed
+        if (this.boostTimeoutId) {
+            window.clearTimeout(this.boostTimeoutId);
+            this.boostTimeoutId = null;
+        }
+        this.currentBoostLevel = 0; // Reset
+        // Restore original settings
+        const movementSpeedModifierComponent = this.getMovementSpeedModifier();
+        if (!movementSpeedModifierComponent || !this.originalMovementSpeedModifierSettings) return;
+        const originalSettings = this.originalMovementSpeedModifierSettings;
+        this.movementSpeedModifierEl.setAttribute('movement-speed-modifier', {
+            multiplier: originalSettings.multiplier,
+            linePatternInterval: originalSettings.linePatternInterval,
+            lineColor: originalSettings.lineColor,
+            joystickEnabled: originalSettings.joystickEnabled,
+            keyboardEnabled: originalSettings.keyboardEnabled,
+        });
+        movementSpeedModifierComponent.setManualBoost(false); // Turn off manual boost
+    },
+
     showLeaderboard: function (playerTimeMs) {
         const scores = this.saveScoreToLeaderboard(playerTimeMs);
         const playerRankIndex = scores.findIndex(s => s.timeMs === playerTimeMs);
@@ -1200,6 +1357,9 @@ const orbCollectionMinigame = {
                 if (this.hudEl) this.hudEl.setAttribute('visible', true);
             }
 
+            // Apply boost whenever an orb is collected
+            this.applyMinigameBoostLevel(Math.min(this.currentBoostLevel + 1, 3) || 1);
+
             // Update orb count display on HUD
             if (this.hudOrbCountTextEl) {
                 this.hudOrbCountTextEl.setAttribute('value', `${this.collected} / ${this.orbs.length} orbs`);
@@ -1213,18 +1373,17 @@ const orbCollectionMinigame = {
                 }
             }
 
-            // If all orbs are collected, freeze timer, show leaderboard, and play victory sound
+            // If all orbs are collected, freeze game timer, restore movement speed, show leaderboard, and play victory sound
             if (this.collected >= this.orbs.length) {
                 this.hasCollectedAllOrbs = true;
                 const finalTimeMs = Date.now() - this.gameStartTime;
-
+                this.restoreMovementSpeedModifier(); // Restore normal speed
+                // Update timer one last time to show the final time
                 if (this.hudTimerTextEl) {
                     this.hudTimerTextEl.setAttribute('value', this.formatTime(finalTimeMs));
                 }
-
                 // Show the leaderboard with the player's final time
                 this.showLeaderboard(finalTimeMs);
-
                 // Play all collected sound if specified
                 if (this.data.allCollectedSound) {
                     const allCollectedSoundEl = document.querySelector(this.data.allCollectedSound);
@@ -1238,6 +1397,9 @@ const orbCollectionMinigame = {
     },
 
     remove: function () {
+        this.restoreMovementSpeedModifier();
+        window.removeEventListener('keydown', this.blockShiftDuringMinigame, true);
+        window.removeEventListener('keyup', this.blockShiftDuringMinigame, true);
         // Remove orbs if component is removed from the scene
         this.orbs.forEach(orb => {
             if (orb.el && orb.el.parentNode) orb.el.parentNode.removeChild(orb.el);
