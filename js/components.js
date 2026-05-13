@@ -883,6 +883,13 @@ const orbCollectionMinigame = {
         }
     },
 
+    /**
+     * Spawn floating orbs
+     *
+     * Finds valid positions on the nav mesh, keeps each orb a minimum distance apart, creates animated orb entities, and adds them to the scene for collection gameplay.
+     *
+     * @returns {void} Does not return a value.
+     */
     spawnOrbs: function () {
         const navMeshEl = this.data.navMeshEl;
         const navMeshObject3D = navMeshEl.getObject3D('mesh');
@@ -984,6 +991,13 @@ const orbCollectionMinigame = {
         });
     },
 
+    /**
+     * Create HUD
+     *
+     * Builds and attaches a simple HUD to the camera so the player can see orb progress on the left and elapsed time on the right during the minigame.
+     *
+     * @returns {void} Does not return a value.
+     */
     createHud: function () {
         const cameraEl = this.el.sceneEl.camera.el;
 
@@ -1026,6 +1040,9 @@ const orbCollectionMinigame = {
 
     /**
      * Format time in milliseconds to MM:SS
+     *
+     * @param {number} totalMilliseconds - The total elapsed time in milliseconds.
+     * @returns {string} The formatted time string (MM:SS).
      */
     formatTime: function (totalMilliseconds) {
         const totalSeconds = Math.floor(totalMilliseconds / 1000);
@@ -1035,7 +1052,10 @@ const orbCollectionMinigame = {
     },
 
     /**
-     * When an orb is collected, update the HUD and check for completion
+     * Save score to leaderboard
+     *
+     * @param {number} playerTimeMs - The player's completion time in ms to save to the leaderboard.
+     * @returns {Array} The updated list of top scores.
      */
     saveScoreToLeaderboard: function (playerTimeMs) {
         const storageKey = 'orb-minigame-scores';
@@ -1211,6 +1231,14 @@ const orbCollectionMinigame = {
         movementSpeedModifierComponent.setManualBoost(false); // Turn off manual boost
     },
 
+    /**
+     * Show leaderboard
+     *
+     * Saves the player's completion time, fades out the HUD, builds and displays a leaderboard in front of the camera, highlights the player's entry, then fades and removes the leaderboard after a short delay.
+     *
+     * @param {number} playerTimeMs - The player's completion time in milliseconds to save and display on the leaderboard.
+     * @returns {void} Does not return a value.
+     */
     showLeaderboard: function (playerTimeMs) {
         const scores = this.saveScoreToLeaderboard(playerTimeMs);
         const playerRankIndex = scores.findIndex(s => s.timeMs === playerTimeMs);
