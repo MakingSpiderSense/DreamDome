@@ -447,7 +447,7 @@ const orbCollectionMinigame = {
             // Background panel fades in on load
             const leaderboardPanelEl = document.createElement('a-plane');
             leaderboardPanelEl.setAttribute('width', '0.9');
-            leaderboardPanelEl.setAttribute('height', '0.82');
+            leaderboardPanelEl.setAttribute('height', '0.9');
             leaderboardPanelEl.setAttribute('material', 'color: #000020; opacity: 0; transparent: true; shader: flat');
             leaderboardPanelEl.setAttribute('animation__fadein', 'property: material.opacity; from: 0; to: 0.8; dur: 600; easing: easeOutSine');
             leaderboardContainerEl.appendChild(leaderboardPanelEl);
@@ -455,7 +455,7 @@ const orbCollectionMinigame = {
             // Title
             const titleTextEl = document.createElement('a-text');
             titleTextEl.setAttribute('value', 'LEADERBOARD');
-            titleTextEl.setAttribute('position', '0 0.34 0.002');
+            titleTextEl.setAttribute('position', '0 0.38 0.002');
             titleTextEl.setAttribute('color', '#FFFFFF');
             titleTextEl.setAttribute('align', 'center');
             titleTextEl.setAttribute('width', '0.85');
@@ -466,7 +466,7 @@ const orbCollectionMinigame = {
             // Column headings
             const headingTextEl = document.createElement('a-text');
             headingTextEl.setAttribute('value', 'DURATION          DATE');
-            headingTextEl.setAttribute('position', '-0.030 0.235 0.002');
+            headingTextEl.setAttribute('position', '-0.030 0.275 0.002');
             headingTextEl.setAttribute('color', '#FFFFFF');
             headingTextEl.setAttribute('align', 'center');
             headingTextEl.setAttribute('width', '0.85');
@@ -485,7 +485,7 @@ const orbCollectionMinigame = {
                 const durationDisplay = score ? this.formatTime(score.timeMs) : '00:00';
                 const dateDisplay = score && score.date ? score.date : '2015-10-21'; // Default date is Back to the Future day
                 const rowText = `${String(rankIndex + 1).padStart(2)}.  ${durationDisplay}       ${dateDisplay}`;
-                const rowYPosition = (0.175 - rankIndex * 0.055).toFixed(3);
+                const rowYPosition = (0.215 - rankIndex * 0.055).toFixed(3);
 
                 const rowTextEl = document.createElement('a-text');
                 rowTextEl.setAttribute('value', rowText);
@@ -504,6 +504,20 @@ const orbCollectionMinigame = {
                 leaderboardContainerEl.appendChild(rowTextEl);
                 allLeaderboardTextEls.push(rowTextEl);
             }
+
+            // Highlight the player's score with a "YOUR SCORE" label at bottom
+            const yourScoreRowText = `${this.formatTime(playerTimeMs)}       YOUR SCORE`;
+            const yourScoreRowTextEl = document.createElement('a-text');
+            yourScoreRowTextEl.setAttribute('value', yourScoreRowText);
+            yourScoreRowTextEl.setAttribute('position', '0.042 -0.370 0.002');
+            yourScoreRowTextEl.setAttribute('color', '#5CFDCA');
+            yourScoreRowTextEl.setAttribute('align', 'center');
+            yourScoreRowTextEl.setAttribute('width', '0.85');
+            yourScoreRowTextEl.setAttribute('font', 'sourcecodepro');
+            yourScoreRowTextEl.setAttribute('opacity', '0');
+            yourScoreRowTextEl.setAttribute('animation__fadein', 'property: text.opacity; from: 0; to: 1; dur: 600; easing: easeOutSine');
+            leaderboardContainerEl.appendChild(yourScoreRowTextEl);
+            allLeaderboardTextEls.push(yourScoreRowTextEl);
 
             cameraEl.appendChild(leaderboardContainerEl);
             this.leaderboardEl = leaderboardContainerEl;
