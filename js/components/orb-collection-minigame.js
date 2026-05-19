@@ -15,6 +15,7 @@ const orbCollectionMinigame = {
         height: { type: 'number', default: 1.5 },
         minDistance: { type: 'number', default: 6 },
         collectRadius: { type: 'number', default: 1.8 },
+        showSpeed: { type: 'boolean', default: false },
         collectSound: { type: 'string', default: '' },
         allCollectedSound: { type: 'string', default: '' },
     },
@@ -23,12 +24,15 @@ const orbCollectionMinigame = {
         this.orbs = []; // Array to hold references to the spawned orbs
         this.collected = 0; // Counter for collected orbs
         this.cameraWorldPosition = new THREE.Vector3(); // To store camera world position for distance calculations
+        this.previousCameraWorldPosition = new THREE.Vector3(); // Used to calculate player travel speed for the optional HUD readout
+        this.hasPreviousCameraWorldPosition = false;
         this.tickFrameCounter = 0; // Counter to track frames for throttling distance checks
         this.hasCollectedAllOrbs = false;
         this.gameStartTime = null; // Set to Date.now() when the first orb is collected
         this.hudEl = null; // HUD container entity (parented to camera)
         this.hudOrbCountTextEl = null; // Text element showing orbs collected count
         this.hudTimerTextEl = null; // Text element showing elapsed time
+        this.hudSpeedTextEl = null; // Optional text element showing current travel speed
         this.leaderboardEl = null; // Leaderboard container entity (parented to camera)
         this.boostDuration = 5000; // Duration of movement speed boost in ms after collecting an orb
         this.currentBoostLevel = 0; // Boost levels of 0 (no boost), 1 (small boost), 2 (large boost), 3 (max boost)
@@ -180,15 +184,16 @@ const orbCollectionMinigame = {
      */
     createHud: function () {
         const cameraEl = this.el.sceneEl.camera.el;
+        const isSpeedHudEnabled = this.data.showSpeed; // Only show speed readout if enabled
 
         // Parent container to camera and position it just below center view
         const hudContainerEl = document.createElement('a-entity');
-        hudContainerEl.setAttribute('position', '0 -0.15 -0.6');
+        hudContainerEl.setAttribute('position', isSpeedHudEnabled ? '0 -0.17 -0.6' : '0 -0.15 -0.6');
 
         // Transparent background panel
         const hudPanelEl = document.createElement('a-entity');
-        hudPanelEl.setAttribute('width', '0.3');
-        hudPanelEl.setAttribute('height', '0.07');
+        hudPanelEl.setAttribute('width', isSpeedHudEnabled ? '0.42' : '0.3');
+        hudPanelEl.setAttribute('height', isSpeedHudEnabled ? '0.11' : '0.07');
         hudContainerEl.appendChild(hudPanelEl);
 
         // Orb count on the left side
@@ -213,6 +218,18 @@ const orbCollectionMinigame = {
         this.hudTimerTextEl.setAttribute('baseline', 'center');
         hudContainerEl.appendChild(this.hudTimerTextEl);
 
+        // Show player speed if enabled
+        if (isSpeedHudEnabled) {
+            this.hudSpeedTextEl = document.createElement('a-text');
+            this.hudSpeedTextEl.setAttribute('value', '0.00 m/s');
+            this.hudSpeedTextEl.setAttribute('position', '0 -0.035 0.001');
+            this.hudSpeedTextEl.setAttribute('color', '#8DEBFF');
+            this.hudSpeedTextEl.setAttribute('width', '0.5');
+            this.hudSpeedTextEl.setAttribute('align', 'center');
+            this.hudSpeedTextEl.setAttribute('baseline', 'center');
+            hudContainerEl.appendChild(this.hudSpeedTextEl);
+        }
+
         hudContainerEl.setAttribute('visible', false);
         cameraEl.appendChild(hudContainerEl);
         this.hudEl = hudContainerEl;
@@ -229,6 +246,26 @@ const orbCollectionMinigame = {
         const minutes = Math.floor(totalSeconds / 60);
         const seconds = totalSeconds % 60;
         return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    },
+
+    /**
+     * Update speed HUD
+     *
+     * Calculates how fast the camera moved since the last frame and updates the HUD text to show the current speed in meters per second.
+     *
+     * @param {number} timeDelta - The elapsed time since the previous frame in milliseconds.
+     * @returns {void} This function does not return a value.
+     */
+    updateSpeedHud: function (timeDelta) {
+        if (!this.hudSpeedTextEl) return;
+        let speedMetersPerSecond = 0;
+        if (this.hasPreviousCameraWorldPosition && timeDelta > 0) {
+            const distanceMeters = this.cameraWorldPosition.distanceTo(this.previousCameraWorldPosition);
+            speedMetersPerSecond = (distanceMeters / timeDelta) * 1000;
+        }
+        this.hudSpeedTextEl.setAttribute('value', `${speedMetersPerSecond.toFixed(2)} m/s`);
+        this.previousCameraWorldPosition.copy(this.cameraWorldPosition);
+        this.hasPreviousCameraWorldPosition = true;
     },
 
     /**
@@ -540,18 +577,21 @@ const orbCollectionMinigame = {
         }, hudFadeOutDurationMs + 100);
     },
 
-    tick: function () {
+    tick: function (time, timeDelta) {
         if (!this.orbs.length || this.hasCollectedAllOrbs) return; // Exit if no orbs or game is already completed
+
+        // Track player location
+        const sceneCamera = this.el.sceneEl.camera;
+        if (!sceneCamera) return;
+        sceneCamera.getWorldPosition(this.cameraWorldPosition); // Update this.cameraWorldPosition each frame to keep track of where the player is in the world
+
+        this.updateSpeedHud(timeDelta);
 
         // Only check for orb collection every 10 frames for performance
         this.tickFrameCounter++;
         if (this.tickFrameCounter < 10) return;
         this.tickFrameCounter = 0;
 
-        // Setup vars
-        const sceneCamera = this.el.sceneEl.camera;
-        if (!sceneCamera) return;
-        sceneCamera.getWorldPosition(this.cameraWorldPosition); // Update this.cameraWorldPosition each frame to keep track of where the player is in the world
         const collectRadiusSquared = this.data.collectRadius * this.data.collectRadius;
 
         // Update HUD timer while the game is in progress
