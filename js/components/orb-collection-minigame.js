@@ -314,6 +314,19 @@ const orbCollectionMinigame = {
     },
 
     /**
+     * Dispatch a Shift keyup event
+     *
+     * @returns {void} Does not return a value.
+     */
+    releaseLeftShift: function () {
+        window.dispatchEvent(new KeyboardEvent('keyup', {
+            code: 'ShiftLeft',
+            key: 'Shift',
+            bubbles: true,
+        }));
+    },
+
+    /**
      * Get speed modifier
      *
      * Finds and caches the movement-speed-modifier component from the scene so other minigame code can quickly reuse it without searching again each time.
@@ -615,6 +628,7 @@ const orbCollectionMinigame = {
 
             // On the first orb: start the timer and show the HUD
             if (this.collected === 1) {
+                this.releaseLeftShift(); // Make sure shift is released to not interfere with the minigame boost
                 this.gameStartTime = Date.now();
                 if (this.hudEl) this.hudEl.setAttribute('visible', true);
             }
