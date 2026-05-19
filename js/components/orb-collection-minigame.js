@@ -39,14 +39,31 @@ const orbCollectionMinigame = {
         this.boostTimeoutId = null; // To remove unused boost timeout when collecting another orb before current boost expires
         this.movementSpeedModifierEl = null; // Used for speed boosts
         this.movementSpeedModifierComponent = null; // Used for speed boosts
+        this.standardLeaderboardStorageKey = 'orb-minigame-scores'; // Local storage key for standard run
+        this.powerLeaderboardStorageKey = 'orb-minigame-power-run-scores'; // Local storage key for power run (only arm swing locomotion used)
+        this.leftControllerSelector = '[meta-touch-controls*="hand: left"], [meta-touch-controls*="hand:left"], [oculus-touch-controls*="hand: left"], [oculus-touch-controls*="hand:left"], [hand-controls*="hand: left"], [hand-controls*="hand:left"]';
+        this.leftControllerEl = null; // Used to detect joystick movement for leaderboard categorization
         this.originalMovementSpeedModifierSettings = null; // Store original settings to restore later
+        this.usedRegularMovementControls = false; // True once any keyboard key or left joystick movement is used during the run
+
+        // Set up listeners and bindings
         this.blockShiftDuringMinigame = this.blockShiftDuringMinigame.bind(this);
+        this.trackKeyboardUsage = this.trackKeyboardUsage.bind(this);
+        this.trackLeftJoystickUsage = this.trackLeftJoystickUsage.bind(this);
         window.addEventListener('keydown', this.blockShiftDuringMinigame, true);
         window.addEventListener('keyup', this.blockShiftDuringMinigame, true);
+        window.addEventListener('keydown', this.trackKeyboardUsage);
 
         // Hidden reset: add ?reset-scores to the URL to wipe the leaderboard
         if (new URLSearchParams(window.location.search).has('reset-scores')) {
-            localStorage.removeItem('orb-minigame-scores');
+            localStorage.removeItem(this.standardLeaderboardStorageKey);
+            localStorage.removeItem(this.powerLeaderboardStorageKey);
+        }
+
+        // Set up check for joystick movement on left controller (determines leaderboard category)
+        this.leftControllerEl = this.el.sceneEl.querySelector(this.leftControllerSelector);
+        if (this.leftControllerEl) {
+            this.leftControllerEl.addEventListener('axismove', this.trackLeftJoystickUsage);
         }
 
         // Create the HUD attached to camera. Defer if camera isn't ready yet.
@@ -249,6 +266,36 @@ const orbCollectionMinigame = {
     },
 
     /**
+     * Track if keyboard is used
+     *
+     * Marks that regular movement controls were used when a movement key is pressed during an active game, and ignores input before the game starts or after all orbs are collected.
+     *
+     * @returns {void} This function does not return a value.
+     */
+    trackKeyboardUsage: function () {
+        if (this.gameStartTime === null || this.hasCollectedAllOrbs) return;
+        this.usedRegularMovementControls = true;
+    },
+
+    /**
+     * Track if left joystick is used
+     *
+     * Checks if the player is moving a joystick enough to count as using regular movement controls, and if so, marks that the player has used them.
+     *
+     * @param {Event} event - The axis move event, which contains axis values representing how far each stick is pushed.
+     * @returns {void} This function does not return a value.
+     */
+    trackLeftJoystickUsage: function (event) {
+        if (this.gameStartTime === null || this.hasCollectedAllOrbs) return;
+        const axis = event.detail && event.detail.axis ? event.detail.axis : [];
+        // Check to see if horizontal or vertical axis values exceed a small deadzone threshold
+        const horizontal = axis[2] || 0;
+        const vertical = axis[3] || 0;
+        if (Math.abs(horizontal) < 0.1 && Math.abs(vertical) < 0.1) return;
+        this.usedRegularMovementControls = true; // Movement detected
+    },
+
+    /**
      * Update speed HUD
      *
      * Calculates how fast the camera moved since the last frame and updates the HUD text to show the current speed in meters per second.
@@ -275,7 +322,9 @@ const orbCollectionMinigame = {
      * @returns {Array} The updated list of top scores.
      */
     saveScoreToLeaderboard: function (playerTimeMs) {
-        const storageKey = 'orb-minigame-scores';
+        const storageKey = this.usedRegularMovementControls
+            ? this.standardLeaderboardStorageKey
+            : this.powerLeaderboardStorageKey;
         let savedScores = [];
         // Attempt to retrieve existing scores from localStorage
         try {
@@ -470,6 +519,9 @@ const orbCollectionMinigame = {
      * @returns {void} Does not return a value.
      */
     showLeaderboard: function (playerTimeMs) {
+        const leaderboardTitle = this.usedRegularMovementControls
+            ? 'STANDARD RUN LEADERBOARD'
+            : 'POWER RUN LEADERBOARD';
         const scores = this.saveScoreToLeaderboard(playerTimeMs);
         const playerRankIndex = scores.findIndex(s => s.timeMs === playerTimeMs);
         const cameraEl = this.el.sceneEl.camera.el;
@@ -504,7 +556,7 @@ const orbCollectionMinigame = {
 
             // Title
             const titleTextEl = document.createElement('a-text');
-            titleTextEl.setAttribute('value', 'LEADERBOARD');
+            titleTextEl.setAttribute('value', leaderboardTitle);
             titleTextEl.setAttribute('position', '0 0.38 0.002');
             titleTextEl.setAttribute('color', '#FFFFFF');
             titleTextEl.setAttribute('align', 'center');
@@ -628,6 +680,13 @@ const orbCollectionMinigame = {
 
             // On the first orb: start the timer and show the HUD
             if (this.collected === 1) {
+                // Retry controller lookup once when the run starts in case it loaded after init.
+                if (!this.leftControllerEl) {
+                    this.leftControllerEl = this.el.sceneEl.querySelector(this.leftControllerSelector);
+                    if (this.leftControllerEl) {
+                        this.leftControllerEl.addEventListener('axismove', this.trackLeftJoystickUsage);
+                    }
+                }
                 this.releaseLeftShift(); // Make sure shift is released to not interfere with the minigame boost
                 this.gameStartTime = Date.now();
                 if (this.hudEl) this.hudEl.setAttribute('visible', true);
@@ -676,6 +735,10 @@ const orbCollectionMinigame = {
         this.restoreMovementSpeedModifier();
         window.removeEventListener('keydown', this.blockShiftDuringMinigame, true);
         window.removeEventListener('keyup', this.blockShiftDuringMinigame, true);
+        window.removeEventListener('keydown', this.trackKeyboardUsage);
+        if (this.leftControllerEl) {
+            this.leftControllerEl.removeEventListener('axismove', this.trackLeftJoystickUsage);
+        }
         // Remove orbs if component is removed from the scene
         this.orbs.forEach(orb => {
             if (orb.el && orb.el.parentNode) orb.el.parentNode.removeChild(orb.el);
