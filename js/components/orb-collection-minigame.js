@@ -34,6 +34,7 @@ const orbCollectionMinigame = {
         this.hudTimerTextEl = null; // Text element showing elapsed time
         this.hudSpeedTextEl = null; // Optional text element showing current travel speed
         this.leaderboardEl = null; // Leaderboard container entity (parented to camera)
+        this.nameInputEl = null; // Active name input entity while the player enters their score name
         this.boostDuration = 5000; // Duration of movement speed boost in ms after collecting an orb
         this.currentBoostLevel = 0; // Boost levels of 0 (no boost), 1 (small boost), 2 (large boost), 3 (max boost)
         this.boostTimeoutId = null; // To remove unused boost timeout when collecting another orb before current boost expires
@@ -108,6 +109,7 @@ const orbCollectionMinigame = {
         // Attempt to place all orbs
         while (placedOrbPositions.length < targetOrbCount && spawnAttempts < targetOrbCount * 150) {
             spawnAttempts++; // Keep track to prevent infinite loop if nav mesh is too small or minDistance too large
+
             const randomX = THREE.MathUtils.lerp(navMeshBounds.min.x, navMeshBounds.max.x, Math.random());
             const randomZ = THREE.MathUtils.lerp(navMeshBounds.min.z, navMeshBounds.max.z, Math.random());
             // Cast a ray downward from above the nav mesh to find the surface height at the random (x, z) position
@@ -266,6 +268,76 @@ const orbCollectionMinigame = {
     },
 
     /**
+     * Check if the scene is in desktop mode
+     *
+     * @returns {boolean} True when the scene is not currently in VR mode.
+     */
+    isDesktopMode: function () {
+        return !this.el.sceneEl.is('vr-mode');
+    },
+
+    /**
+     * Sanitize a leaderboard name
+     *
+     * Keeps only letters and limits the saved name to 12 characters.
+     *
+     * @param {string} name - Raw name text from the input UI.
+     * @returns {string} Cleaned player name.
+     */
+    sanitizeLeaderboardName: function (name) {
+        return String(name || '')
+            .replace(/[^A-Za-z]/g, '') // Remove non-letter characters
+            .slice(0, 12); // Limit to 12 characters
+    },
+
+    /**
+     * Get saved local leaderboard scores
+     *
+     * @returns {Array<object>} Saved scores from localStorage for the active leaderboard mode.
+     */
+    getSavedLocalScores: function () {
+        const storageKey = this.usedRegularMovementControls
+            ? this.standardLeaderboardStorageKey
+            : this.powerLeaderboardStorageKey;
+        let savedScores = [];
+        try {
+            const stored = localStorage.getItem(storageKey);
+            if (stored) savedScores = JSON.parse(stored);
+        } catch (e) {
+            savedScores = [];
+        }
+        return Array.isArray(savedScores) ? savedScores : [];
+    },
+
+    /**
+     * Release movement keys
+     *
+     * Sends keyup events for common movement keys so desktop movement does not continue while the name prompt is open.
+     *
+     * @returns {void} Does not return a value.
+     */
+    releaseMovementKeys: function () {
+        const movementKeys = [
+            { code: 'KeyW', key: 'w' },
+            { code: 'KeyA', key: 'a' },
+            { code: 'KeyS', key: 's' },
+            { code: 'KeyD', key: 'd' },
+            { code: 'ArrowUp', key: 'ArrowUp' },
+            { code: 'ArrowLeft', key: 'ArrowLeft' },
+            { code: 'ArrowDown', key: 'ArrowDown' },
+            { code: 'ArrowRight', key: 'ArrowRight' },
+        ];
+
+        movementKeys.forEach((movementKey) => {
+            window.dispatchEvent(new KeyboardEvent('keyup', {
+                code: movementKey.code,
+                key: movementKey.key,
+                bubbles: true,
+            }));
+        });
+    },
+
+    /**
      * Track if keyboard is used
      *
      * Marks that regular movement controls were used when a movement key is pressed during an active game, and ignores input before the game starts or after all orbs are collected.
@@ -319,52 +391,134 @@ const orbCollectionMinigame = {
      * Save score to leaderboard
      *
      * @param {number} playerTimeMs - The player's completion time in ms to save to the leaderboard.
-     * @returns {Array} The updated list of top scores.
+     * @param {string} playerName - The player's name to save to the leaderboard.
+     * @returns {Object} An object containing the updated list of top scores, the player's rank index, and the sanitized player name that was saved: scores, playerRankIndex, playerName.
      */
-    saveScoreToLeaderboard: function (playerTimeMs) {
+    saveScoreToLeaderboard: function (playerTimeMs, playerName) {
         const storageKey = this.usedRegularMovementControls
             ? this.standardLeaderboardStorageKey
             : this.powerLeaderboardStorageKey;
-        let savedScores = [];
-        // Attempt to retrieve existing scores from localStorage
-        try {
-            const stored = localStorage.getItem(storageKey);
-            if (stored) savedScores = JSON.parse(stored);
-        } catch (e) {
-            savedScores = [];
-        }
-        // Store both the time and the date the score was set
-        const today = new Date();
-        const dateDisplay = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`; // YYYY-MM-DD format
+        let savedScores = this.getSavedLocalScores();
+        const sanitizedPlayerName = this.sanitizeLeaderboardName(playerName);
+        const newScore = {
+            timeMs: playerTimeMs,
+            name: sanitizedPlayerName,
+            savedAt: Date.now(),
+        };
         // Add the new score, sort the list, and keep only the top 10 scores
-        savedScores.push({ timeMs: playerTimeMs, date: dateDisplay });
+        savedScores.push(newScore);
         savedScores.sort((a, b) => a.timeMs - b.timeMs);
         if (savedScores.length > 10) savedScores = savedScores.slice(0, 10);
+        const playerRankIndex = savedScores.indexOf(newScore);
         // Attempt to save the updated scores back to localStorage
         try {
             localStorage.setItem(storageKey, JSON.stringify(savedScores));
         } catch (e) {
             console.warn('orb-collection-minigame: Could not save score to localStorage');
         }
-        return savedScores;
+        return {
+            scores: savedScores,
+            playerRankIndex,
+            playerName: sanitizedPlayerName,
+        };
     },
 
     /**
      * Get leaderboard player names
      *
-     * Creates a display-only list of player names for the current leaderboard render.
+     * Creates a list of player names for the current leaderboard render.
      *
-     * @param {number} scoreCount - The number of saved scores being shown.
+     * @param {Array<object>} scores - Saved score entries pulled from localStorage.
+     * @param {number} totalRows - Total number of leaderboard rows to render.
      * @returns {Array<string>} The display names aligned with the score rows.
      */
-    getLeaderboardPlayerNames: function (scoreCount) {
+    getLeaderboardPlayerNames: function (scores, totalRows) {
         const availableNames = ['Art3mis', 'Parzival', 'Shoto'];
         const playerNames = [];
-        for (let scoreIndex = 0; scoreIndex < scoreCount; scoreIndex++) {
+        for (let scoreIndex = 0; scoreIndex < totalRows; scoreIndex++) {
+            // Use stored name if found
+            const storedName = this.sanitizeLeaderboardName(scores[scoreIndex]?.name);
+            if (storedName) {
+                playerNames.push(storedName);
+                continue;
+            }
+            // Otherwise, randomly pick from default available names
             const randomNameIndex = Math.floor(Math.random() * availableNames.length);
             playerNames.push(availableNames[randomNameIndex]);
         }
         return playerNames;
+    },
+
+    /**
+     * Prompt for leaderboard name
+     *
+    * Shows the desktop modal or VR keyboard for top-10 runs, then saves the completed run with the entered name, then renders the leaderboard.
+     *
+     * @param {number} playerTimeMs - The player's completion time in milliseconds.
+     * @returns {void} Does not return a value.
+     */
+    promptForLeaderboardName: function (playerTimeMs) {
+        // Remove existing name input if player is replaying to get a better time (although not possible yet as of 2026-05-28)
+        if (this.nameInputEl && this.nameInputEl.parentNode) {
+            this.nameInputEl.parentNode.removeChild(this.nameInputEl);
+        }
+
+        // Release movement keys so player doesn't keep moving while entering their name on desktop
+        this.releaseMovementKeys();
+
+        const savedScores = this.getSavedLocalScores();
+        const previewScore = { timeMs: playerTimeMs }; // Player's current score
+        const previewScores = savedScores.concat(previewScore); // Add it to the list of existing scores
+        previewScores.sort((a, b) => a.timeMs - b.timeMs); // Sort - fastest times first
+        const previewRankIndex = previewScores.indexOf(previewScore); // Check their rank
+
+        // If they don't make the top 10, show the leaderboard without their score and skip the name entry step since their score won't be saved
+        if (previewRankIndex < 0 || previewRankIndex >= 10) {
+            this.showLeaderboard(playerTimeMs, { scores: savedScores, playerRankIndex: -1 });
+            return;
+        }
+
+        if (this.isDesktopMode()) {
+            const modalEl = document.createElement('a-entity');
+
+            // Set up event listeners for submit and cancel events
+            const handleDesktopSubmit = (event) => {
+                const saveResultObj = this.saveScoreToLeaderboard(playerTimeMs, event.detail?.value);
+                this.showLeaderboard(playerTimeMs, saveResultObj);
+            };
+            const handleDesktopCancel = () => {
+                this.showLeaderboard(playerTimeMs, { scores: savedScores, playerRankIndex: -1 });
+            };
+
+            // Display modal and add event listeners
+            modalEl.setAttribute('desktop-modal-input', 'label: Enter Name; helpText: Letters only, max 12 characters; maxLength: 12');
+            modalEl.addEventListener('desktop-modal-input-submit', handleDesktopSubmit, { once: true });
+            modalEl.addEventListener('desktop-modal-input-cancel', handleDesktopCancel, { once: true });
+            this.el.sceneEl.appendChild(modalEl);
+            this.nameInputEl = modalEl;
+            return;
+        }
+
+        // Get rid of HUD
+        if (this.hudEl) this.hudEl.setAttribute('visible', false);
+
+        const keyboardAnchorEl = document.querySelector('#cameraRig') || this.el.sceneEl.camera?.el || null;
+        if (!keyboardAnchorEl) {
+            const saveResultObj = this.saveScoreToLeaderboard(playerTimeMs, '');
+            this.showLeaderboard(playerTimeMs, saveResultObj);
+            return;
+        }
+
+        const keyboardEl = document.createElement('a-entity');
+        keyboardEl.setAttribute('position', `0 0 -1.15`);
+        keyboardEl.setAttribute('scale', '0.5 0.5 0.5');
+        keyboardEl.setAttribute('vr-keyboard', 'label: Enter Name:; maxLength: 12');
+        keyboardEl.addEventListener('keyboard-submit', (event) => {
+            const saveResultObj = this.saveScoreToLeaderboard(playerTimeMs, event.detail?.value);
+            this.showLeaderboard(playerTimeMs, saveResultObj);
+        }, { once: true });
+        keyboardAnchorEl.appendChild(keyboardEl);
+        this.nameInputEl = keyboardEl; // Set this so we can remove it later if needed
     },
 
     /**
@@ -388,7 +542,11 @@ const orbCollectionMinigame = {
         const rightPadding = totalPadding - leftPadding;
         const paddedPlayerName = `${' '.repeat(leftPadding)}${displayPlayerName}${' '.repeat(rightPadding)}`;
         // Date
-        const dateDisplay = score && score.date ? score.date : '2015-10-21';
+        let dateDisplay = score && score.date ? score.date : '2015-10-21'; // Set date to a fallback initially
+        if (score && typeof score.savedAt === 'number') {
+            const savedAtDate = new Date(score.savedAt);
+            dateDisplay = `${savedAtDate.getFullYear()}-${String(savedAtDate.getMonth() + 1).padStart(2, '0')}-${String(savedAtDate.getDate()).padStart(2, '0')}`; // Format as YYYY-MM-DD
+        }
         // Combine into one formatted row string
         return `${String(rankIndex + 1).padStart(2)}.  ${durationDisplay}  ${paddedPlayerName}  ${dateDisplay}`;
     },
@@ -674,14 +832,26 @@ const orbCollectionMinigame = {
      * Saves the player's completion time, fades out the HUD, builds and displays a leaderboard in front of the camera, highlights the player's entry, then fades and removes the leaderboard after a short delay.
      *
      * @param {number} playerTimeMs - The player's completion time in milliseconds to save and display on the leaderboard.
+     * @param {object} [saveResult] - Object containing the results from saving the player's score, including the updated scores list, the player's rank index, and the sanitized player name (if in top 10). If not provided, the function will fetch scores from localStorage.
      * @returns {void} Does not return a value.
      */
-    showLeaderboard: function (playerTimeMs) {
+    showLeaderboard: function (playerTimeMs, saveResult) {
         const subtitle = this.usedRegularMovementControls ? 'Standard Run' : 'Power Run';
-        const scores = this.saveScoreToLeaderboard(playerTimeMs);
-        const playerNames = this.getLeaderboardPlayerNames(10);
-        const playerRankIndex = scores.findIndex(s => s.timeMs === playerTimeMs);
+        const resolvedSaveResult = saveResult || {
+            scores: this.getSavedLocalScores(),
+            playerRankIndex: -1, // They did not rank
+        };
+        // Gather some data for building the leaderboard
+        const scores = resolvedSaveResult.scores;
+        const playerNames = this.getLeaderboardPlayerNames(scores, 10);
+        const playerRankIndex = resolvedSaveResult.playerRankIndex;
         const cameraEl = this.el.sceneEl.camera.el;
+
+        // Remove the name input UI
+        if (this.nameInputEl && this.nameInputEl.parentNode) {
+            this.nameInputEl.parentNode.removeChild(this.nameInputEl);
+        }
+        this.nameInputEl = null;
 
         // Fade the HUD out first, then show the leaderboard once it's gone
         const hudFadeOutDurationMs = 500;
@@ -842,7 +1012,7 @@ const orbCollectionMinigame = {
                     this.hudTimerTextEl.setAttribute('value', this.formatTime(finalTimeMs));
                 }
                 // Show the leaderboard with the player's final time
-                this.showLeaderboard(finalTimeMs);
+                this.promptForLeaderboardName(finalTimeMs);
                 // Play all collected sound if specified
                 if (this.data.allCollectedSound) {
                     const allCollectedSoundEl = document.querySelector(this.data.allCollectedSound);
@@ -877,6 +1047,11 @@ const orbCollectionMinigame = {
         if (this.leaderboardEl && this.leaderboardEl.parentNode) {
             this.leaderboardEl.parentNode.removeChild(this.leaderboardEl);
             this.leaderboardEl = null;
+        }
+        // Remove name input if it exists
+        if (this.nameInputEl && this.nameInputEl.parentNode) {
+            this.nameInputEl.parentNode.removeChild(this.nameInputEl);
+            this.nameInputEl = null;
         }
     }
 };
