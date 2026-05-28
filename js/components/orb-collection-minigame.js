@@ -18,6 +18,7 @@ const orbCollectionMinigame = {
         showSpeed: { type: 'boolean', default: false },
         collectSound: { type: 'string', default: '' },
         allCollectedSound: { type: 'string', default: '' },
+        debug: { type: "boolean", default: false }, // Reduces spawn area to 30m
     },
 
     init: function () {
@@ -97,6 +98,25 @@ const orbCollectionMinigame = {
         const navMeshObject3D = navMeshEl.getObject3D('mesh');
         if (!navMeshObject3D) { console.warn('orb-collection-minigame: nav mesh Object3D not ready'); return; }
         const navMeshBounds = new THREE.Box3().setFromObject(navMeshObject3D);
+
+        // 🐞 Debugging only - reduces spawn area
+        let spawnMinX = navMeshBounds.min.x;
+        let spawnMaxX = navMeshBounds.max.x;
+        let spawnMinZ = navMeshBounds.min.z;
+        let spawnMaxZ = navMeshBounds.max.z;
+        if (this.data.debug) {
+            const spawnAnchorEl = document.querySelector('#cameraRig') || this.el.sceneEl.camera?.el;
+            const spawnCenter = new THREE.Vector3();
+            if (spawnAnchorEl?.object3D) {
+                spawnAnchorEl.object3D.getWorldPosition(spawnCenter);
+            }
+            const debugSpawnRadius = 30;
+            spawnMinX = spawnAnchorEl ? Math.max(navMeshBounds.min.x, spawnCenter.x - debugSpawnRadius) : navMeshBounds.min.x;
+            spawnMaxX = spawnAnchorEl ? Math.min(navMeshBounds.max.x, spawnCenter.x + debugSpawnRadius) : navMeshBounds.max.x;
+            spawnMinZ = spawnAnchorEl ? Math.max(navMeshBounds.min.z, spawnCenter.z - debugSpawnRadius) : navMeshBounds.min.z;
+            spawnMaxZ = spawnAnchorEl ? Math.min(navMeshBounds.max.z, spawnCenter.z + debugSpawnRadius) : navMeshBounds.max.z;
+        }
+
         const surfaceRaycaster = new THREE.Raycaster();
         const downwardRayDirection = new THREE.Vector3(0, -1, 0);
         const rayOrigin = new THREE.Vector3();
@@ -110,8 +130,19 @@ const orbCollectionMinigame = {
         while (placedOrbPositions.length < targetOrbCount && spawnAttempts < targetOrbCount * 150) {
             spawnAttempts++; // Keep track to prevent infinite loop if nav mesh is too small or minDistance too large
 
-            const randomX = THREE.MathUtils.lerp(navMeshBounds.min.x, navMeshBounds.max.x, Math.random());
-            const randomZ = THREE.MathUtils.lerp(navMeshBounds.min.z, navMeshBounds.max.z, Math.random());
+            // Randomly select a spawn point
+            let randomX;
+            let randomZ;
+            if (this.data.debug) {
+                // 🐞 Debugging only - reduces spawn area
+                randomX = THREE.MathUtils.lerp(spawnMinX, spawnMaxX, Math.random());
+                randomZ = THREE.MathUtils.lerp(spawnMinZ, spawnMaxZ, Math.random());
+            } else {
+                // Normal behavior - full nav mesh spawn area
+                randomX = THREE.MathUtils.lerp(navMeshBounds.min.x, navMeshBounds.max.x, Math.random());
+                randomZ = THREE.MathUtils.lerp(navMeshBounds.min.z, navMeshBounds.max.z, Math.random());
+            }
+
             // Cast a ray downward from above the nav mesh to find the surface height at the random (x, z) position
             rayOrigin.set(randomX, navMeshBounds.max.y + 5, randomZ);
             surfaceRaycaster.set(rayOrigin, downwardRayDirection);
