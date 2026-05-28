@@ -350,6 +350,164 @@ const orbCollectionMinigame = {
     },
 
     /**
+     * Get leaderboard player names
+     *
+     * Creates a display-only list of player names for the current leaderboard render.
+     *
+     * @param {number} scoreCount - The number of saved scores being shown.
+     * @returns {Array<string>} The display names aligned with the score rows.
+     */
+    getLeaderboardPlayerNames: function (scoreCount) {
+        const availableNames = ['Art3mis', 'Parzival', 'Shoto'];
+        const playerNames = [];
+        for (let scoreIndex = 0; scoreIndex < scoreCount; scoreIndex++) {
+            const randomNameIndex = Math.floor(Math.random() * availableNames.length);
+            playerNames.push(availableNames[randomNameIndex]);
+        }
+        return playerNames;
+    },
+
+    /**
+     * Format leaderboard row
+     *
+     * Builds a monospace row string with fixed-width columns for duration, player name, and date.
+     *
+     * @param {number} rankIndex - Zero-based ranking index.
+     * @param {object|null} score - Saved score entry or null for an empty row.
+     * @param {string} playerName - Display name for the row.
+     * @param {number} playerNameCharacters - Fixed character width for the player column.
+     * @returns {string} Formatted row text.
+     */
+    formatLeaderboardRow: function (rankIndex, score, playerName, playerNameCharacters) {
+        // Score
+        const durationDisplay = score ? this.formatTime(score.timeMs) : '99:59';
+        // Player name (with centering)
+        const displayPlayerName = playerName || '';
+        const totalPadding = Math.max(playerNameCharacters - displayPlayerName.length, 0);
+        const leftPadding = Math.floor(totalPadding / 2);
+        const rightPadding = totalPadding - leftPadding;
+        const paddedPlayerName = `${' '.repeat(leftPadding)}${displayPlayerName}${' '.repeat(rightPadding)}`;
+        // Date
+        const dateDisplay = score && score.date ? score.date : '2015-10-21';
+        // Combine into one formatted row string
+        return `${String(rankIndex + 1).padStart(2)}.  ${durationDisplay}  ${paddedPlayerName}  ${dateDisplay}`;
+    },
+
+    /**
+     * Create leaderboard panel
+     *
+     * Builds one leaderboard panel with its title, run type label, score rows, and footer text.
+     *
+     * @param {object} options - Panel configuration.
+     * @returns {object} The created panel entity and the text elements used for fade out: panelEl, panelBackgroundEl, and textEls.
+     */
+    createLeaderboardPanel: function (options) {
+        const {
+            panelTitle,
+            subtitle,
+            scores,
+            playerNames,
+            playerRankIndex,
+            playerTimeMs,
+            footerText,
+            footerWidth,
+            footerY,
+            footerColor,
+            isFooterSmall,
+        } = options;
+        const maxPlayerNameCharacters = 12;
+        const panelEl = document.createElement('a-entity');
+
+        // Background panel fades in on load
+        const panelBackgroundEl = document.createElement('a-plane');
+        panelBackgroundEl.setAttribute('width', '1.12');
+        panelBackgroundEl.setAttribute('height', '0.98');
+        panelBackgroundEl.setAttribute('material', 'color: #000020; opacity: 0; transparent: true; shader: flat');
+        panelBackgroundEl.setAttribute('animation__fadein', 'property: material.opacity; from: 0; to: 0.8; dur: 600; easing: easeOutSine');
+        panelEl.appendChild(panelBackgroundEl);
+
+        // Title
+        const titleTextEl = document.createElement('a-text');
+        titleTextEl.setAttribute('value', panelTitle);
+        titleTextEl.setAttribute('position', '0 0.38 0.002');
+        titleTextEl.setAttribute('color', '#FFFFFF');
+        titleTextEl.setAttribute('align', 'center');
+        titleTextEl.setAttribute('width', '1.02');
+        titleTextEl.setAttribute('opacity', '0');
+        titleTextEl.setAttribute('animation__fadein', 'property: text.opacity; from: 0; to: 1; dur: 600; easing: easeOutSine');
+        panelEl.appendChild(titleTextEl);
+
+        // Subtitle (e.g. "Standard Run" or "Power Run")
+        const subtitleTextEl = document.createElement('a-text');
+        subtitleTextEl.setAttribute('value', subtitle);
+        subtitleTextEl.setAttribute('position', '0 0.320 0.002');
+        subtitleTextEl.setAttribute('color', '#FFFFFF');
+        subtitleTextEl.setAttribute('align', 'center');
+        subtitleTextEl.setAttribute('width', '0.86');
+        subtitleTextEl.setAttribute('opacity', '0');
+        subtitleTextEl.setAttribute('animation__fadein', 'property: text.opacity; from: 0; to: 1; dur: 600; easing: easeOutSine');
+        panelEl.appendChild(subtitleTextEl);
+
+        // Column headings
+        const headingTextEl = document.createElement('a-text');
+        headingTextEl.setAttribute('value', `DURATION     PLAYER        DATE`);
+        headingTextEl.setAttribute('position', '-0.032 0.245 0.002');
+        headingTextEl.setAttribute('color', '#FFFFFF');
+        headingTextEl.setAttribute('align', 'center');
+        headingTextEl.setAttribute('width', '1.03');
+        headingTextEl.setAttribute('font', 'sourcecodepro');
+        headingTextEl.setAttribute('opacity', '0');
+        headingTextEl.setAttribute('animation__fadein', 'property: text.opacity; from: 0; to: 1; dur: 600; easing: easeOutSine');
+        panelEl.appendChild(headingTextEl);
+
+        const allPanelTextEls = [titleTextEl, subtitleTextEl, headingTextEl];
+
+        // Ten score rows - each shows how long it took to complete, the player name, and date
+        for (let rankIndex = 0; rankIndex < 10; rankIndex++) {
+            const score = scores[rankIndex] || null;
+            const playerName = playerNames[rankIndex] || '';
+            const rowText = this.formatLeaderboardRow(rankIndex, score, playerName, maxPlayerNameCharacters);
+            const rowYPosition = (0.175 - rankIndex * 0.052).toFixed(3);
+            const rowXPosition = rankIndex === 9 ? '-0.013' : '0';
+            const isPlayerEntry = rankIndex === playerRankIndex; // Player made the top 10
+            // Create the text element
+            const rowTextEl = document.createElement('a-text');
+            rowTextEl.setAttribute('value', rowText);
+            rowTextEl.setAttribute('position', `${rowXPosition} ${rowYPosition} 0.002`);
+            rowTextEl.setAttribute('color', isPlayerEntry ? '#5CFDCA' : '#FFFFFF');
+            rowTextEl.setAttribute('align', 'center');
+            rowTextEl.setAttribute('width', '1.03');
+            rowTextEl.setAttribute('font', 'sourcecodepro');
+            rowTextEl.setAttribute('opacity', '0');
+            rowTextEl.setAttribute('animation__fadein', 'property: text.opacity; from: 0; to: 1; dur: 600; easing: easeOutSine');
+            panelEl.appendChild(rowTextEl);
+            allPanelTextEls.push(rowTextEl);
+        }
+
+        // Highlight the player's score with a "YOUR SCORE" label at bottom, or show the all-time guidance message
+        const footerTextEl = document.createElement('a-text');
+        footerTextEl.setAttribute('value', footerText !== undefined ? footerText : `${this.formatTime(playerTimeMs)}  YOUR SCORE`); // It's undefined for the monthly board, so YOUR SCORE is displayed there instead of default message
+        footerTextEl.setAttribute('position', `0 ${footerY || '-0.39'} 0.002`);
+        footerTextEl.setAttribute('color', footerColor || '#5CFDCA');
+        footerTextEl.setAttribute('align', 'center');
+        footerTextEl.setAttribute('width', footerWidth || '0.94');
+        footerTextEl.setAttribute('font', 'sourcecodepro');
+        footerTextEl.setAttribute('opacity', '0');
+        if (isFooterSmall) {
+            footerTextEl.setAttribute('wrap-count', '39');
+        }
+        footerTextEl.setAttribute('animation__fadein', 'property: text.opacity; from: 0; to: 1; dur: 600; easing: easeOutSine');
+        panelEl.appendChild(footerTextEl);
+        allPanelTextEls.push(footerTextEl);
+
+        return {
+            panelEl,
+            panelBackgroundEl,
+            textEls: allPanelTextEls,
+        };
+    },
+
+    /**
      * Block Shift sprint
      *
      * Prevents ShiftLeft key events from reaching the "movement-controls" component while the minigame is active so sprint does not bypass the temporary boost rules.
@@ -519,10 +677,9 @@ const orbCollectionMinigame = {
      * @returns {void} Does not return a value.
      */
     showLeaderboard: function (playerTimeMs) {
-        const leaderboardTitle = this.usedRegularMovementControls
-            ? 'STANDARD RUN LEADERBOARD'
-            : 'POWER RUN LEADERBOARD';
+        const subtitle = this.usedRegularMovementControls ? 'Standard Run' : 'Power Run';
         const scores = this.saveScoreToLeaderboard(playerTimeMs);
+        const playerNames = this.getLeaderboardPlayerNames(10);
         const playerRankIndex = scores.findIndex(s => s.timeMs === playerTimeMs);
         const cameraEl = this.el.sceneEl.camera.el;
 
@@ -544,82 +701,47 @@ const orbCollectionMinigame = {
             if (this.hudEl) this.hudEl.setAttribute('visible', false);
 
             const leaderboardContainerEl = document.createElement('a-entity');
-            leaderboardContainerEl.setAttribute('position', '0 0.05 -1.5');
+            leaderboardContainerEl.setAttribute('position', '0 0.05 -1.7');
 
-            // Background panel fades in on load
-            const leaderboardPanelEl = document.createElement('a-plane');
-            leaderboardPanelEl.setAttribute('width', '0.9');
-            leaderboardPanelEl.setAttribute('height', '0.9');
-            leaderboardPanelEl.setAttribute('material', 'color: #000020; opacity: 0; transparent: true; shader: flat');
-            leaderboardPanelEl.setAttribute('animation__fadein', 'property: material.opacity; from: 0; to: 0.8; dur: 600; easing: easeOutSine');
-            leaderboardContainerEl.appendChild(leaderboardPanelEl);
+            // Build the monthly leaderboard on the left
+            const monthlyPanel = this.createLeaderboardPanel({
+                panelTitle: 'Monthly Leaderboard',
+                subtitle,
+                scores,
+                playerNames,
+                playerRankIndex,
+                playerTimeMs,
+                footerText: `${this.formatTime(playerTimeMs)}  YOUR SCORE`,
+                footerWidth: '0.94',
+                footerY: '-0.39',
+                footerColor: '#5CFDCA',
+                isFooterSmall: false,
+            });
+            monthlyPanel.panelEl.setAttribute('position', '-0.62 0 0');
+            leaderboardContainerEl.appendChild(monthlyPanel.panelEl);
 
-            // Title
-            const titleTextEl = document.createElement('a-text');
-            titleTextEl.setAttribute('value', leaderboardTitle);
-            titleTextEl.setAttribute('position', '0 0.38 0.002');
-            titleTextEl.setAttribute('color', '#FFFFFF');
-            titleTextEl.setAttribute('align', 'center');
-            titleTextEl.setAttribute('width', '0.85');
-            titleTextEl.setAttribute('opacity', '0');
-            titleTextEl.setAttribute('animation__fadein', 'property: text.opacity; from: 0; to: 1; dur: 600; easing: easeOutSine');
-            leaderboardContainerEl.appendChild(titleTextEl);
+            // Build the all-time leaderboard on the right
+            const allTimeFooterText = this.usedRegularMovementControls
+                ? 'Try using arm-swing locomotion only to make it onto the Power Run leaderboard.'
+                : '';
+            const allTimePanel = this.createLeaderboardPanel({
+                panelTitle: 'All-Time Leaderboard',
+                subtitle,
+                scores,
+                playerNames,
+                playerRankIndex,
+                playerTimeMs,
+                footerText: allTimeFooterText,
+                footerWidth: this.usedRegularMovementControls ? '0.78' : '0.94',
+                footerY: '-0.39',
+                footerColor: '#5CFDCA',
+                isFooterSmall: this.usedRegularMovementControls,
+            });
+            allTimePanel.panelEl.setAttribute('position', '0.62 0 0');
+            leaderboardContainerEl.appendChild(allTimePanel.panelEl);
 
-            // Column headings
-            const headingTextEl = document.createElement('a-text');
-            headingTextEl.setAttribute('value', 'DURATION          DATE');
-            headingTextEl.setAttribute('position', '-0.030 0.275 0.002');
-            headingTextEl.setAttribute('color', '#FFFFFF');
-            headingTextEl.setAttribute('align', 'center');
-            headingTextEl.setAttribute('width', '0.85');
-            headingTextEl.setAttribute('font', 'sourcecodepro');
-            headingTextEl.setAttribute('opacity', '0');
-            headingTextEl.setAttribute('animation__fadein', 'property: text.opacity; from: 0; to: 1; dur: 600; easing: easeOutSine');
-            leaderboardContainerEl.appendChild(headingTextEl);
-
-            // Keep refs to all text elements so we can fade them out together later
-            const allLeaderboardTextEls = [titleTextEl, headingTextEl];
-
-            // Ten score rows — each shows how long it took to complete and when
-            for (let rankIndex = 0; rankIndex < 10; rankIndex++) {
-                const score = scores[rankIndex];
-                const isPlayerEntry = rankIndex === playerRankIndex;
-                const durationDisplay = score ? this.formatTime(score.timeMs) : '00:00';
-                const dateDisplay = score && score.date ? score.date : '2015-10-21'; // Default date is Back to the Future day
-                const rowText = `${String(rankIndex + 1).padStart(2)}.  ${durationDisplay}       ${dateDisplay}`;
-                const rowYPosition = (0.215 - rankIndex * 0.055).toFixed(3);
-
-                const rowTextEl = document.createElement('a-text');
-                rowTextEl.setAttribute('value', rowText);
-                // Slight nudge to the left for the 10th place entry so the text doesn't look off-center with the extra digit
-                if (rankIndex === 9) {
-                    rowTextEl.setAttribute('position', `-0.01 ${rowYPosition} 0.002`);
-                } else {
-                    rowTextEl.setAttribute('position', `0 ${rowYPosition} 0.002`);
-                }
-                rowTextEl.setAttribute('color', isPlayerEntry ? '#5CFDCA' : '#FFFFFF');
-                rowTextEl.setAttribute('align', 'center');
-                rowTextEl.setAttribute('width', '0.85');
-                rowTextEl.setAttribute('font', 'sourcecodepro');
-                rowTextEl.setAttribute('opacity', '0');
-                rowTextEl.setAttribute('animation__fadein', 'property: text.opacity; from: 0; to: 1; dur: 600; easing: easeOutSine');
-                leaderboardContainerEl.appendChild(rowTextEl);
-                allLeaderboardTextEls.push(rowTextEl);
-            }
-
-            // Highlight the player's score with a "YOUR SCORE" label at bottom
-            const yourScoreRowText = `${this.formatTime(playerTimeMs)}       YOUR SCORE`;
-            const yourScoreRowTextEl = document.createElement('a-text');
-            yourScoreRowTextEl.setAttribute('value', yourScoreRowText);
-            yourScoreRowTextEl.setAttribute('position', '0.042 -0.370 0.002');
-            yourScoreRowTextEl.setAttribute('color', '#5CFDCA');
-            yourScoreRowTextEl.setAttribute('align', 'center');
-            yourScoreRowTextEl.setAttribute('width', '0.85');
-            yourScoreRowTextEl.setAttribute('font', 'sourcecodepro');
-            yourScoreRowTextEl.setAttribute('opacity', '0');
-            yourScoreRowTextEl.setAttribute('animation__fadein', 'property: text.opacity; from: 0; to: 1; dur: 600; easing: easeOutSine');
-            leaderboardContainerEl.appendChild(yourScoreRowTextEl);
-            allLeaderboardTextEls.push(yourScoreRowTextEl);
+            const allLeaderboardPanelEls = [monthlyPanel.panelBackgroundEl, allTimePanel.panelBackgroundEl];
+            const allLeaderboardTextEls = monthlyPanel.textEls.concat(allTimePanel.textEls);
 
             cameraEl.appendChild(leaderboardContainerEl);
             this.leaderboardEl = leaderboardContainerEl;
@@ -628,7 +750,9 @@ const orbCollectionMinigame = {
             const fadeOutDurationMs = 800;
             window.setTimeout(() => {
                 if (!this.leaderboardEl) return;
-                leaderboardPanelEl.setAttribute('animation__fadeout', `property: material.opacity; from: 0.8; to: 0; dur: ${fadeOutDurationMs}; easing: easeInSine`);
+                allLeaderboardPanelEls.forEach(panelEl => {
+                    panelEl.setAttribute('animation__fadeout', `property: material.opacity; from: 0.8; to: 0; dur: ${fadeOutDurationMs}; easing: easeInSine`);
+                });
                 allLeaderboardTextEls.forEach(textEl => {
                     textEl.setAttribute('animation__fadeout', `property: text.opacity; from: 1; to: 0; dur: ${fadeOutDurationMs}; easing: easeInSine`);
                 });
