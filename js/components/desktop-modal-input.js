@@ -134,8 +134,13 @@ const desktopModalInput = {
 
         /**
          * Remove the overlay entirely from the DOM
+         *
+         * @param {boolean} wasSubmitted - True when the input closed after it was submitted, false when it closed from cancellation.
          */
-        const closeOverlay = () => {
+        const closeOverlay = (wasSubmitted = false) => {
+            if (!wasSubmitted) {
+                this.el.emit("desktop-modal-input-cancel");
+            }
             this.el.remove();
         };
         /**
@@ -146,28 +151,31 @@ const desktopModalInput = {
             if (!value) return;
             // Emit custom event and close overlay
             this.el.emit("desktop-modal-input-submit", { value });
-            closeOverlay();
+            closeOverlay(true);
         };
 
-        // Add event listeners for buttons and overlay
-        cancelButton.addEventListener("click", closeOverlay);
+        // Add event listeners for buttons
+        cancelButton.addEventListener("click", () => closeOverlay(false));
         submitButton.addEventListener("click", submitValue);
-        overlay.addEventListener("click", (evt) => {
-            if (evt.target === overlay) {
-                closeOverlay();
-            }
-        });
 
-        // Add event listeners for Enter and Escape keys for better UX
+        // Add event listeners for Enter and Escape keys for better UX and prevent repeat character issue
         input.addEventListener("keydown", (evt) => {
+            // Prevent holding down a letter key from flooding input with repeated characters. This is needed since the WASD keys are used for movement and will likely be held down when the input appears
+            if (evt.repeat && /^[a-z]$/i.test(evt.key)) {
+                evt.preventDefault();
+                return;
+            }
+
+            // Enter submits the form
             if (evt.key === "Enter") {
                 evt.preventDefault();
                 submitValue();
             }
 
+            // Escape cancels and closes the overlay
             if (evt.key === "Escape") {
                 evt.preventDefault();
-                closeOverlay();
+                closeOverlay(false);
             }
         });
 
