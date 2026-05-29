@@ -589,7 +589,7 @@ const orbCollectionMinigame = {
         const keyboardEl = document.createElement('a-entity');
         keyboardEl.setAttribute('position', `0 0 -1.15`);
         keyboardEl.setAttribute('scale', '0.5 0.5 0.5');
-        keyboardEl.setAttribute('vr-keyboard', 'label: Enter Name:; maxLength: 12');
+        keyboardEl.setAttribute('vr-keyboard', 'label: Enter Name:; maxLength: 12; keyBgColor: #94f3f1; keyBgHoverColor: #53e4e1;');
         keyboardEl.addEventListener('keyboard-submit', (event) => {
             this.handleLeaderboardNameSubmission(playerTimeMs, event.detail?.value, savedScores, event);
         });
