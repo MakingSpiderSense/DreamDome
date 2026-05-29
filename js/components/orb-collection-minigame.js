@@ -530,7 +530,7 @@ const orbCollectionMinigame = {
             return;
         }
 
-        // Get rid of HUD
+        // Get rid of HUD to avoid clipping issue with VR keyboard
         if (this.hudEl) this.hudEl.setAttribute('visible', false);
 
         const keyboardAnchorEl = document.querySelector('#cameraRig') || this.el.sceneEl.camera?.el || null;
@@ -887,6 +887,7 @@ const orbCollectionMinigame = {
         // Fade the HUD out first, then show the leaderboard once it's gone
         const hudFadeOutDurationMs = 500;
         if (this.hudEl) {
+            this.hudEl.setAttribute('visible', true); // Workaround to fix clipping issue with the HUD
             this.hudEl.setAttribute('animation__fadeout', `property: object3D.visible; dur: ${hudFadeOutDurationMs}`);
             // Fade out opacity on the panel child
             const hudChildren = this.hudEl.querySelectorAll('[material], a-text');
@@ -898,6 +899,7 @@ const orbCollectionMinigame = {
         }
 
         // Wait for HUD to finish fading before building the leaderboard
+        const showLeaderboardTime = this.data.debug ? 1500000 : 15000; // 15 secs or 25 mins for debugging
         window.setTimeout(() => {
             if (this.hudEl) this.hudEl.setAttribute('visible', false);
 
@@ -963,7 +965,7 @@ const orbCollectionMinigame = {
                         this.leaderboardEl = null;
                     }
                 }, fadeOutDurationMs + 100);
-            }, 15000);
+            }, showLeaderboardTime); // 15 seconds or 25 mins for debugging
         }, hudFadeOutDurationMs + 100);
     },
 
