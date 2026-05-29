@@ -322,6 +322,53 @@ const orbCollectionMinigame = {
     },
 
     /**
+     * Check if name is on the naughty list
+     *
+     * Uses a case-insensitive naughty fragment list after applying the same letter-only sanitization used for saved names to determine if the name has disappointed Santa beyond acceptable limits.
+     *
+     * @param {string} name - Raw name text from the input UI.
+     * @returns {boolean} True when the sanitized name contains a naughty fragment.
+     */
+    isNameOnTheNaughtyList: function (name) {
+        const disallowedLeaderboardNameFragments = [
+            'arsehole', 'asshole', 'bastard', 'bitch', 'bollocks', 'bullshit', 'cunt', 'damn', 'dick', 'fuck', 'piss', 'prick', 'shit', 'slut', 'twat', 'wanker', 'weiner', 'whore', 'vagina'
+        ];
+        const sanitizedName = this.sanitizeLeaderboardName(name).toLowerCase();
+        if (!sanitizedName) return false;
+        return disallowedLeaderboardNameFragments.some(disallowedFragment => sanitizedName.includes(disallowedFragment));
+    },
+
+    /**
+     * Handle leaderboard name submission
+     *
+     * Validates the submitted name against Santa's naughty list and either keeps the input open with an error message or saves the score and shows the leaderboard.
+     *
+     * @param {number} playerTimeMs - The player's completion time in milliseconds.
+     * @param {string} submittedName - Raw name submitted from the desktop modal or VR keyboard.
+     * @param {Array<object>} savedScores - Existing saved scores used if submission is rejected.
+     * @param {Event} [submitEvent] - The original submit event so desktop submission can be canceled.
+     * @returns {void} Does not return a value.
+     */
+    handleLeaderboardNameSubmission: function (playerTimeMs, submittedName, savedScores, submitEvent) {
+        // Reject name if Santa is displeased
+        if (this.isNameOnTheNaughtyList(submittedName)) {
+            submitEvent?.preventDefault(); // Do not submit
+            // Santa summons Krampus to show error message
+            if (!this.nameInputEl) return;
+            if (this.isDesktopMode()) {
+                this.nameInputEl.setAttribute('desktop-modal-input', 'label: Enter Name; helpText: That name can\'t be used; maxLength: 12');
+                return;
+            }
+            this.nameInputEl.setAttribute('vr-keyboard', 'label: This name can\'t be used:; maxLength: 12');
+            return;
+        }
+
+        // Passed validation, proceed with submission: save score and show leaderboard
+        const saveResultObj = this.saveScoreToLeaderboard(playerTimeMs, submittedName);
+        this.showLeaderboard(playerTimeMs, saveResultObj);
+    },
+
+    /**
      * Get saved local leaderboard scores
      *
      * @returns {Array<object>} Saved scores from localStorage for the active leaderboard mode.
@@ -514,8 +561,7 @@ const orbCollectionMinigame = {
 
             // Set up event listeners for submit and cancel events
             const handleDesktopSubmit = (event) => {
-                const saveResultObj = this.saveScoreToLeaderboard(playerTimeMs, event.detail?.value);
-                this.showLeaderboard(playerTimeMs, saveResultObj);
+                this.handleLeaderboardNameSubmission(playerTimeMs, event.detail?.value, savedScores, event);
             };
             const handleDesktopCancel = () => {
                 this.showLeaderboard(playerTimeMs, { scores: savedScores, playerRankIndex: -1 });
@@ -523,7 +569,7 @@ const orbCollectionMinigame = {
 
             // Display modal and add event listeners
             modalEl.setAttribute('desktop-modal-input', 'label: Enter Name; helpText: Letters only, max 12 characters; maxLength: 12');
-            modalEl.addEventListener('desktop-modal-input-submit', handleDesktopSubmit, { once: true });
+            modalEl.addEventListener('desktop-modal-input-submit', handleDesktopSubmit);
             modalEl.addEventListener('desktop-modal-input-cancel', handleDesktopCancel, { once: true });
             this.el.sceneEl.appendChild(modalEl);
             this.nameInputEl = modalEl;
@@ -545,9 +591,8 @@ const orbCollectionMinigame = {
         keyboardEl.setAttribute('scale', '0.5 0.5 0.5');
         keyboardEl.setAttribute('vr-keyboard', 'label: Enter Name:; maxLength: 12');
         keyboardEl.addEventListener('keyboard-submit', (event) => {
-            const saveResultObj = this.saveScoreToLeaderboard(playerTimeMs, event.detail?.value);
-            this.showLeaderboard(playerTimeMs, saveResultObj);
-        }, { once: true });
+            this.handleLeaderboardNameSubmission(playerTimeMs, event.detail?.value, savedScores, event);
+        });
         keyboardAnchorEl.appendChild(keyboardEl);
         this.nameInputEl = keyboardEl; // Set this so we can remove it later if needed
     },
