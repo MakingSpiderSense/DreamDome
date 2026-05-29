@@ -1,7 +1,7 @@
 /**
  * VR keyboard component
  *
- * Provides an interactive in-world A-Frame keyboard for entering text with letter keys, case toggling, deletion, max-length enforcement, and submit event emission. Emits a "keyboard-submit" event with the entered text when the user clicks the submit button.
+ * Provides an interactive in-world A-Frame keyboard for entering text with letter keys, case toggling, deletion, cancel, max-length enforcement, and submit event emission. Emits a "keyboard-submit" event with the entered text when the user clicks the submit button.
  */
 const vrKeyboard = {
     schema: {
@@ -123,20 +123,31 @@ const vrKeyboard = {
         // Add delete button
         this.addButton(
             "DEL", // Label
-            -0.42, // X position
+            -0.18, // X position
             -0.42, // Y position
             () => {
                 // On click behavior
                 this.inputValue = this.inputValue.slice(0, -1); // Remove last character from input
                 this.updateDisplay(); // Update display to reflect removed character
             },
-            0.34, // Button width
+            0.3, // Button width
+        );
+
+        // Add cancel button
+        this.addButton(
+            "CANCEL", // Label
+            0.29, // X position
+            -0.42, // Y position
+            () => {
+                this.el.emit("keyboard-cancel");
+            },
+            0.54, // Button width
         );
 
         // Add submit button
         this.addButton(
             "SUBMIT", // Label
-            0.38, // X position
+            0.92, // X position
             -0.42, // Y position
             () => {
                 // On click behavior

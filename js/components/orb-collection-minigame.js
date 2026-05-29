@@ -593,6 +593,9 @@ const orbCollectionMinigame = {
         keyboardEl.addEventListener('keyboard-submit', (event) => {
             this.handleLeaderboardNameSubmission(playerTimeMs, event.detail?.value, savedScores, event);
         });
+        keyboardEl.addEventListener('keyboard-cancel', () => {
+            this.showLeaderboard(playerTimeMs, { scores: savedScores, playerRankIndex: -1 });
+        }, { once: true });
         keyboardAnchorEl.appendChild(keyboardEl);
         this.nameInputEl = keyboardEl; // Set this so we can remove it later if needed
     },
