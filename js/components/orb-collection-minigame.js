@@ -617,8 +617,8 @@ const orbCollectionMinigame = {
         // Player name (with centering)
         const displayPlayerName = playerName || '';
         const totalPadding = Math.max(playerNameCharacters - displayPlayerName.length, 0);
-        const leftPadding = Math.floor(totalPadding / 2);
-        const rightPadding = totalPadding - leftPadding;
+        const rightPadding = Math.ceil(totalPadding / 2);
+        const leftPadding = totalPadding - rightPadding;
         const paddedPlayerName = `${' '.repeat(leftPadding)}${displayPlayerName}${' '.repeat(rightPadding)}`;
         // Date
         let dateDisplay = score && score.date ? score.date : '2015-10-21'; // Set date to a fallback initially
