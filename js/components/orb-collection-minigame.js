@@ -349,6 +349,41 @@ const orbCollectionMinigame = {
     },
 
     /**
+     * Get last saved player name from localStorage ✅
+     *
+     * Reads the most recently submitted player name from browser storage, sanitizes it to ensure it's safe, and returns it for auto-filling the name input on subsequent plays.
+     *
+     * @returns {string} Sanitized last player name or empty string if none saved.
+     */
+    getLastPlayerName: function () {
+        try {
+            const saved = localStorage.getItem('orb-minigame-last-player-name');
+            return this.sanitizeLeaderboardName(saved || '');
+        } catch (e) {
+            return '';
+        }
+    },
+
+    /**
+     * Save last player name to localStorage ✅
+     *
+     * Stores the player's name in browser storage so it can be auto-filled the next time they play and qualify for the leaderboard.
+     *
+     * @param {string} name - Player name to save.
+     * @returns {void} Does not return a value.
+     */
+    saveLastPlayerName: function (name) {
+        try {
+            const sanitized = this.sanitizeLeaderboardName(name);
+            if (sanitized) {
+                localStorage.setItem('orb-minigame-last-player-name', sanitized);
+            }
+        } catch (e) {
+            console.warn('orb-collection-minigame: failed to save last player name', e);
+        }
+    },
+
+    /**
      * Handle leaderboard name submission
      *
      * Validates the submitted name against Santa's naughty list and either keeps the input open with an error message or saves the score and shows the leaderboard.
@@ -372,7 +407,8 @@ const orbCollectionMinigame = {
             return;
         }
 
-        // Passed validation, proceed with submission: save score and show leaderboard
+        // Passed validation, proceed with submission: cache name, save score, and show leaderboard
+        this.saveLastPlayerName(submittedName);
         const saveResultObj = this.saveScoreToLeaderboard(playerTimeMs, submittedName);
         this.showLeaderboard(playerTimeMs, saveResultObj);
     },
@@ -635,6 +671,7 @@ const orbCollectionMinigame = {
         // Release movement keys so player doesn't keep moving while entering their name on desktop
         this.releaseMovementKeys();
 
+        const lastPlayerName = this.getLastPlayerName();
         const leaderboardScores = this.getActiveLeaderboardScores();
         const monthlyPreviewRankIndex = this.getPreviewLeaderboardRankIndex(leaderboardScores.monthlyScores, playerTimeMs);
         const allTimePreviewRankIndex = this.getPreviewLeaderboardRankIndex(leaderboardScores.allTimeScores, playerTimeMs);
@@ -667,7 +704,7 @@ const orbCollectionMinigame = {
             };
 
             // Display modal and add event listeners
-            modalEl.setAttribute('desktop-modal-input', 'label: Enter Name; helpText: Letters only, max 12 characters; maxLength: 12');
+            modalEl.setAttribute('desktop-modal-input', `label: Enter Name; helpText: Letters only, max 12 characters; maxLength: 12; defaultValue: ${lastPlayerName}`);
             modalEl.addEventListener('desktop-modal-input-submit', handleDesktopSubmit);
             modalEl.addEventListener('desktop-modal-input-cancel', handleDesktopCancel, { once: true });
             this.el.sceneEl.appendChild(modalEl);
@@ -688,7 +725,7 @@ const orbCollectionMinigame = {
         const keyboardEl = document.createElement('a-entity');
         keyboardEl.setAttribute('position', `0 0 -1.15`);
         keyboardEl.setAttribute('scale', '0.5 0.5 0.5');
-        keyboardEl.setAttribute('vr-keyboard', 'label: Enter Name:; maxLength: 12; keyBgColor: #94f3f1; keyBgHoverColor: #53e4e1;');
+        keyboardEl.setAttribute('vr-keyboard', `label: Enter Name:; maxLength: 12; keyBgColor: #94f3f1; keyBgHoverColor: #53e4e1; defaultValue: ${lastPlayerName}`);
         keyboardEl.addEventListener('keyboard-submit', (event) => {
             this.handleLeaderboardNameSubmission(playerTimeMs, event.detail?.value, event);
         });
