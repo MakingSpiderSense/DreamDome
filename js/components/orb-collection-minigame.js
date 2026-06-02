@@ -41,8 +41,6 @@ const orbCollectionMinigame = {
         this.boostTimeoutId = null; // To remove unused boost timeout when collecting another orb before current boost expires
         this.movementSpeedModifierEl = null; // Used for speed boosts
         this.movementSpeedModifierComponent = null; // Used for speed boosts
-        this.standardLeaderboardStorageKey = 'orb-minigame-scores'; // Local storage key for standard run
-        this.powerLeaderboardStorageKey = 'orb-minigame-power-run-scores'; // Local storage key for power run (only arm swing locomotion used)
         this.leftControllerSelector = '[meta-touch-controls*="hand: left"], [meta-touch-controls*="hand:left"], [oculus-touch-controls*="hand: left"], [oculus-touch-controls*="hand:left"], [hand-controls*="hand: left"], [hand-controls*="hand:left"]';
         this.leftControllerEl = null; // Used to detect joystick movement for leaderboard categorization
         this.originalMovementSpeedModifierSettings = null; // Store original settings to restore later
@@ -58,8 +56,10 @@ const orbCollectionMinigame = {
 
         // Hidden reset: add ?reset-scores to the URL to wipe the leaderboard
         if (new URLSearchParams(window.location.search).has('reset-scores')) {
-            localStorage.removeItem(this.standardLeaderboardStorageKey);
-            localStorage.removeItem(this.powerLeaderboardStorageKey);
+            localStorage.removeItem('orb-minigame-standard-all-time');
+            localStorage.removeItem('orb-minigame-standard-monthly');
+            localStorage.removeItem('orb-minigame-power-all-time');
+            localStorage.removeItem('orb-minigame-power-monthly');
         }
 
         // Set up check for joystick movement on left controller (determines leaderboard category)
@@ -299,6 +299,16 @@ const orbCollectionMinigame = {
     },
 
     /**
+     * Get the first day of the current UTC month as YYYY-MM-DD
+     *
+     * @returns {string} Current UTC month start date.
+     */
+    getCurrentUtcMonthStartDateDisplay: function () {
+        const now = new Date();
+        return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-01`;
+    },
+
+    /**
      * Check if the scene is in desktop mode
      *
      * @returns {boolean} True when the scene is not currently in VR mode.
@@ -345,11 +355,10 @@ const orbCollectionMinigame = {
      *
      * @param {number} playerTimeMs - The player's completion time in milliseconds.
      * @param {string} submittedName - Raw name submitted from the desktop modal or VR keyboard.
-     * @param {Array<object>} savedScores - Existing saved scores used if submission is rejected.
      * @param {Event} [submitEvent] - The original submit event so desktop submission can be canceled.
      * @returns {void} Does not return a value.
      */
-    handleLeaderboardNameSubmission: function (playerTimeMs, submittedName, savedScores, submitEvent) {
+    handleLeaderboardNameSubmission: function (playerTimeMs, submittedName, submitEvent) {
         // Reject name if Santa is displeased
         if (this.isNameOnTheNaughtyList(submittedName)) {
             submitEvent?.preventDefault(); // Do not submit
@@ -369,14 +378,90 @@ const orbCollectionMinigame = {
     },
 
     /**
+     * Get leaderboard storage keys for the active run type
+     *
+     * @returns {{allTimeKey: string, monthlyKey: string}} Local storage keys for the active run type.
+     */
+    getActiveLeaderboardStorageKeys: function () {
+        if (this.usedRegularMovementControls) {
+            // Give em the lame standard board
+            return {
+                allTimeKey: 'orb-minigame-standard-all-time',
+                monthlyKey: 'orb-minigame-standard-monthly',
+            };
+        }
+
+        // Reward them with the power board for exclusively using arm swinging locomotion
+        return {
+            allTimeKey: 'orb-minigame-power-all-time',
+            monthlyKey: 'orb-minigame-power-monthly',
+        };
+    },
+
+    /**
+     * Check whether a saved score belongs to the current UTC month
+     *
+     * @param {object} score - Saved score entry. Contains a `savedAt` property with the timestamp.
+     * @returns {boolean} True when the score was saved during the current UTC month.
+     */
+    isScoreInCurrentUtcMonth: function (score) {
+        if (!score || typeof score.savedAt !== 'number') return false;
+        const savedAtDate = new Date(score.savedAt);
+        const now = new Date();
+        // Compare the year and month of the saved score with now, and return true only if they match
+        return savedAtDate.getUTCFullYear() === now.getUTCFullYear()
+            && savedAtDate.getUTCMonth() === now.getUTCMonth();
+    },
+
+    /**
+     * Trim leaderboard scores to the top 10 fastest times
+     *
+     * @param {Array<object>} scores - Score entries to sort and trim.
+     * @returns {Array<object>} Sorted top-10 score entries.
+     */
+    trimLeaderboardScores: function (scores) {
+        return scores
+            .slice() // This basically creates a copy to avoid mutating the original array during sort
+            .sort((a, b) => a.timeMs - b.timeMs)
+            .slice(0, 10); // Trim to top 10 scores
+    },
+
+    /**
+     * Get current leaderboard scores for the active run type
+     *
+     * @returns {{monthlyScores: Array<object>, allTimeScores: Array<object>}} Current monthly and all-time scores for the active run type.
+     */
+    getActiveLeaderboardScores: function () {
+        const storageKeys = this.getActiveLeaderboardStorageKeys();
+        const allTimeScores = this.trimLeaderboardScores(this.getSavedLocalScores(storageKeys.allTimeKey));
+        const monthlyScores = this.trimLeaderboardScores(this.getSavedLocalScores(storageKeys.monthlyKey).filter(score => this.isScoreInCurrentUtcMonth(score))); // Monthly board filtered to current month
+        // Return both sets of scores
+        return {
+            monthlyScores,
+            allTimeScores,
+        };
+    },
+
+    /**
+     * Get preview leaderboard rank for a candidate score
+     *
+     * @param {Array<object>} scores - Existing scores for one leaderboard.
+     * @param {number} playerTimeMs - Candidate completion time.
+     * @returns {number} Zero-based rank index, or -1 if not in the top 10.
+     */
+    getPreviewLeaderboardRankIndex: function (scores, playerTimeMs) {
+        const previewScore = { timeMs: playerTimeMs };
+        const previewScores = this.trimLeaderboardScores(scores.concat(previewScore)); // Add score, then trim
+        return previewScores.indexOf(previewScore); // Find and return placement
+    },
+
+    /**
      * Get saved local leaderboard scores
      *
-     * @returns {Array<object>} Saved scores from localStorage for the active leaderboard mode.
+     * @param {string} storageKey - Local storage key to load.
+     * @returns {Array<object>} Saved scores from localStorage for the requested leaderboard.
      */
-    getSavedLocalScores: function () {
-        const storageKey = this.usedRegularMovementControls
-            ? this.standardLeaderboardStorageKey
-            : this.powerLeaderboardStorageKey;
+    getSavedLocalScores: function (storageKey) {
         let savedScores = [];
         try {
             const stored = localStorage.getItem(storageKey);
@@ -470,33 +555,39 @@ const orbCollectionMinigame = {
      *
      * @param {number} playerTimeMs - The player's completion time in ms to save to the leaderboard.
      * @param {string} playerName - The player's name to save to the leaderboard.
-     * @returns {Object} An object containing the updated list of top scores, the player's rank index, and the sanitized player name that was saved: scores, playerRankIndex, playerName.
+     * @returns {Object} An object containing the updated monthly and all-time scores, the player's rank index on each board, and the sanitized player name that was saved: monthlyScores, allTimeScores, monthlyPlayerRankIndex, allTimePlayerRankIndex, playerName.
      */
     saveScoreToLeaderboard: function (playerTimeMs, playerName) {
-        const storageKey = this.usedRegularMovementControls
-            ? this.standardLeaderboardStorageKey
-            : this.powerLeaderboardStorageKey;
-        let savedScores = this.getSavedLocalScores();
+        const storageKeys = this.getActiveLeaderboardStorageKeys();
+        let allTimeScores = this.getSavedLocalScores(storageKeys.allTimeKey);
+        let monthlyScores = this.getSavedLocalScores(storageKeys.monthlyKey)
+            .filter(score => this.isScoreInCurrentUtcMonth(score)); // Filter out scores outside of current month
         const sanitizedPlayerName = this.sanitizeLeaderboardName(playerName);
         const newScore = {
             timeMs: playerTimeMs,
             name: sanitizedPlayerName,
             savedAt: Date.now(),
         };
-        // Add the new score, sort the list, and keep only the top 10 scores
-        savedScores.push(newScore);
-        savedScores.sort((a, b) => a.timeMs - b.timeMs);
-        if (savedScores.length > 10) savedScores = savedScores.slice(0, 10);
-        const playerRankIndex = savedScores.indexOf(newScore);
+        // Add the new score, sort the list, and keep only the top 10 scores on each board
+        allTimeScores.push(newScore);
+        monthlyScores.push(newScore);
+        allTimeScores = this.trimLeaderboardScores(allTimeScores);
+        monthlyScores = this.trimLeaderboardScores(monthlyScores);
+        // Find the index or player rank on each board
+        const allTimePlayerRankIndex = allTimeScores.indexOf(newScore);
+        const monthlyPlayerRankIndex = monthlyScores.indexOf(newScore);
         // Attempt to save the updated scores back to localStorage
         try {
-            localStorage.setItem(storageKey, JSON.stringify(savedScores));
+            localStorage.setItem(storageKeys.allTimeKey, JSON.stringify(allTimeScores));
+            localStorage.setItem(storageKeys.monthlyKey, JSON.stringify(monthlyScores));
         } catch (e) {
             console.warn('orb-collection-minigame: Could not save score to localStorage');
         }
         return {
-            scores: savedScores,
-            playerRankIndex,
+            monthlyScores,
+            allTimeScores,
+            monthlyPlayerRankIndex,
+            allTimePlayerRankIndex,
             playerName: sanitizedPlayerName,
         };
     },
@@ -544,15 +635,18 @@ const orbCollectionMinigame = {
         // Release movement keys so player doesn't keep moving while entering their name on desktop
         this.releaseMovementKeys();
 
-        const savedScores = this.getSavedLocalScores();
-        const previewScore = { timeMs: playerTimeMs }; // Player's current score
-        const previewScores = savedScores.concat(previewScore); // Add it to the list of existing scores
-        previewScores.sort((a, b) => a.timeMs - b.timeMs); // Sort - fastest times first
-        const previewRankIndex = previewScores.indexOf(previewScore); // Check their rank
+        const leaderboardScores = this.getActiveLeaderboardScores();
+        const monthlyPreviewRankIndex = this.getPreviewLeaderboardRankIndex(leaderboardScores.monthlyScores, playerTimeMs);
+        const allTimePreviewRankIndex = this.getPreviewLeaderboardRankIndex(leaderboardScores.allTimeScores, playerTimeMs);
 
-        // If they don't make the top 10, show the leaderboard without their score and skip the name entry step since their score won't be saved
-        if (previewRankIndex < 0 || previewRankIndex >= 10) {
-            this.showLeaderboard(playerTimeMs, { scores: savedScores, playerRankIndex: -1 });
+        // If they don't make the top 10 on either board, show the leaderboard without their score and skip the name entry step since their score won't be saved.
+        if (monthlyPreviewRankIndex < 0 && allTimePreviewRankIndex < 0) {
+            this.showLeaderboard(playerTimeMs, {
+                monthlyScores: leaderboardScores.monthlyScores,
+                allTimeScores: leaderboardScores.allTimeScores,
+                monthlyPlayerRankIndex: -1,
+                allTimePlayerRankIndex: -1,
+            });
             return;
         }
 
@@ -561,10 +655,15 @@ const orbCollectionMinigame = {
 
             // Set up event listeners for submit and cancel events
             const handleDesktopSubmit = (event) => {
-                this.handleLeaderboardNameSubmission(playerTimeMs, event.detail?.value, savedScores, event);
+                this.handleLeaderboardNameSubmission(playerTimeMs, event.detail?.value, event);
             };
             const handleDesktopCancel = () => {
-                this.showLeaderboard(playerTimeMs, { scores: savedScores, playerRankIndex: -1 });
+                this.showLeaderboard(playerTimeMs, {
+                    monthlyScores: leaderboardScores.monthlyScores,
+                    allTimeScores: leaderboardScores.allTimeScores,
+                    monthlyPlayerRankIndex: -1,
+                    allTimePlayerRankIndex: -1,
+                });
             };
 
             // Display modal and add event listeners
@@ -591,10 +690,15 @@ const orbCollectionMinigame = {
         keyboardEl.setAttribute('scale', '0.5 0.5 0.5');
         keyboardEl.setAttribute('vr-keyboard', 'label: Enter Name:; maxLength: 12; keyBgColor: #94f3f1; keyBgHoverColor: #53e4e1;');
         keyboardEl.addEventListener('keyboard-submit', (event) => {
-            this.handleLeaderboardNameSubmission(playerTimeMs, event.detail?.value, savedScores, event);
+            this.handleLeaderboardNameSubmission(playerTimeMs, event.detail?.value, event);
         });
         keyboardEl.addEventListener('keyboard-cancel', () => {
-            this.showLeaderboard(playerTimeMs, { scores: savedScores, playerRankIndex: -1 });
+            this.showLeaderboard(playerTimeMs, {
+                monthlyScores: leaderboardScores.monthlyScores,
+                allTimeScores: leaderboardScores.allTimeScores,
+                monthlyPlayerRankIndex: -1,
+                allTimePlayerRankIndex: -1,
+            });
         }, { once: true });
         keyboardAnchorEl.appendChild(keyboardEl);
         this.nameInputEl = keyboardEl; // Set this so we can remove it later if needed
@@ -609,9 +713,10 @@ const orbCollectionMinigame = {
      * @param {object|null} score - Saved score entry or null for an empty row.
      * @param {string} playerName - Display name for the row.
      * @param {number} playerNameCharacters - Fixed character width for the player column.
+     * @param {string} fallbackDateDisplay - Fallback date to show for empty rows.
      * @returns {string} Formatted row text.
      */
-    formatLeaderboardRow: function (rankIndex, score, playerName, playerNameCharacters) {
+    formatLeaderboardRow: function (rankIndex, score, playerName, playerNameCharacters, fallbackDateDisplay) {
         // Score
         const durationDisplay = score ? this.formatTime(score.timeMs) : '99:59';
         // Player name (with centering)
@@ -621,7 +726,7 @@ const orbCollectionMinigame = {
         const leftPadding = totalPadding - rightPadding;
         const paddedPlayerName = `${' '.repeat(leftPadding)}${displayPlayerName}${' '.repeat(rightPadding)}`;
         // Date
-        let dateDisplay = score && score.date ? score.date : '2015-10-21'; // Set date to a fallback initially
+        let dateDisplay = score && score.date ? score.date : fallbackDateDisplay; // Set date to a fallback for any fake scores
         if (score && typeof score.savedAt === 'number') {
             const savedAtDate = new Date(score.savedAt);
             dateDisplay = `${savedAtDate.getFullYear()}-${String(savedAtDate.getMonth() + 1).padStart(2, '0')}-${String(savedAtDate.getDate()).padStart(2, '0')}`; // Format as YYYY-MM-DD
@@ -651,6 +756,7 @@ const orbCollectionMinigame = {
             footerY,
             footerColor,
             isFooterSmall,
+            fallbackDateDisplay,
         } = options;
         const maxPlayerNameCharacters = 12;
         const panelEl = document.createElement('a-entity');
@@ -703,7 +809,7 @@ const orbCollectionMinigame = {
         for (let rankIndex = 0; rankIndex < 10; rankIndex++) {
             const score = scores[rankIndex] || null;
             const playerName = playerNames[rankIndex] || '';
-            const rowText = this.formatLeaderboardRow(rankIndex, score, playerName, maxPlayerNameCharacters);
+            const rowText = this.formatLeaderboardRow(rankIndex, score, playerName, maxPlayerNameCharacters, fallbackDateDisplay);
             const rowYPosition = (0.175 - rankIndex * 0.052).toFixed(3);
             const rowXPosition = rankIndex === 9 ? '-0.013' : '0';
             const isPlayerEntry = rankIndex === playerRankIndex; // Player made the top 10
@@ -916,14 +1022,21 @@ const orbCollectionMinigame = {
      */
     showLeaderboard: function (playerTimeMs, saveResult) {
         const subtitle = this.usedRegularMovementControls ? 'Standard Run' : 'Power Run';
+        // Get resolved save result data
+        const activeLeaderboardScores = this.getActiveLeaderboardScores();
         const resolvedSaveResult = saveResult || {
-            scores: this.getSavedLocalScores(),
-            playerRankIndex: -1, // They did not rank
+            monthlyScores: activeLeaderboardScores.monthlyScores,
+            allTimeScores: activeLeaderboardScores.allTimeScores,
+            monthlyPlayerRankIndex: -1, // They did not rank on the monthly board
+            allTimePlayerRankIndex: -1, // They did not rank on the all-time board
         };
         // Gather some data for building the leaderboard
-        const scores = resolvedSaveResult.scores;
-        const playerNames = this.getLeaderboardPlayerNames(scores, 10);
-        const playerRankIndex = resolvedSaveResult.playerRankIndex;
+        const monthlyScores = resolvedSaveResult.monthlyScores;
+        const allTimeScores = resolvedSaveResult.allTimeScores;
+        const monthlyPlayerNames = this.getLeaderboardPlayerNames(monthlyScores, 10);
+        const allTimePlayerNames = this.getLeaderboardPlayerNames(allTimeScores, 10);
+        const monthlyPlayerRankIndex = resolvedSaveResult.monthlyPlayerRankIndex;
+        const allTimePlayerRankIndex = resolvedSaveResult.allTimePlayerRankIndex;
         const cameraEl = this.el.sceneEl.camera.el;
 
         // Remove the name input UI
@@ -958,10 +1071,11 @@ const orbCollectionMinigame = {
             const monthlyPanel = this.createLeaderboardPanel({
                 panelTitle: 'Monthly Leaderboard',
                 subtitle,
-                scores,
-                playerNames,
-                playerRankIndex,
+                scores: monthlyScores,
+                playerNames: monthlyPlayerNames,
+                playerRankIndex: monthlyPlayerRankIndex,
                 playerTimeMs,
+                fallbackDateDisplay: this.getCurrentUtcMonthStartDateDisplay(), // e.g. "2026-06-01"
                 footerText: `${this.formatTime(playerTimeMs)}  YOUR SCORE`,
                 footerWidth: '0.94',
                 footerY: '-0.39',
@@ -978,10 +1092,11 @@ const orbCollectionMinigame = {
             const allTimePanel = this.createLeaderboardPanel({
                 panelTitle: 'All-Time Leaderboard',
                 subtitle,
-                scores,
-                playerNames,
-                playerRankIndex,
+                scores: allTimeScores,
+                playerNames: allTimePlayerNames,
+                playerRankIndex: allTimePlayerRankIndex,
                 playerTimeMs,
+                fallbackDateDisplay: '2015-10-21',
                 footerText: allTimeFooterText,
                 footerWidth: this.usedRegularMovementControls ? '0.78' : '0.94',
                 footerY: '-0.39',
