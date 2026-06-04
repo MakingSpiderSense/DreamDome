@@ -8,10 +8,28 @@ const desktopModalInput = {
         label: { default: "Enter Name" },
         helpText: { default: "Letters only, max 12 characters" },
         maxLength: { default: 12 },
+        defaultValue: { default: '' },
     },
 
     init() {
         this.showOverlay();
+    },
+
+    update(oldData) {
+        if (!oldData) return;
+
+        if (this.titleEl && oldData.label !== this.data.label) {
+            this.titleEl.textContent = this.data.label;
+        }
+
+        if (this.helpTextEl && oldData.helpText !== this.data.helpText) {
+            this.helpTextEl.textContent = this.data.helpText;
+        }
+
+        if (this.inputEl && oldData.maxLength !== this.data.maxLength) {
+            this.inputEl.maxLength = this.data.maxLength;
+            this.inputEl.value = this.sanitizeValue(this.inputEl.value);
+        }
     },
 
     /**
@@ -102,6 +120,9 @@ const desktopModalInput = {
             input.value = this.sanitizeValue(input.value);
         });
 
+        // Set default value if provided
+        input.value = this.sanitizeValue(this.data.defaultValue);
+
         // Create button container
         const buttonRow = document.createElement("div");
         buttonRow.style.cssText = "display: flex; gap: 10px; justify-content: center;";
@@ -149,8 +170,12 @@ const desktopModalInput = {
         const submitValue = () => {
             const value = this.sanitizeValue(input.value); // Sanitize again
             if (!value) return;
-            // Emit custom event and close overlay
-            this.el.emit("desktop-modal-input-submit", { value });
+            const submitEvent = new CustomEvent("desktop-modal-input-submit", {
+                detail: { value },
+                cancelable: true,
+            });
+            this.el.dispatchEvent(submitEvent);
+            if (submitEvent.defaultPrevented) return;
             closeOverlay(true);
         };
 
@@ -190,6 +215,9 @@ const desktopModalInput = {
         document.body.appendChild(overlay);
 
         this.overlay = overlay; // Store reference to overlay for later removal if needed
+        this.titleEl = title;
+        this.helpTextEl = helpText;
+        this.inputEl = input;
         input.focus(); // Focus input
     },
 
