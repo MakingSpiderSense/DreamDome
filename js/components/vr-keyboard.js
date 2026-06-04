@@ -11,10 +11,25 @@ const vrKeyboard = {
         keyTextColor: { default: "#000000" },
         depressOnHover: { default: true },
         maxLength: { default: 12 },
+        defaultValue: { default: '' },
+    },
+
+    /**
+     * Clean and limit input
+     *
+     * Takes any input, converts it to text, removes everything except letters A-Z, and shortens it to the maxLength so the value is always valid.
+     *
+     * @param {*} value - The raw value to clean.
+     * @returns {string} The sanitized string containing only letters, limited to the configured maximum length.
+     */
+    sanitizeValue(value) {
+        return String(value ?? "")
+            .replace(/[^A-Za-z]/g, "")
+            .slice(0, this.data.maxLength);
     },
 
     init() {
-        this.inputValue = ""; // Whatever the user has typed so far
+        this.inputValue = this.sanitizeValue(this.data.defaultValue); // Whatever the user has typed so far
         this.isUppercase = true; // Track keyboard case state
         this.didAutoSwitchToLowercase = false; // Track if we've auto-switched to lowercase after first letter input
         this.letterButtons = []; // We later store all letters here so we can update their labels when switching cases
