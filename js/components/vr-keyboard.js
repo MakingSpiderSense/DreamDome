@@ -17,14 +17,14 @@ const vrKeyboard = {
     /**
      * Clean and limit input
      *
-     * Takes any input, converts it to text, removes everything except letters A-Z, and shortens it to the maxLength so the value is always valid.
+     * Takes any input, converts it to text, removes everything except letters A-Z and numbers 0-9, and shortens it to the maxLength so the value is always valid.
      *
      * @param {*} value - The raw value to clean.
-     * @returns {string} The sanitized string containing only letters, limited to the configured maximum length.
+     * @returns {string} The sanitized string containing only letters and numbers, limited to the configured maximum length.
      */
     sanitizeValue(value) {
         return String(value ?? "")
-            .replace(/[^A-Za-z]/g, "")
+            .replace(/[^A-Za-z0-9]/g, "")
             .slice(0, this.data.maxLength);
     },
 
@@ -99,15 +99,32 @@ const vrKeyboard = {
         // Set up background panel and initial display text
         this.el.innerHTML = `
             <a-plane width="3.2" height="1.75" color="#111" opacity="0.9"></a-plane>
-            <a-text id="name-display" value="${this.data.label}" align="center" width="2.6" position="0 .58 .03"></a-text>
+            <a-text id="name-display" value="${this.data.label}" align="center" width="2.6" position="0 .6 .03"></a-text>
         `;
+
+        // Add buttons for numbers 1-9 and 0
+        const numbers = "1234567890";
+        numbers.split('').forEach((number, i) => {
+            this.addButton(
+                number, // Label
+                -0.9 + i * 0.2, // X position (10 numbers, 0.2 spacing, starting at -0.9 to center)
+                0.29, // Y position for the number row
+                () => {
+                    // On click behavior
+                    if (this.inputValue.length >= this.data.maxLength) return;
+                    this.inputValue += number;
+                    this.updateDisplay();
+                },
+                0.16, // Button width
+            );
+        });
 
         // Add buttons for each letter with click behavior
         this.getLetters().forEach((letter, i) => {
             this.addButton(
                 letter, // Label
                 -1.2 + (i % 13) * 0.2, // X position (13 letters per row, 0.2 spacing)
-                i < 13 ? 0.24 : 0.0, // Y position (two rows at either 0.24 or 0.0)
+                i < 13 ? 0.05 : -0.19, // Y position (two rows at either 0.05 or -0.19)
                 () => {
                     // On click behavior
                     if (this.inputValue.length >= this.data.maxLength) return; // If input at max length, ignore additional input
@@ -124,7 +141,7 @@ const vrKeyboard = {
         this.addButton(
             this.isUppercase ? "abc" : "ABC", // Label
             -1.02, // X position
-            -0.42, // Y position
+            -0.55, // Y position
             () => {
                 // On click behavior
                 this.isUppercase = !this.isUppercase; // Toggle case state
@@ -139,7 +156,7 @@ const vrKeyboard = {
         this.addButton(
             "DEL", // Label
             -0.18, // X position
-            -0.42, // Y position
+            -0.55, // Y position
             () => {
                 // On click behavior
                 this.inputValue = this.inputValue.slice(0, -1); // Remove last character from input
@@ -152,7 +169,7 @@ const vrKeyboard = {
         this.addButton(
             "CANCEL", // Label
             0.29, // X position
-            -0.42, // Y position
+            -0.55, // Y position
             () => {
                 this.el.emit("keyboard-cancel");
             },
@@ -163,7 +180,7 @@ const vrKeyboard = {
         this.addButton(
             "SUBMIT", // Label
             0.92, // X position
-            -0.42, // Y position
+            -0.55, // Y position
             () => {
                 // On click behavior
                 const trimmedValue = this.inputValue.trim();

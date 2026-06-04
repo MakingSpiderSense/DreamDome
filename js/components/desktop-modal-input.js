@@ -35,14 +35,14 @@ const desktopModalInput = {
     /**
      * Clean and limit input
      *
-     * Takes any input, converts it to text, removes everything except letters A-Z, and shortens it to the maxLength so the value is always valid for this component.
+     * Takes any input, converts it to text, removes everything except letters A-Z and numbers 0-9, and shortens it to the maxLength so the value is always valid for this component.
      *
      * @param {*} value - The raw value to clean (such as text typed by the user).
-     * @returns {string} The sanitized string containing only letters, limited to the configured maximum length.
+     * @returns {string} The sanitized string containing only letters and numbers, limited to the configured maximum length.
      */
     sanitizeValue(value) {
         return String(value ?? "")
-            .replace(/[^A-Za-z]/g, "")
+            .replace(/[^A-Za-z0-9]/g, "")
             .slice(0, this.data.maxLength);
     },
 

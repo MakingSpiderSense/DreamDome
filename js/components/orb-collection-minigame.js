@@ -320,21 +320,21 @@ const orbCollectionMinigame = {
     /**
      * Sanitize a leaderboard name
      *
-     * Keeps only letters and limits the saved name to 12 characters.
+     * Keeps only letters and numbers and limits the saved name to 12 characters.
      *
      * @param {string} name - Raw name text from the input UI.
      * @returns {string} Cleaned player name.
      */
     sanitizeLeaderboardName: function (name) {
         return String(name || '')
-            .replace(/[^A-Za-z]/g, '') // Remove non-letter characters
+            .replace(/[^A-Za-z0-9]/g, '') // Remove non-alphanumeric characters
             .slice(0, 12); // Limit to 12 characters
     },
 
     /**
      * Check if name is on the naughty list
      *
-     * Uses a case-insensitive naughty fragment list after applying the same letter-only sanitization used for saved names to determine if the name has disappointed Santa beyond acceptable limits.
+     * Uses a case-insensitive naughty fragment list after applying the same alphanumeric sanitization used for saved names to determine if the name has disappointed Santa beyond acceptable limits.
      *
      * @param {string} name - Raw name text from the input UI.
      * @returns {boolean} True when the sanitized name contains a naughty fragment.
