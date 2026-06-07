@@ -21,6 +21,14 @@ const orbCollectionMinigame = {
         debug: { type: "boolean", default: false }, // Reduces spawn area to 30m
     },
 
+    playerNamePool: [
+        'Parzival', 'Art3mis', 'Aech', 'Shoto', 'Daito', 'Anorak', 'Og',
+        '655321', 'Hiro', 'YT', 'Da5id', 'Neo', 'Morpheus', 'Trinity',
+        'MindFlayer', 'LawnmowerMan', 'Tron', 'BrainDancer', 'Wintermute',
+        'Neuromancer', 'FreeGuy', 'JSilverhand', 'VikVektor', 'SpaceHarrier',
+        'Dreamweaver'
+    ],
+
     init: function () {
         this.orbs = []; // Array to hold references to the spawned orbs
         this.collected = 0; // Counter for collected orbs
@@ -45,6 +53,7 @@ const orbCollectionMinigame = {
         this.leftControllerEl = null; // Used to detect joystick movement for leaderboard categorization
         this.originalMovementSpeedModifierSettings = null; // Store original settings to restore later
         this.usedRegularMovementControls = false; // True once any keyboard key or left joystick movement is used during the run
+        this.cachedPlaceholderNames = { standard: null, power: null }; // To store 10 generated names
 
         // Set up listeners and bindings
         this.blockShiftDuringMinigame = this.blockShiftDuringMinigame.bind(this);
@@ -332,6 +341,80 @@ const orbCollectionMinigame = {
     },
 
     /**
+     * Populate leaderboard gaps
+     *
+     * Fills the gaps in the leaderboard if less than 10 entries by picking names from a placeholder list and assigning completion times starting at 1:30 and increasing by 30 seconds for each additional placeholder.
+     *
+     * @param {Array<object>} scores - Current score entries.
+     * @param {string} storageKey - Local storage key to save the populated scores to.
+     * @returns {Array<object>} Populated and sorted score entries.
+     */
+    populateLeaderboardGaps: function (scores, storageKey) {
+        if (scores.length >= 10) return scores; // Return early if no need to fill gaps
+
+        const gapCount = 10 - scores.length;
+        const runType = storageKey.includes('power') ? 'power' : 'standard';
+        const placeholderNamesList = this.getPlaceholderNames(runType);
+
+        // Get the first day of current month as a timestamp for placeholder entries
+        const now = new Date();
+        const monthStartTimestamp = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
+
+        for (let i = 0; i < gapCount; i++) {
+            // Go through names in order
+            const name = placeholderNamesList[i] || 'Player';
+            // Calculate time: starts at 90s (1:30) and increases by 30s for each subsequent placeholder. By starting at the lowest possible time, we ensure the leaderboard provides a challenge.
+            const timeMs = 90000 + (i * 30000);
+            // Push placeholder score data
+            scores.push({
+                timeMs,
+                name,
+                savedAt: monthStartTimestamp,
+                isPlaceholder: true // Flag to identify these are default scores
+            });
+        }
+
+        // Sort scores
+        const finalScores = this.trimLeaderboardScores(scores);
+
+        // Save back to local storage
+        try {
+            localStorage.setItem(storageKey, JSON.stringify(finalScores));
+        } catch (e) {
+            console.warn('orb-collection-minigame: Could not save populated scores to localStorage');
+        }
+
+        return finalScores;
+    },
+
+    /**
+     * Get placeholder names
+     *
+     * Creates and caches a randomized sequence of 10 placeholder names from the pool of names. There are no repeats in the generated list.
+     *
+     * @param {string} type - The run type ('standard' or 'power') to scope the names to.
+     * @returns {Array<string>} 10 unique names from the pool.
+     */
+    getPlaceholderNames: function (type) {
+        // Use component-scoped cache if it already exists for this run type
+        if (this.cachedPlaceholderNames?.[type]) {
+            return this.cachedPlaceholderNames[type];
+        }
+        // Generate new shuffled list from the pool
+        const pool = [...this.playerNamePool];
+        const placeholderNames = [];
+        for (let i = 0; i < 10; i++) {
+            const randomIndex = Math.floor(Math.random() * pool.length);
+            placeholderNames.push(pool.splice(randomIndex, 1)[0]); // Take a random name from pool array and move it to the placeholder list, ensuring no repeats
+        }
+        // Cache the list in the component so it stays the same across boards in the same session
+        if (!this.cachedPlaceholderNames) this.cachedPlaceholderNames = {};
+        this.cachedPlaceholderNames[type] = placeholderNames;
+        // Return the generated list
+        return placeholderNames;
+    },
+
+    /**
      * Check if name is on the naughty list
      *
      * Uses a case-insensitive naughty fragment list after applying the same alphanumeric sanitization used for saved names to determine if the name has disappointed Santa beyond acceptable limits.
@@ -450,7 +533,7 @@ const orbCollectionMinigame = {
     },
 
     /**
-     * Trim leaderboard scores to the top 10 fastest times
+     * Trim and sort leaderboard scores to the top 10 fastest times
      *
      * @param {Array<object>} scores - Score entries to sort and trim.
      * @returns {Array<object>} Sorted top-10 score entries.
@@ -469,8 +552,14 @@ const orbCollectionMinigame = {
      */
     getActiveLeaderboardScores: function () {
         const storageKeys = this.getActiveLeaderboardStorageKeys();
-        const allTimeScores = this.trimLeaderboardScores(this.getSavedLocalScores(storageKeys.allTimeKey));
-        const monthlyScores = this.trimLeaderboardScores(this.getSavedLocalScores(storageKeys.monthlyKey).filter(score => this.isScoreInCurrentUtcMonth(score))); // Monthly board filtered to current month
+
+        let allTimeScores = this.getSavedLocalScores(storageKeys.allTimeKey);
+        allTimeScores = this.populateLeaderboardGaps(allTimeScores, storageKeys.allTimeKey);
+
+        let monthlyScores = this.getSavedLocalScores(storageKeys.monthlyKey)
+            .filter(score => this.isScoreInCurrentUtcMonth(score)); // Monthly board filtered to current month
+        monthlyScores = this.populateLeaderboardGaps(monthlyScores, storageKeys.monthlyKey);
+
         // Return both sets of scores
         return {
             monthlyScores,
@@ -594,10 +683,14 @@ const orbCollectionMinigame = {
      * @returns {Object} An object containing the updated monthly and all-time scores, the player's rank index on each board, and the sanitized player name that was saved: monthlyScores, allTimeScores, monthlyPlayerRankIndex, allTimePlayerRankIndex, playerName.
      */
     saveScoreToLeaderboard: function (playerTimeMs, playerName) {
+        // Get existing scores and fill in gaps with default names/scores
         const storageKeys = this.getActiveLeaderboardStorageKeys();
         let allTimeScores = this.getSavedLocalScores(storageKeys.allTimeKey);
+        allTimeScores = this.populateLeaderboardGaps(allTimeScores, storageKeys.allTimeKey);
         let monthlyScores = this.getSavedLocalScores(storageKeys.monthlyKey)
             .filter(score => this.isScoreInCurrentUtcMonth(score)); // Filter out scores outside of current month
+        monthlyScores = this.populateLeaderboardGaps(monthlyScores, storageKeys.monthlyKey);
+
         const sanitizedPlayerName = this.sanitizeLeaderboardName(playerName);
         const newScore = {
             timeMs: playerTimeMs,
@@ -638,18 +731,11 @@ const orbCollectionMinigame = {
      * @returns {Array<string>} The display names aligned with the score rows.
      */
     getLeaderboardPlayerNames: function (scores, totalRows) {
-        const availableNames = ['Art3mis', 'Parzival', 'Shoto'];
         const playerNames = [];
         for (let scoreIndex = 0; scoreIndex < totalRows; scoreIndex++) {
-            // Use stored name if found
+            // Use stored name if found, otherwise keep as placeholder indicator
             const storedName = this.sanitizeLeaderboardName(scores[scoreIndex]?.name);
-            if (storedName) {
-                playerNames.push(storedName);
-                continue;
-            }
-            // Otherwise, randomly pick from default available names
-            const randomNameIndex = Math.floor(Math.random() * availableNames.length);
-            playerNames.push(availableNames[randomNameIndex]);
+            playerNames.push(storedName || '---');
         }
         return playerNames;
     },
@@ -755,7 +841,7 @@ const orbCollectionMinigame = {
      */
     formatLeaderboardRow: function (rankIndex, score, playerName, playerNameCharacters, fallbackDateDisplay) {
         // Score
-        const durationDisplay = score ? this.formatTime(score.timeMs) : '99:59';
+        const durationDisplay = score ? this.formatTime(score.timeMs) : '01:30';
         // Player name (with centering)
         const displayPlayerName = playerName || '';
         const totalPadding = Math.max(playerNameCharacters - displayPlayerName.length, 0);
@@ -766,7 +852,7 @@ const orbCollectionMinigame = {
         let dateDisplay = score && score.date ? score.date : fallbackDateDisplay; // Set date to a fallback for any fake scores
         if (score && typeof score.savedAt === 'number') {
             const savedAtDate = new Date(score.savedAt);
-            dateDisplay = `${savedAtDate.getFullYear()}-${String(savedAtDate.getMonth() + 1).padStart(2, '0')}-${String(savedAtDate.getDate()).padStart(2, '0')}`; // Format as YYYY-MM-DD
+            dateDisplay = `${savedAtDate.getUTCFullYear()}-${String(savedAtDate.getUTCMonth() + 1).padStart(2, '0')}-${String(savedAtDate.getUTCDate()).padStart(2, '0')}`; // Format as YYYY-MM-DD (UTC)
         }
         // Combine into one formatted row string
         return `${String(rankIndex + 1).padStart(2)}.  ${durationDisplay}  ${paddedPlayerName}  ${dateDisplay}`;
@@ -1133,7 +1219,7 @@ const orbCollectionMinigame = {
                 playerNames: allTimePlayerNames,
                 playerRankIndex: allTimePlayerRankIndex,
                 playerTimeMs,
-                fallbackDateDisplay: '2015-10-21',
+                fallbackDateDisplay: this.getCurrentUtcMonthStartDateDisplay(),
                 footerText: allTimeFooterText,
                 footerWidth: this.usedRegularMovementControls ? '0.78' : '0.94',
                 footerY: '-0.39',
