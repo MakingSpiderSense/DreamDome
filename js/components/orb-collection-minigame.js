@@ -349,7 +349,7 @@ const orbCollectionMinigame = {
     },
 
     /**
-     * Get last saved player name from localStorage ✅
+     * Get last saved player name from localStorage
      *
      * Reads the most recently submitted player name from browser storage, sanitizes it to ensure it's safe, and returns it for auto-filling the name input on subsequent plays.
      *
@@ -365,7 +365,7 @@ const orbCollectionMinigame = {
     },
 
     /**
-     * Save last player name to localStorage ✅
+     * Save last player name to localStorage
      *
      * Stores the player's name in browser storage so it can be auto-filled the next time they play and qualify for the leaderboard.
      *
