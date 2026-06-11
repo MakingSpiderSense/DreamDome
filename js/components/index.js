@@ -10,3 +10,5 @@ import './blink-control.js';
 import './twinkling-stars.js';
 import './add-model-after-load.js';
 import './orb-collection-minigame.js';
+import './vr-keyboard.js';
+import './desktop-modal-input.js';
