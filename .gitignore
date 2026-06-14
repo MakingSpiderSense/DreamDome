@@ -38,3 +38,4 @@
 # Files
 style.css.map
 config.js
+api/*.json

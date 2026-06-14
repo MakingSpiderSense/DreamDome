@@ -19,6 +19,7 @@ const orbCollectionMinigame = {
         collectSound: { type: 'string', default: '' },
         allCollectedSound: { type: 'string', default: '' },
         debug: { type: "boolean", default: false }, // Reduces spawn area to 30m
+        apiUrl: { type: 'string', default: 'api/scores-orb-minigame.php' }, // URL for the shared global leaderboard API
     },
 
     playerNamePool: [
@@ -341,7 +342,7 @@ const orbCollectionMinigame = {
     },
 
     /**
-     * Populate leaderboard gaps
+     * Maintain leaderboard
      *
      * Fills the gaps in the leaderboard if less than 10 entries by picking names from a placeholder list and assigning completion times starting at 1:30 and increasing by 30 seconds for each additional placeholder.
      *
@@ -349,32 +350,33 @@ const orbCollectionMinigame = {
      * @param {string} storageKey - Local storage key to save the populated scores to.
      * @returns {Array<object>} Populated and sorted score entries.
      */
-    populateLeaderboardGaps: function (scores, storageKey) {
-        if (scores.length >= 10) return scores; // Return early if no need to fill gaps
+    maintainLeaderboard: function (scores, storageKey) {
+        // Populate leaderboard until there are 10 entries
+        if (scores.length < 10) {
+            const gapCount = 10 - scores.length;
+            const runType = storageKey.includes('power') ? 'power' : 'standard';
+            const placeholderNamesList = this.getPlaceholderNames(runType);
 
-        const gapCount = 10 - scores.length;
-        const runType = storageKey.includes('power') ? 'power' : 'standard';
-        const placeholderNamesList = this.getPlaceholderNames(runType);
+            // Get the first day of current month as a timestamp for placeholder entries
+            const now = new Date();
+            const monthStartTimestamp = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
 
-        // Get the first day of current month as a timestamp for placeholder entries
-        const now = new Date();
-        const monthStartTimestamp = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
-
-        for (let i = 0; i < gapCount; i++) {
-            // Go through names in order
-            const name = placeholderNamesList[i] || 'Player';
-            // Calculate time: starts at 90s (1:30) and increases by 30s for each subsequent placeholder. By starting at the lowest possible time, we ensure the leaderboard provides a challenge.
-            const timeMs = 90000 + (i * 30000);
-            // Push placeholder score data
-            scores.push({
-                timeMs,
-                name,
-                savedAt: monthStartTimestamp,
-                isPlaceholder: true // Flag to identify these are default scores
-            });
+            for (let i = 0; i < gapCount; i++) {
+                // Go through names in order
+                const name = placeholderNamesList[i] || 'Player';
+                // Calculate time: starts at 90s (1:30) and increases by 30s for each subsequent placeholder. By starting at the lowest possible time, we ensure the leaderboard provides a challenge.
+                const timeMs = 90000 + (i * 30000);
+                // Push placeholder score data
+                scores.push({
+                    timeMs,
+                    name,
+                    savedAt: monthStartTimestamp,
+                    isPlaceholder: true // Flag to identify these are default scores
+                });
+            }
         }
 
-        // Sort scores
+        // Trim and sort scores
         const finalScores = this.trimLeaderboardScores(scores);
 
         // Save back to local storage
@@ -476,7 +478,7 @@ const orbCollectionMinigame = {
      * @param {Event} [submitEvent] - The original submit event so desktop submission can be canceled.
      * @returns {void} Does not return a value.
      */
-    handleLeaderboardNameSubmission: function (playerTimeMs, submittedName, submitEvent) {
+    handleLeaderboardNameSubmission: async function (playerTimeMs, submittedName, submitEvent) {
         // Reject name if Santa is displeased
         if (this.isNameOnTheNaughtyList(submittedName)) {
             submitEvent?.preventDefault(); // Do not submit
@@ -492,7 +494,7 @@ const orbCollectionMinigame = {
 
         // Passed validation, proceed with submission: cache name, save score, and show leaderboard
         this.saveLastPlayerName(submittedName);
-        const saveResultObj = this.saveScoreToLeaderboard(playerTimeMs, submittedName);
+        const saveResultObj = await this.saveScoreToLeaderboard(playerTimeMs, submittedName);
         this.showLeaderboard(playerTimeMs, saveResultObj);
     },
 
@@ -515,6 +517,71 @@ const orbCollectionMinigame = {
             allTimeKey: 'orb-minigame-power-all-time',
             monthlyKey: 'orb-minigame-power-monthly',
         };
+    },
+
+    /**
+     * Get leaderboard API categories for the active run type
+     *
+     * @returns {{allTimeCategory: string, monthlyCategory: string}} API category names for the active run type. E.g. 'standard-all-time' and 'standard-monthly', or 'power-all-time' and 'power-monthly'.
+     */
+    getActiveLeaderboardApiCategories: function () {
+        if (this.usedRegularMovementControls) {
+            return {
+                allTimeCategory: 'standard-all-time',
+                monthlyCategory: 'standard-monthly',
+            };
+        }
+
+        return {
+            allTimeCategory: 'power-all-time',
+            monthlyCategory: 'power-monthly',
+        };
+    },
+
+    /**
+     * Fetch scores from the global API
+     *
+     * @param {string} category - API category to fetch (e.g. 'standard-all-time').
+     * @returns {Promise<Array<object>|null>} Array of scores or null if the request failed.
+     */
+    fetchScoresFromApi: async function (category) {
+        try {
+            const response = await fetch(`${this.data.apiUrl}?category=${category}`);
+            if (!response.ok) throw new Error('orb-collection-minigame: API fetch failed');
+            return await response.json();
+        } catch (e) {
+            console.warn(`orb-collection-minigame: Could not fetch scores for ${category} from API`, e);
+            return null;
+        }
+    },
+
+    /**
+     * POST a new score to the global API
+     *
+     * @param {string} category - API category to save to.
+     * @param {object} score - Score object containing name, timeMs, and savedAt.
+     * @returns {Promise<Array<object>|null>} Array of updated top-10 scores from the server or null if failure.
+     */
+    postScoreToApi: async function (category, score) {
+        try {
+            const payload = {
+                category,
+                name: score.name,
+                timeMs: score.timeMs,
+                savedAt: score.savedAt
+            };
+            const response = await fetch(this.data.apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!response.ok) throw new Error('orb-collection-minigame: API POST failed');
+            const result = await response.json();
+            return result.scores; // API returns top top 10 as per our PHP logic
+        } catch (e) {
+            console.warn(`orb-collection-minigame: Could not POST score to ${category} API`, e);
+            return null;
+        }
     },
 
     /**
@@ -546,19 +613,31 @@ const orbCollectionMinigame = {
     },
 
     /**
-     * Get current leaderboard scores for the active run type
+     * Get active leaderboard scores
      *
-     * @returns {{monthlyScores: Array<object>, allTimeScores: Array<object>}} Current monthly and all-time scores for the active run type.
+     * Get current leaderboard scores for the active run type. Tries the global API first, and falls back to localStorage if the API is unavailable. Placeholder scores will populate if needed.
+     *
+     * @returns {Promise<{monthlyScores: Array<object>, allTimeScores: Array<object>}>} Current monthly and all-time scores for the active run type.
      */
-    getActiveLeaderboardScores: function () {
+    getActiveLeaderboardScores: async function () {
         const storageKeys = this.getActiveLeaderboardStorageKeys();
+        const apiCategories = this.getActiveLeaderboardApiCategories();
 
-        let allTimeScores = this.getSavedLocalScores(storageKeys.allTimeKey);
-        allTimeScores = this.populateLeaderboardGaps(allTimeScores, storageKeys.allTimeKey);
+        // Attempt to fetch from global API first
+        let allTimeScores = await this.fetchScoresFromApi(apiCategories.allTimeCategory);
+        let monthlyScores = await this.fetchScoresFromApi(apiCategories.monthlyCategory);
 
-        let monthlyScores = this.getSavedLocalScores(storageKeys.monthlyKey)
-            .filter(score => this.isScoreInCurrentUtcMonth(score)); // Monthly board filtered to current month
-        monthlyScores = this.populateLeaderboardGaps(monthlyScores, storageKeys.monthlyKey);
+        // Fallback to local storage if API fetch fails or returns null
+        if (allTimeScores === null) {
+            allTimeScores = this.getSavedLocalScores(storageKeys.allTimeKey);
+            allTimeScores = this.maintainLeaderboard(allTimeScores, storageKeys.allTimeKey);
+        }
+
+        if (monthlyScores === null) {
+            monthlyScores = this.getSavedLocalScores(storageKeys.monthlyKey)
+                .filter(score => this.isScoreInCurrentUtcMonth(score)); // Monthly board filtered to current month
+            monthlyScores = this.maintainLeaderboard(monthlyScores, storageKeys.monthlyKey);
+        }
 
         // Return both sets of scores
         return {
@@ -680,16 +759,12 @@ const orbCollectionMinigame = {
      *
      * @param {number} playerTimeMs - The player's completion time in ms to save to the leaderboard.
      * @param {string} playerName - The player's name to save to the leaderboard.
-     * @returns {Object} An object containing the updated monthly and all-time scores, the player's rank index on each board, and the sanitized player name that was saved: monthlyScores, allTimeScores, monthlyPlayerRankIndex, allTimePlayerRankIndex, playerName.
+     * @returns {Promise<Object>} An object containing the updated monthly and all-time scores, the player's rank index on each board, and the sanitized player name that was saved: monthlyScores, allTimeScores, monthlyPlayerRankIndex, allTimePlayerRankIndex, playerName.
      */
-    saveScoreToLeaderboard: function (playerTimeMs, playerName) {
+    saveScoreToLeaderboard: async function (playerTimeMs, playerName) {
         // Get existing scores and fill in gaps with default names/scores
         const storageKeys = this.getActiveLeaderboardStorageKeys();
-        let allTimeScores = this.getSavedLocalScores(storageKeys.allTimeKey);
-        allTimeScores = this.populateLeaderboardGaps(allTimeScores, storageKeys.allTimeKey);
-        let monthlyScores = this.getSavedLocalScores(storageKeys.monthlyKey)
-            .filter(score => this.isScoreInCurrentUtcMonth(score)); // Filter out scores outside of current month
-        monthlyScores = this.populateLeaderboardGaps(monthlyScores, storageKeys.monthlyKey);
+        const apiCategories = this.getActiveLeaderboardApiCategories();
 
         const sanitizedPlayerName = this.sanitizeLeaderboardName(playerName);
         const newScore = {
@@ -697,21 +772,40 @@ const orbCollectionMinigame = {
             name: sanitizedPlayerName,
             savedAt: Date.now(),
         };
-        // Add the new score, sort the list, and keep only the top 10 scores on each board
-        allTimeScores.push(newScore);
-        monthlyScores.push(newScore);
-        allTimeScores = this.trimLeaderboardScores(allTimeScores);
-        monthlyScores = this.trimLeaderboardScores(monthlyScores);
-        // Find the index or player rank on each board
-        const allTimePlayerRankIndex = allTimeScores.indexOf(newScore);
-        const monthlyPlayerRankIndex = monthlyScores.indexOf(newScore);
-        // Attempt to save the updated scores back to localStorage
-        try {
-            localStorage.setItem(storageKeys.allTimeKey, JSON.stringify(allTimeScores));
-            localStorage.setItem(storageKeys.monthlyKey, JSON.stringify(monthlyScores));
-        } catch (e) {
-            console.warn('orb-collection-minigame: Could not save score to localStorage');
+
+        // Try to save to global API first
+        let allTimeScores = await this.postScoreToApi(apiCategories.allTimeCategory, newScore);
+        let monthlyScores = await this.postScoreToApi(apiCategories.monthlyCategory, newScore);
+
+        // Fallback to local storage logic if API POST fails (either/both)
+        const useLocalStorageFallback = (allTimeScores === null || monthlyScores === null);
+
+        if (useLocalStorageFallback) {
+            allTimeScores = this.getSavedLocalScores(storageKeys.allTimeKey);
+            monthlyScores = this.getSavedLocalScores(storageKeys.monthlyKey)
+                .filter(score => this.isScoreInCurrentUtcMonth(score));
+
+            // Add new score to local collections
+            allTimeScores.push(newScore);
+            monthlyScores.push(newScore);
+
+            // Trim, sort, and fill in gaps for both boards ❓
+            allTimeScores = this.maintainLeaderboard(allTimeScores || [], storageKeys.allTimeKey);
+            monthlyScores = this.maintainLeaderboard(monthlyScores || [], storageKeys.monthlyKey);
+
+            // Save updated local scores
+            try {
+                localStorage.setItem(storageKeys.allTimeKey, JSON.stringify(allTimeScores));
+                localStorage.setItem(storageKeys.monthlyKey, JSON.stringify(monthlyScores));
+            } catch (e) {
+                console.warn('orb-collection-minigame: Could not save score to localStorage');
+            }
         }
+
+        // Find the index or player rank on each board
+        const allTimePlayerRankIndex = allTimeScores.findIndex(score => score.name === sanitizedPlayerName && score.timeMs === playerTimeMs && score.savedAt === newScore.savedAt);
+        const monthlyPlayerRankIndex = monthlyScores.findIndex(score => score.name === sanitizedPlayerName && score.timeMs === playerTimeMs && score.savedAt === newScore.savedAt);
+
         return {
             monthlyScores,
             allTimeScores,
@@ -748,17 +842,13 @@ const orbCollectionMinigame = {
      * @param {number} playerTimeMs - The player's completion time in milliseconds.
      * @returns {void} Does not return a value.
      */
-    promptForLeaderboardName: function (playerTimeMs) {
-        // Remove existing name input if player is replaying to get a better time (although not possible yet as of 2026-05-28)
-        if (this.nameInputEl && this.nameInputEl.parentNode) {
-            this.nameInputEl.parentNode.removeChild(this.nameInputEl);
-        }
+    promptForLeaderboardName: async function (playerTimeMs) {
 
         // Release movement keys so player doesn't keep moving while entering their name on desktop
         this.releaseMovementKeys();
 
         const lastPlayerName = this.getLastPlayerName();
-        const leaderboardScores = this.getActiveLeaderboardScores();
+        const leaderboardScores = await this.getActiveLeaderboardScores();
         const monthlyPreviewRankIndex = this.getPreviewLeaderboardRankIndex(leaderboardScores.monthlyScores, playerTimeMs);
         const allTimePreviewRankIndex = this.getPreviewLeaderboardRankIndex(leaderboardScores.allTimeScores, playerTimeMs);
 
@@ -1143,10 +1233,10 @@ const orbCollectionMinigame = {
      * @param {object} [saveResult] - Object containing the results from saving the player's score, including the updated scores list, the player's rank index, and the sanitized player name (if in top 10). If not provided, the function will fetch scores from localStorage.
      * @returns {void} Does not return a value.
      */
-    showLeaderboard: function (playerTimeMs, saveResult) {
+    showLeaderboard: async function (playerTimeMs, saveResult) {
         const subtitle = this.usedRegularMovementControls ? 'Standard Run' : 'Power Run';
         // Get resolved save result data
-        const activeLeaderboardScores = this.getActiveLeaderboardScores();
+        const activeLeaderboardScores = await this.getActiveLeaderboardScores();
         const resolvedSaveResult = saveResult || {
             monthlyScores: activeLeaderboardScores.monthlyScores,
             allTimeScores: activeLeaderboardScores.allTimeScores,
