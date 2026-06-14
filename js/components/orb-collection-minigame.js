@@ -882,7 +882,7 @@ const orbCollectionMinigame = {
             };
 
             // Display modal and add event listeners
-            modalEl.setAttribute('desktop-modal-input', `label: Enter Name; helpText: Letters only, max 12 characters; maxLength: 12; defaultValue: ${lastPlayerName}`);
+            modalEl.setAttribute('desktop-modal-input', `label: Enter Name; helpText: Letters and numbers only, max 12 characters; maxLength: 12; defaultValue: ${lastPlayerName}`);
             modalEl.addEventListener('desktop-modal-input-submit', handleDesktopSubmit);
             modalEl.addEventListener('desktop-modal-input-cancel', handleDesktopCancel, { once: true });
             this.el.sceneEl.appendChild(modalEl);
