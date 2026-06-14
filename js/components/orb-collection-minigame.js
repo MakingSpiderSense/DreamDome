@@ -844,11 +844,13 @@ const orbCollectionMinigame = {
      */
     promptForLeaderboardName: async function (playerTimeMs) {
 
+        // Get last player name and current leaderboard scores
+        const lastPlayerName = this.getLastPlayerName();
+        const leaderboardScores = await this.getActiveLeaderboardScores();
+
         // Release movement keys so player doesn't keep moving while entering their name on desktop
         this.releaseMovementKeys();
 
-        const lastPlayerName = this.getLastPlayerName();
-        const leaderboardScores = await this.getActiveLeaderboardScores();
         const monthlyPreviewRankIndex = this.getPreviewLeaderboardRankIndex(leaderboardScores.monthlyScores, playerTimeMs);
         const allTimePreviewRankIndex = this.getPreviewLeaderboardRankIndex(leaderboardScores.allTimeScores, playerTimeMs);
 
