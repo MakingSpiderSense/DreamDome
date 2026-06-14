@@ -895,7 +895,7 @@ const orbCollectionMinigame = {
 
         const keyboardAnchorEl = document.querySelector('#cameraRig') || this.el.sceneEl.camera?.el || null;
         if (!keyboardAnchorEl) {
-            const saveResultObj = this.saveScoreToLeaderboard(playerTimeMs, '');
+            const saveResultObj = await this.saveScoreToLeaderboard(playerTimeMs, 'Player');
             this.showLeaderboard(playerTimeMs, saveResultObj);
             return;
         }
