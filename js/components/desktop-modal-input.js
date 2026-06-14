@@ -1,12 +1,12 @@
 /**
  * Desktop modal input
  *
- * Creates and manages a desktop-only modal overlay that collects a sanitized alphabetic name value, supports cancel/submit actions, and emits the `desktop-modal-input-submit` event with the cleaned value on submit.
+ * Creates and manages a desktop-only modal overlay that collects a sanitized alphanumeric name value, supports cancel/submit actions, and emits the `desktop-modal-input-submit` event with the cleaned value on submit.
  */
 const desktopModalInput = {
     schema: {
         label: { default: "Enter Name" },
-        helpText: { default: "Letters only, max 12 characters" },
+        helpText: { default: "Letters and numbers only, max 12 characters" },
         maxLength: { default: 12 },
         defaultValue: { default: '' },
     },
