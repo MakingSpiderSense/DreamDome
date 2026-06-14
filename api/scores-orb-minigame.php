@@ -59,12 +59,12 @@ $playerNamePool = [
 ];
 
 /**
- * Generate random placeholder names
+ * Get placeholder names
  *
- * This function picks ten unique names from a backup list to fill up the leaderboard when there are not enough real players, making sure the same names appear for everyone each month.
+ * This function shuffles a backup list to fill up the leaderboard when there are not enough real players, making sure the same names appear for everyone each month.
  *
  * @param string $category The type of leaderboard we need names for.
- * @return array A list of ten names used to fill empty spots.
+ * @return array A shuffled list of names used to fill empty spots.
  */
 function get_placeholders(string $category): array {
     global $playerNamePool;
