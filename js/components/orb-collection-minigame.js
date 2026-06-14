@@ -1232,26 +1232,23 @@ const orbCollectionMinigame = {
      * Saves the player's completion time, fades out the HUD, builds and displays a leaderboard in front of the camera, highlights the player's entry, then fades and removes the leaderboard after a short delay.
      *
      * @param {number} playerTimeMs - The player's completion time in milliseconds to save and display on the leaderboard.
-     * @param {object} [saveResult] - Object containing the results from saving the player's score, including the updated scores list, the player's rank index, and the sanitized player name (if in top 10). If not provided, the function will fetch scores from localStorage.
+     * @param {object} [saveResult] - Object containing the results from saving the player's score, including the updated scores list, the player's rank index, and the sanitized player name (if in top 10).
      * @returns {void} Does not return a value.
      */
     showLeaderboard: async function (playerTimeMs, saveResult) {
-        const subtitle = this.usedRegularMovementControls ? 'Standard Run' : 'Power Run';
-        // Get resolved save result data
-        const activeLeaderboardScores = await this.getActiveLeaderboardScores();
-        const resolvedSaveResult = saveResult || {
-            monthlyScores: activeLeaderboardScores.monthlyScores,
-            allTimeScores: activeLeaderboardScores.allTimeScores,
-            monthlyPlayerRankIndex: -1, // They did not rank on the monthly board
-            allTimePlayerRankIndex: -1, // They did not rank on the all-time board
-        };
+        // Return early with warning if no savedResult is provided
+        if (!saveResult) {
+            console.warn('orb-collection-minigame: No save result provided to showLeaderboard, cannot display player name or rank on the leaderboard.');
+            return;
+        }
         // Gather some data for building the leaderboard
-        const monthlyScores = resolvedSaveResult.monthlyScores;
-        const allTimeScores = resolvedSaveResult.allTimeScores;
+        const subtitle = this.usedRegularMovementControls ? 'Standard Run' : 'Power Run';
+        const monthlyScores = saveResult.monthlyScores;
+        const allTimeScores = saveResult.allTimeScores;
         const monthlyPlayerNames = this.getLeaderboardPlayerNames(monthlyScores, 10);
         const allTimePlayerNames = this.getLeaderboardPlayerNames(allTimeScores, 10);
-        const monthlyPlayerRankIndex = resolvedSaveResult.monthlyPlayerRankIndex;
-        const allTimePlayerRankIndex = resolvedSaveResult.allTimePlayerRankIndex;
+        const monthlyPlayerRankIndex = saveResult.monthlyPlayerRankIndex;
+        const allTimePlayerRankIndex = saveResult.allTimePlayerRankIndex;
         const cameraEl = this.el.sceneEl.camera.el;
 
         // Remove the name input UI
