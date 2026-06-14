@@ -1,30 +1,48 @@
 /**
  * Desktop modal input
  *
- * Creates and manages a desktop-only modal overlay that collects a sanitized alphabetic name value, supports cancel/submit actions, and emits the `desktop-modal-input-submit` event with the cleaned value on submit.
+ * Creates and manages a desktop-only modal overlay that collects a sanitized alphanumeric name value, supports cancel/submit actions, and emits the `desktop-modal-input-submit` event with the cleaned value on submit.
  */
 const desktopModalInput = {
     schema: {
         label: { default: "Enter Name" },
-        helpText: { default: "Letters only, max 12 characters" },
+        helpText: { default: "Letters and numbers only, max 12 characters" },
         maxLength: { default: 12 },
+        defaultValue: { default: '' },
     },
 
     init() {
         this.showOverlay();
     },
 
+    update(oldData) {
+        if (!oldData) return;
+
+        if (this.titleEl && oldData.label !== this.data.label) {
+            this.titleEl.textContent = this.data.label;
+        }
+
+        if (this.helpTextEl && oldData.helpText !== this.data.helpText) {
+            this.helpTextEl.textContent = this.data.helpText;
+        }
+
+        if (this.inputEl && oldData.maxLength !== this.data.maxLength) {
+            this.inputEl.maxLength = this.data.maxLength;
+            this.inputEl.value = this.sanitizeValue(this.inputEl.value);
+        }
+    },
+
     /**
      * Clean and limit input
      *
-     * Takes any input, converts it to text, removes everything except letters A-Z, and shortens it to the maxLength so the value is always valid for this component.
+     * Takes any input, converts it to text, removes everything except letters A-Z and numbers 0-9, and shortens it to the maxLength so the value is always valid for this component.
      *
      * @param {*} value - The raw value to clean (such as text typed by the user).
-     * @returns {string} The sanitized string containing only letters, limited to the configured maximum length.
+     * @returns {string} The sanitized string containing only letters and numbers, limited to the configured maximum length.
      */
     sanitizeValue(value) {
         return String(value ?? "")
-            .replace(/[^A-Za-z]/g, "")
+            .replace(/[^A-Za-z0-9]/g, "")
             .slice(0, this.data.maxLength);
     },
 
@@ -102,6 +120,9 @@ const desktopModalInput = {
             input.value = this.sanitizeValue(input.value);
         });
 
+        // Set default value if provided
+        input.value = this.sanitizeValue(this.data.defaultValue);
+
         // Create button container
         const buttonRow = document.createElement("div");
         buttonRow.style.cssText = "display: flex; gap: 10px; justify-content: center;";
@@ -134,8 +155,13 @@ const desktopModalInput = {
 
         /**
          * Remove the overlay entirely from the DOM
+         *
+         * @param {boolean} wasSubmitted - True when the input closed after it was submitted, false when it closed from cancellation.
          */
-        const closeOverlay = () => {
+        const closeOverlay = (wasSubmitted = false) => {
+            if (!wasSubmitted) {
+                this.el.emit("desktop-modal-input-cancel");
+            }
             this.el.remove();
         };
         /**
@@ -144,30 +170,37 @@ const desktopModalInput = {
         const submitValue = () => {
             const value = this.sanitizeValue(input.value); // Sanitize again
             if (!value) return;
-            // Emit custom event and close overlay
-            this.el.emit("desktop-modal-input-submit", { value });
-            closeOverlay();
+            const submitEvent = new CustomEvent("desktop-modal-input-submit", {
+                detail: { value },
+                cancelable: true,
+            });
+            this.el.dispatchEvent(submitEvent);
+            if (submitEvent.defaultPrevented) return;
+            closeOverlay(true);
         };
 
-        // Add event listeners for buttons and overlay
-        cancelButton.addEventListener("click", closeOverlay);
+        // Add event listeners for buttons
+        cancelButton.addEventListener("click", () => closeOverlay(false));
         submitButton.addEventListener("click", submitValue);
-        overlay.addEventListener("click", (evt) => {
-            if (evt.target === overlay) {
-                closeOverlay();
-            }
-        });
 
-        // Add event listeners for Enter and Escape keys for better UX
+        // Add event listeners for Enter and Escape keys for better UX and prevent repeat character issue
         input.addEventListener("keydown", (evt) => {
+            // Prevent holding down a letter key from flooding input with repeated characters. This is needed since the WASD keys are used for movement and will likely be held down when the input appears
+            if (evt.repeat && /^[a-z]$/i.test(evt.key)) {
+                evt.preventDefault();
+                return;
+            }
+
+            // Enter submits the form
             if (evt.key === "Enter") {
                 evt.preventDefault();
                 submitValue();
             }
 
+            // Escape cancels and closes the overlay
             if (evt.key === "Escape") {
                 evt.preventDefault();
-                closeOverlay();
+                closeOverlay(false);
             }
         });
 
@@ -182,6 +215,9 @@ const desktopModalInput = {
         document.body.appendChild(overlay);
 
         this.overlay = overlay; // Store reference to overlay for later removal if needed
+        this.titleEl = title;
+        this.helpTextEl = helpText;
+        this.inputEl = input;
         input.focus(); // Focus input
     },
 

@@ -18,7 +18,17 @@ const orbCollectionMinigame = {
         showSpeed: { type: 'boolean', default: false },
         collectSound: { type: 'string', default: '' },
         allCollectedSound: { type: 'string', default: '' },
+        debug: { type: "boolean", default: false }, // Reduces spawn area to 30m
+        apiUrl: { type: 'string', default: 'api/scores-orb-minigame.php' }, // URL for the shared global leaderboard API
     },
+
+    playerNamePool: [
+        'Parzival', 'Art3mis', 'Aech', 'Shoto', 'Daito', 'Anorak', 'Og',
+        '655321', 'Hiro', 'YT', 'Da5id', 'Neo', 'Morpheus', 'Trinity',
+        'MindFlayer', 'LawnmowerMan', 'Tron', 'BrainDancer', 'Wintermute',
+        'Neuromancer', 'FreeGuy', 'JSilverhand', 'VikVektor', 'SpaceHarrier',
+        'Dreamweaver'
+    ],
 
     init: function () {
         this.orbs = []; // Array to hold references to the spawned orbs
@@ -34,17 +44,17 @@ const orbCollectionMinigame = {
         this.hudTimerTextEl = null; // Text element showing elapsed time
         this.hudSpeedTextEl = null; // Optional text element showing current travel speed
         this.leaderboardEl = null; // Leaderboard container entity (parented to camera)
+        this.nameInputEl = null; // Active name input entity while the player enters their score name
         this.boostDuration = 5000; // Duration of movement speed boost in ms after collecting an orb
         this.currentBoostLevel = 0; // Boost levels of 0 (no boost), 1 (small boost), 2 (large boost), 3 (max boost)
         this.boostTimeoutId = null; // To remove unused boost timeout when collecting another orb before current boost expires
         this.movementSpeedModifierEl = null; // Used for speed boosts
         this.movementSpeedModifierComponent = null; // Used for speed boosts
-        this.standardLeaderboardStorageKey = 'orb-minigame-scores'; // Local storage key for standard run
-        this.powerLeaderboardStorageKey = 'orb-minigame-power-run-scores'; // Local storage key for power run (only arm swing locomotion used)
         this.leftControllerSelector = '[meta-touch-controls*="hand: left"], [meta-touch-controls*="hand:left"], [oculus-touch-controls*="hand: left"], [oculus-touch-controls*="hand:left"], [hand-controls*="hand: left"], [hand-controls*="hand:left"]';
         this.leftControllerEl = null; // Used to detect joystick movement for leaderboard categorization
         this.originalMovementSpeedModifierSettings = null; // Store original settings to restore later
         this.usedRegularMovementControls = false; // True once any keyboard key or left joystick movement is used during the run
+        this.cachedPlaceholderNames = { standard: null, power: null }; // To store 10 generated names
 
         // Set up listeners and bindings
         this.blockShiftDuringMinigame = this.blockShiftDuringMinigame.bind(this);
@@ -56,8 +66,10 @@ const orbCollectionMinigame = {
 
         // Hidden reset: add ?reset-scores to the URL to wipe the leaderboard
         if (new URLSearchParams(window.location.search).has('reset-scores')) {
-            localStorage.removeItem(this.standardLeaderboardStorageKey);
-            localStorage.removeItem(this.powerLeaderboardStorageKey);
+            localStorage.removeItem('orb-minigame-standard-all-time');
+            localStorage.removeItem('orb-minigame-standard-monthly');
+            localStorage.removeItem('orb-minigame-power-all-time');
+            localStorage.removeItem('orb-minigame-power-monthly');
         }
 
         // Set up check for joystick movement on left controller (determines leaderboard category)
@@ -96,6 +108,25 @@ const orbCollectionMinigame = {
         const navMeshObject3D = navMeshEl.getObject3D('mesh');
         if (!navMeshObject3D) { console.warn('orb-collection-minigame: nav mesh Object3D not ready'); return; }
         const navMeshBounds = new THREE.Box3().setFromObject(navMeshObject3D);
+
+        // 🐞 Debugging only - reduces spawn area
+        let spawnMinX = navMeshBounds.min.x;
+        let spawnMaxX = navMeshBounds.max.x;
+        let spawnMinZ = navMeshBounds.min.z;
+        let spawnMaxZ = navMeshBounds.max.z;
+        if (this.data.debug) {
+            const spawnAnchorEl = document.querySelector('#cameraRig') || this.el.sceneEl.camera?.el;
+            const spawnCenter = new THREE.Vector3();
+            if (spawnAnchorEl?.object3D) {
+                spawnAnchorEl.object3D.getWorldPosition(spawnCenter);
+            }
+            const debugSpawnRadius = 30;
+            spawnMinX = spawnAnchorEl ? Math.max(navMeshBounds.min.x, spawnCenter.x - debugSpawnRadius) : navMeshBounds.min.x;
+            spawnMaxX = spawnAnchorEl ? Math.min(navMeshBounds.max.x, spawnCenter.x + debugSpawnRadius) : navMeshBounds.max.x;
+            spawnMinZ = spawnAnchorEl ? Math.max(navMeshBounds.min.z, spawnCenter.z - debugSpawnRadius) : navMeshBounds.min.z;
+            spawnMaxZ = spawnAnchorEl ? Math.min(navMeshBounds.max.z, spawnCenter.z + debugSpawnRadius) : navMeshBounds.max.z;
+        }
+
         const surfaceRaycaster = new THREE.Raycaster();
         const downwardRayDirection = new THREE.Vector3(0, -1, 0);
         const rayOrigin = new THREE.Vector3();
@@ -108,8 +139,20 @@ const orbCollectionMinigame = {
         // Attempt to place all orbs
         while (placedOrbPositions.length < targetOrbCount && spawnAttempts < targetOrbCount * 150) {
             spawnAttempts++; // Keep track to prevent infinite loop if nav mesh is too small or minDistance too large
-            const randomX = THREE.MathUtils.lerp(navMeshBounds.min.x, navMeshBounds.max.x, Math.random());
-            const randomZ = THREE.MathUtils.lerp(navMeshBounds.min.z, navMeshBounds.max.z, Math.random());
+
+            // Randomly select a spawn point
+            let randomX;
+            let randomZ;
+            if (this.data.debug) {
+                // 🐞 Debugging only - reduces spawn area
+                randomX = THREE.MathUtils.lerp(spawnMinX, spawnMaxX, Math.random());
+                randomZ = THREE.MathUtils.lerp(spawnMinZ, spawnMaxZ, Math.random());
+            } else {
+                // Normal behavior - full nav mesh spawn area
+                randomX = THREE.MathUtils.lerp(navMeshBounds.min.x, navMeshBounds.max.x, Math.random());
+                randomZ = THREE.MathUtils.lerp(navMeshBounds.min.z, navMeshBounds.max.z, Math.random());
+            }
+
             // Cast a ray downward from above the nav mesh to find the surface height at the random (x, z) position
             rayOrigin.set(randomX, navMeshBounds.max.y + 5, randomZ);
             surfaceRaycaster.set(rayOrigin, downwardRayDirection);
@@ -266,6 +309,402 @@ const orbCollectionMinigame = {
     },
 
     /**
+     * Get the first day of the current UTC month as YYYY-MM-DD
+     *
+     * @returns {string} Current UTC month start date.
+     */
+    getCurrentUtcMonthStartDateDisplay: function () {
+        const now = new Date();
+        return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-01`;
+    },
+
+    /**
+     * Check if the scene is in desktop mode
+     *
+     * @returns {boolean} True when the scene is not currently in VR mode.
+     */
+    isDesktopMode: function () {
+        return !this.el.sceneEl.is('vr-mode');
+    },
+
+    /**
+     * Sanitize a leaderboard name
+     *
+     * Keeps only letters and numbers and limits the saved name to 12 characters.
+     *
+     * @param {string} name - Raw name text from the input UI.
+     * @returns {string} Cleaned player name.
+     */
+    sanitizeLeaderboardName: function (name) {
+        return String(name || '')
+            .replace(/[^A-Za-z0-9]/g, '') // Remove non-alphanumeric characters
+            .slice(0, 12); // Limit to 12 characters
+    },
+
+    /**
+     * Maintain leaderboard
+     *
+     * Fills the gaps in the leaderboard if less than 10 entries by picking names from a placeholder list and assigning completion times starting at 1:30 and increasing by 30 seconds for each additional placeholder.
+     *
+     * @param {Array<object>} scores - Current score entries.
+     * @param {string} storageKey - Local storage key to save the populated scores to.
+     * @returns {Array<object>} Populated and sorted score entries.
+     */
+    maintainLeaderboard: function (scores, storageKey) {
+        // Populate leaderboard until there are 10 entries
+        if (scores.length < 10) {
+            const gapCount = 10 - scores.length;
+            const runType = storageKey.includes('power') ? 'power' : 'standard';
+            const placeholderNamesList = this.getPlaceholderNames(runType);
+
+            // Get the first day of current month as a timestamp for placeholder entries
+            const now = new Date();
+            const monthStartTimestamp = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
+
+            for (let i = 0; i < gapCount; i++) {
+                // Go through names in order
+                const name = placeholderNamesList[i] || 'Player';
+                // Calculate time: starts at 90s (1:30) and increases by 30s for each subsequent placeholder. By starting at the lowest possible time, we ensure the leaderboard provides a challenge.
+                const timeMs = 90000 + (i * 30000);
+                // Push placeholder score data
+                scores.push({
+                    timeMs,
+                    name,
+                    savedAt: monthStartTimestamp,
+                    isPlaceholder: true // Flag to identify these are default scores
+                });
+            }
+        }
+
+        // Trim and sort scores
+        const finalScores = this.trimLeaderboardScores(scores);
+
+        // Save back to local storage
+        try {
+            localStorage.setItem(storageKey, JSON.stringify(finalScores));
+        } catch (e) {
+            console.warn('orb-collection-minigame: Could not save populated scores to localStorage');
+        }
+
+        return finalScores;
+    },
+
+    /**
+     * Get placeholder names
+     *
+     * Creates and caches a randomized sequence of 10 placeholder names from the pool of names. There are no repeats in the generated list.
+     *
+     * @param {string} type - The run type ('standard' or 'power') to scope the names to.
+     * @returns {Array<string>} 10 unique names from the pool.
+     */
+    getPlaceholderNames: function (type) {
+        // Use component-scoped cache if it already exists for this run type
+        if (this.cachedPlaceholderNames?.[type]) {
+            return this.cachedPlaceholderNames[type];
+        }
+        // Generate new shuffled list from the pool
+        const pool = [...this.playerNamePool];
+        const placeholderNames = [];
+        for (let i = 0; i < 10; i++) {
+            const randomIndex = Math.floor(Math.random() * pool.length);
+            placeholderNames.push(pool.splice(randomIndex, 1)[0]); // Take a random name from pool array and move it to the placeholder list, ensuring no repeats
+        }
+        // Cache the list in the component so it stays the same across boards in the same session
+        if (!this.cachedPlaceholderNames) this.cachedPlaceholderNames = {};
+        this.cachedPlaceholderNames[type] = placeholderNames;
+        // Return the generated list
+        return placeholderNames;
+    },
+
+    /**
+     * Check if name is on the naughty list
+     *
+     * Uses a case-insensitive naughty fragment list after applying the same alphanumeric sanitization used for saved names to determine if the name has disappointed Santa beyond acceptable limits.
+     *
+     * @param {string} name - Raw name text from the input UI.
+     * @returns {boolean} True when the sanitized name contains a naughty fragment.
+     */
+    isNameOnTheNaughtyList: function (name) {
+        const disallowedLeaderboardNameFragments = [
+            'arsehole', 'asshole', 'bastard', 'bitch', 'bollocks', 'bullshit', 'cunt', 'damn', 'dick', 'fuck', 'piss', 'prick', 'shit', 'slut', 'twat', 'wanker', 'weiner', 'whore', 'vagina'
+        ];
+        const sanitizedName = this.sanitizeLeaderboardName(name).toLowerCase();
+        if (!sanitizedName) return false;
+        return disallowedLeaderboardNameFragments.some(disallowedFragment => sanitizedName.includes(disallowedFragment));
+    },
+
+    /**
+     * Get last saved player name from localStorage
+     *
+     * Reads the most recently submitted player name from browser storage, sanitizes it to ensure it's safe, and returns it for auto-filling the name input on subsequent plays.
+     *
+     * @returns {string} Sanitized last player name or empty string if none saved.
+     */
+    getLastPlayerName: function () {
+        try {
+            const saved = localStorage.getItem('orb-minigame-last-player-name');
+            return this.sanitizeLeaderboardName(saved || '');
+        } catch (e) {
+            return '';
+        }
+    },
+
+    /**
+     * Save last player name to localStorage
+     *
+     * Stores the player's name in browser storage so it can be auto-filled the next time they play and qualify for the leaderboard.
+     *
+     * @param {string} name - Player name to save.
+     * @returns {void} Does not return a value.
+     */
+    saveLastPlayerName: function (name) {
+        try {
+            const sanitized = this.sanitizeLeaderboardName(name);
+            if (sanitized) {
+                localStorage.setItem('orb-minigame-last-player-name', sanitized);
+            }
+        } catch (e) {
+            console.warn('orb-collection-minigame: failed to save last player name', e);
+        }
+    },
+
+    /**
+     * Handle leaderboard name submission
+     *
+     * Validates the submitted name against Santa's naughty list and either keeps the input open with an error message or saves the score and shows the leaderboard.
+     *
+     * @param {number} playerTimeMs - The player's completion time in milliseconds.
+     * @param {string} submittedName - Raw name submitted from the desktop modal or VR keyboard.
+     * @param {Event} [submitEvent] - The original submit event so desktop submission can be canceled.
+     * @returns {void} Does not return a value.
+     */
+    handleLeaderboardNameSubmission: async function (playerTimeMs, submittedName, submitEvent) {
+        // Reject name if Santa is displeased
+        if (this.isNameOnTheNaughtyList(submittedName)) {
+            submitEvent?.preventDefault(); // Do not submit
+            // Santa summons Krampus to show error message
+            if (!this.nameInputEl) return;
+            if (this.isDesktopMode()) {
+                this.nameInputEl.setAttribute('desktop-modal-input', 'label: Enter Name; helpText: That name can\'t be used; maxLength: 12');
+                return;
+            }
+            this.nameInputEl.setAttribute('vr-keyboard', 'label: This name can\'t be used:; maxLength: 12');
+            return;
+        }
+
+        // Passed validation, proceed with submission: cache name, save score, and show leaderboard
+        this.saveLastPlayerName(submittedName);
+        const saveResultObj = await this.saveScoreToLeaderboard(playerTimeMs, submittedName);
+        this.showLeaderboard(playerTimeMs, saveResultObj);
+    },
+
+    /**
+     * Get leaderboard storage keys for the active run type
+     *
+     * @returns {{allTimeKey: string, monthlyKey: string}} Local storage keys for the active run type.
+     */
+    getActiveLeaderboardStorageKeys: function () {
+        if (this.usedRegularMovementControls) {
+            // Give em the lame standard board
+            return {
+                allTimeKey: 'orb-minigame-standard-all-time',
+                monthlyKey: 'orb-minigame-standard-monthly',
+            };
+        }
+
+        // Reward them with the power board for exclusively using arm swinging locomotion
+        return {
+            allTimeKey: 'orb-minigame-power-all-time',
+            monthlyKey: 'orb-minigame-power-monthly',
+        };
+    },
+
+    /**
+     * Get leaderboard API categories for the active run type
+     *
+     * @returns {{allTimeCategory: string, monthlyCategory: string}} API category names for the active run type. E.g. 'standard-all-time' and 'standard-monthly', or 'power-all-time' and 'power-monthly'.
+     */
+    getActiveLeaderboardApiCategories: function () {
+        if (this.usedRegularMovementControls) {
+            return {
+                allTimeCategory: 'standard-all-time',
+                monthlyCategory: 'standard-monthly',
+            };
+        }
+
+        return {
+            allTimeCategory: 'power-all-time',
+            monthlyCategory: 'power-monthly',
+        };
+    },
+
+    /**
+     * Fetch scores from the global API
+     *
+     * @param {string} category - API category to fetch (e.g. 'standard-all-time').
+     * @returns {Promise<Array<object>|null>} Array of scores or null if the request failed.
+     */
+    fetchScoresFromApi: async function (category) {
+        try {
+            const response = await fetch(`${this.data.apiUrl}?category=${category}`);
+            if (!response.ok) throw new Error('orb-collection-minigame: API fetch failed');
+            return await response.json();
+        } catch (e) {
+            console.warn(`orb-collection-minigame: Could not fetch scores for ${category} from API`, e);
+            return null;
+        }
+    },
+
+    /**
+     * POST a new score to the global API
+     *
+     * @param {string} category - API category to save to.
+     * @param {object} score - Score object containing name, timeMs, and savedAt.
+     * @returns {Promise<Array<object>|null>} Array of updated top-10 scores from the server or null if failure.
+     */
+    postScoreToApi: async function (category, score) {
+        try {
+            const payload = {
+                category,
+                name: score.name,
+                timeMs: score.timeMs,
+                savedAt: score.savedAt
+            };
+            const response = await fetch(this.data.apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!response.ok) throw new Error('orb-collection-minigame: API POST failed');
+            const result = await response.json();
+            return result.scores; // API returns top top 10 as per our PHP logic
+        } catch (e) {
+            console.warn(`orb-collection-minigame: Could not POST score to ${category} API`, e);
+            return null;
+        }
+    },
+
+    /**
+     * Check whether a saved score belongs to the current UTC month
+     *
+     * @param {object} score - Saved score entry. Contains a `savedAt` property with the timestamp.
+     * @returns {boolean} True when the score was saved during the current UTC month.
+     */
+    isScoreInCurrentUtcMonth: function (score) {
+        if (!score || typeof score.savedAt !== 'number') return false;
+        const savedAtDate = new Date(score.savedAt);
+        const now = new Date();
+        // Compare the year and month of the saved score with now, and return true only if they match
+        return savedAtDate.getUTCFullYear() === now.getUTCFullYear()
+            && savedAtDate.getUTCMonth() === now.getUTCMonth();
+    },
+
+    /**
+     * Trim and sort leaderboard scores to the top 10 fastest times
+     *
+     * @param {Array<object>} scores - Score entries to sort and trim.
+     * @returns {Array<object>} Sorted top-10 score entries.
+     */
+    trimLeaderboardScores: function (scores) {
+        return scores
+            .slice() // This basically creates a copy to avoid mutating the original array during sort
+            .sort((a, b) => a.timeMs - b.timeMs)
+            .slice(0, 10); // Trim to top 10 scores
+    },
+
+    /**
+     * Get active leaderboard scores
+     *
+     * Get current leaderboard scores for the active run type. Tries the global API first, and falls back to localStorage if the API is unavailable. Placeholder scores will populate if needed.
+     *
+     * @returns {Promise<{monthlyScores: Array<object>, allTimeScores: Array<object>}>} Current monthly and all-time scores for the active run type.
+     */
+    getActiveLeaderboardScores: async function () {
+        const storageKeys = this.getActiveLeaderboardStorageKeys();
+        const apiCategories = this.getActiveLeaderboardApiCategories();
+
+        // Attempt to fetch from global API first
+        let allTimeScores = await this.fetchScoresFromApi(apiCategories.allTimeCategory);
+        let monthlyScores = await this.fetchScoresFromApi(apiCategories.monthlyCategory);
+
+        // Fallback to local storage if API fetch fails or returns null
+        if (allTimeScores === null) {
+            allTimeScores = this.getSavedLocalScores(storageKeys.allTimeKey);
+            allTimeScores = this.maintainLeaderboard(allTimeScores, storageKeys.allTimeKey);
+        }
+
+        if (monthlyScores === null) {
+            monthlyScores = this.getSavedLocalScores(storageKeys.monthlyKey)
+                .filter(score => this.isScoreInCurrentUtcMonth(score)); // Monthly board filtered to current month
+            monthlyScores = this.maintainLeaderboard(monthlyScores, storageKeys.monthlyKey);
+        }
+
+        // Return both sets of scores
+        return {
+            monthlyScores,
+            allTimeScores,
+        };
+    },
+
+    /**
+     * Get preview leaderboard rank for a candidate score
+     *
+     * @param {Array<object>} scores - Existing scores for one leaderboard.
+     * @param {number} playerTimeMs - Candidate completion time.
+     * @returns {number} Zero-based rank index, or -1 if not in the top 10.
+     */
+    getPreviewLeaderboardRankIndex: function (scores, playerTimeMs) {
+        const previewScore = { timeMs: playerTimeMs };
+        const previewScores = this.trimLeaderboardScores(scores.concat(previewScore)); // Add score, then trim
+        return previewScores.indexOf(previewScore); // Find and return placement
+    },
+
+    /**
+     * Get saved local leaderboard scores
+     *
+     * @param {string} storageKey - Local storage key to load.
+     * @returns {Array<object>} Saved scores from localStorage for the requested leaderboard.
+     */
+    getSavedLocalScores: function (storageKey) {
+        let savedScores = [];
+        try {
+            const stored = localStorage.getItem(storageKey);
+            if (stored) savedScores = JSON.parse(stored);
+        } catch (e) {
+            savedScores = [];
+        }
+        return Array.isArray(savedScores) ? savedScores : [];
+    },
+
+    /**
+     * Release movement keys
+     *
+     * Sends keyup events for common movement keys so desktop movement does not continue while the name prompt is open.
+     *
+     * @returns {void} Does not return a value.
+     */
+    releaseMovementKeys: function () {
+        const movementKeys = [
+            { code: 'KeyW', key: 'w' },
+            { code: 'KeyA', key: 'a' },
+            { code: 'KeyS', key: 's' },
+            { code: 'KeyD', key: 'd' },
+            { code: 'ArrowUp', key: 'ArrowUp' },
+            { code: 'ArrowLeft', key: 'ArrowLeft' },
+            { code: 'ArrowDown', key: 'ArrowDown' },
+            { code: 'ArrowRight', key: 'ArrowRight' },
+        ];
+
+        movementKeys.forEach((movementKey) => {
+            window.dispatchEvent(new KeyboardEvent('keyup', {
+                code: movementKey.code,
+                key: movementKey.key,
+                bubbles: true,
+            }));
+        });
+    },
+
+    /**
      * Track if keyboard is used
      *
      * Marks that regular movement controls were used when a movement key is pressed during an active game, and ignores input before the game starts or after all orbs are collected.
@@ -319,34 +758,311 @@ const orbCollectionMinigame = {
      * Save score to leaderboard
      *
      * @param {number} playerTimeMs - The player's completion time in ms to save to the leaderboard.
-     * @returns {Array} The updated list of top scores.
+     * @param {string} playerName - The player's name to save to the leaderboard.
+     * @returns {Promise<Object>} An object containing the updated monthly and all-time scores, the player's rank index on each board, and the sanitized player name that was saved: monthlyScores, allTimeScores, monthlyPlayerRankIndex, allTimePlayerRankIndex, playerName.
      */
-    saveScoreToLeaderboard: function (playerTimeMs) {
-        const storageKey = this.usedRegularMovementControls
-            ? this.standardLeaderboardStorageKey
-            : this.powerLeaderboardStorageKey;
-        let savedScores = [];
-        // Attempt to retrieve existing scores from localStorage
-        try {
-            const stored = localStorage.getItem(storageKey);
-            if (stored) savedScores = JSON.parse(stored);
-        } catch (e) {
-            savedScores = [];
+    saveScoreToLeaderboard: async function (playerTimeMs, playerName) {
+        // Get existing scores and fill in gaps with default names/scores
+        const storageKeys = this.getActiveLeaderboardStorageKeys();
+        const apiCategories = this.getActiveLeaderboardApiCategories();
+
+        const sanitizedPlayerName = this.sanitizeLeaderboardName(playerName);
+        const newScore = {
+            timeMs: playerTimeMs,
+            name: sanitizedPlayerName,
+            savedAt: Date.now(),
+        };
+
+        // Try to save to global API first
+        let allTimeScores = await this.postScoreToApi(apiCategories.allTimeCategory, newScore);
+        let monthlyScores = await this.postScoreToApi(apiCategories.monthlyCategory, newScore);
+
+        // Fallback to local storage logic if API POST fails (either/both)
+        const useLocalStorageFallback = (allTimeScores === null || monthlyScores === null);
+
+        if (useLocalStorageFallback) {
+            allTimeScores = this.getSavedLocalScores(storageKeys.allTimeKey);
+            monthlyScores = this.getSavedLocalScores(storageKeys.monthlyKey)
+                .filter(score => this.isScoreInCurrentUtcMonth(score));
+
+            // Add new score to local collections
+            allTimeScores.push(newScore);
+            monthlyScores.push(newScore);
+
+            // Trim, sort, and fill in gaps for both boards ❓
+            allTimeScores = this.maintainLeaderboard(allTimeScores || [], storageKeys.allTimeKey);
+            monthlyScores = this.maintainLeaderboard(monthlyScores || [], storageKeys.monthlyKey);
+
+            // Save updated local scores
+            try {
+                localStorage.setItem(storageKeys.allTimeKey, JSON.stringify(allTimeScores));
+                localStorage.setItem(storageKeys.monthlyKey, JSON.stringify(monthlyScores));
+            } catch (e) {
+                console.warn('orb-collection-minigame: Could not save score to localStorage');
+            }
         }
-        // Store both the time and the date the score was set
-        const today = new Date();
-        const dateDisplay = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`; // YYYY-MM-DD format
-        // Add the new score, sort the list, and keep only the top 10 scores
-        savedScores.push({ timeMs: playerTimeMs, date: dateDisplay });
-        savedScores.sort((a, b) => a.timeMs - b.timeMs);
-        if (savedScores.length > 10) savedScores = savedScores.slice(0, 10);
-        // Attempt to save the updated scores back to localStorage
-        try {
-            localStorage.setItem(storageKey, JSON.stringify(savedScores));
-        } catch (e) {
-            console.warn('orb-collection-minigame: Could not save score to localStorage');
+
+        // Find the index or player rank on each board
+        const allTimePlayerRankIndex = allTimeScores.findIndex(score => score.name === sanitizedPlayerName && score.timeMs === playerTimeMs && score.savedAt === newScore.savedAt);
+        const monthlyPlayerRankIndex = monthlyScores.findIndex(score => score.name === sanitizedPlayerName && score.timeMs === playerTimeMs && score.savedAt === newScore.savedAt);
+
+        return {
+            monthlyScores,
+            allTimeScores,
+            monthlyPlayerRankIndex,
+            allTimePlayerRankIndex,
+            playerName: sanitizedPlayerName,
+        };
+    },
+
+    /**
+     * Get leaderboard player names
+     *
+     * Creates a list of player names for the current leaderboard render.
+     *
+     * @param {Array<object>} scores - Saved score entries pulled from localStorage.
+     * @param {number} totalRows - Total number of leaderboard rows to render.
+     * @returns {Array<string>} The display names aligned with the score rows.
+     */
+    getLeaderboardPlayerNames: function (scores, totalRows) {
+        const playerNames = [];
+        for (let scoreIndex = 0; scoreIndex < totalRows; scoreIndex++) {
+            // Use stored name if found, otherwise keep as placeholder indicator
+            const storedName = this.sanitizeLeaderboardName(scores[scoreIndex]?.name);
+            playerNames.push(storedName || '---');
         }
-        return savedScores;
+        return playerNames;
+    },
+
+    /**
+     * Prompt for leaderboard name
+     *
+    * Shows the desktop modal or VR keyboard for top-10 runs, then saves the completed run with the entered name, then renders the leaderboard.
+     *
+     * @param {number} playerTimeMs - The player's completion time in milliseconds.
+     * @returns {void} Does not return a value.
+     */
+    promptForLeaderboardName: async function (playerTimeMs) {
+
+        // Get last player name and current leaderboard scores
+        const lastPlayerName = this.getLastPlayerName();
+        const leaderboardScores = await this.getActiveLeaderboardScores();
+
+        // Release movement keys so player doesn't keep moving while entering their name on desktop
+        this.releaseMovementKeys();
+
+        const monthlyPreviewRankIndex = this.getPreviewLeaderboardRankIndex(leaderboardScores.monthlyScores, playerTimeMs);
+        const allTimePreviewRankIndex = this.getPreviewLeaderboardRankIndex(leaderboardScores.allTimeScores, playerTimeMs);
+
+        // If they don't make the top 10 on either board, show the leaderboard without their score and skip the name entry step since their score won't be saved.
+        if (monthlyPreviewRankIndex < 0 && allTimePreviewRankIndex < 0) {
+            this.showLeaderboard(playerTimeMs, {
+                monthlyScores: leaderboardScores.monthlyScores,
+                allTimeScores: leaderboardScores.allTimeScores,
+                monthlyPlayerRankIndex: -1,
+                allTimePlayerRankIndex: -1,
+            });
+            return;
+        }
+
+        if (this.isDesktopMode()) {
+            const modalEl = document.createElement('a-entity');
+
+            // Set up event listeners for submit and cancel events
+            const handleDesktopSubmit = (event) => {
+                this.handleLeaderboardNameSubmission(playerTimeMs, event.detail?.value, event);
+            };
+            const handleDesktopCancel = () => {
+                this.showLeaderboard(playerTimeMs, {
+                    monthlyScores: leaderboardScores.monthlyScores,
+                    allTimeScores: leaderboardScores.allTimeScores,
+                    monthlyPlayerRankIndex: -1,
+                    allTimePlayerRankIndex: -1,
+                });
+            };
+
+            // Display modal and add event listeners
+            modalEl.setAttribute('desktop-modal-input', `label: Enter Name; helpText: Letters and numbers only, max 12 characters; maxLength: 12; defaultValue: ${lastPlayerName}`);
+            modalEl.addEventListener('desktop-modal-input-submit', handleDesktopSubmit);
+            modalEl.addEventListener('desktop-modal-input-cancel', handleDesktopCancel, { once: true });
+            this.el.sceneEl.appendChild(modalEl);
+            this.nameInputEl = modalEl;
+            return;
+        }
+
+        // Get rid of HUD to avoid clipping issue with VR keyboard
+        if (this.hudEl) this.hudEl.setAttribute('visible', false);
+
+        const keyboardAnchorEl = document.querySelector('#cameraRig') || this.el.sceneEl.camera?.el || null;
+        if (!keyboardAnchorEl) {
+            const saveResultObj = await this.saveScoreToLeaderboard(playerTimeMs, 'Player');
+            this.showLeaderboard(playerTimeMs, saveResultObj);
+            return;
+        }
+
+        const keyboardEl = document.createElement('a-entity');
+        keyboardEl.setAttribute('position', `0 0 -1.15`);
+        keyboardEl.setAttribute('scale', '0.5 0.5 0.5');
+        keyboardEl.setAttribute('vr-keyboard', `label: Enter Name:; maxLength: 12; keyBgColor: #94f3f1; keyBgHoverColor: #53e4e1; defaultValue: ${lastPlayerName}`);
+        keyboardEl.addEventListener('keyboard-submit', (event) => {
+            this.handleLeaderboardNameSubmission(playerTimeMs, event.detail?.value, event);
+        });
+        keyboardEl.addEventListener('keyboard-cancel', () => {
+            this.showLeaderboard(playerTimeMs, {
+                monthlyScores: leaderboardScores.monthlyScores,
+                allTimeScores: leaderboardScores.allTimeScores,
+                monthlyPlayerRankIndex: -1,
+                allTimePlayerRankIndex: -1,
+            });
+        }, { once: true });
+        keyboardAnchorEl.appendChild(keyboardEl);
+        this.nameInputEl = keyboardEl; // Set this so we can remove it later if needed
+    },
+
+    /**
+     * Format leaderboard row
+     *
+     * Builds a monospace row string with fixed-width columns for duration, player name, and date.
+     *
+     * @param {number} rankIndex - Zero-based ranking index.
+     * @param {object|null} score - Saved score entry or null for an empty row.
+     * @param {string} playerName - Display name for the row.
+     * @param {number} playerNameCharacters - Fixed character width for the player column.
+     * @param {string} fallbackDateDisplay - Fallback date to show for empty rows.
+     * @returns {string} Formatted row text.
+     */
+    formatLeaderboardRow: function (rankIndex, score, playerName, playerNameCharacters, fallbackDateDisplay) {
+        // Score
+        const durationDisplay = score ? this.formatTime(score.timeMs) : '01:30';
+        // Player name (with centering)
+        const displayPlayerName = playerName || '';
+        const totalPadding = Math.max(playerNameCharacters - displayPlayerName.length, 0);
+        const rightPadding = Math.ceil(totalPadding / 2);
+        const leftPadding = totalPadding - rightPadding;
+        const paddedPlayerName = `${' '.repeat(leftPadding)}${displayPlayerName}${' '.repeat(rightPadding)}`;
+        // Date
+        let dateDisplay = score && score.date ? score.date : fallbackDateDisplay; // Set date to a fallback for any fake scores
+        if (score && typeof score.savedAt === 'number') {
+            const savedAtDate = new Date(score.savedAt);
+            dateDisplay = `${savedAtDate.getUTCFullYear()}-${String(savedAtDate.getUTCMonth() + 1).padStart(2, '0')}-${String(savedAtDate.getUTCDate()).padStart(2, '0')}`; // Format as YYYY-MM-DD (UTC)
+        }
+        // Combine into one formatted row string
+        return `${String(rankIndex + 1).padStart(2)}.  ${durationDisplay}  ${paddedPlayerName}  ${dateDisplay}`;
+    },
+
+    /**
+     * Create leaderboard panel
+     *
+     * Builds one leaderboard panel with its title, run type label, score rows, and footer text.
+     *
+     * @param {object} options - Panel configuration.
+     * @returns {object} The created panel entity and the text elements used for fade out: panelEl, panelBackgroundEl, and textEls.
+     */
+    createLeaderboardPanel: function (options) {
+        const {
+            panelTitle,
+            subtitle,
+            scores,
+            playerNames,
+            playerRankIndex,
+            playerTimeMs,
+            footerText,
+            footerWidth,
+            footerY,
+            footerColor,
+            isFooterSmall,
+            fallbackDateDisplay,
+        } = options;
+        const maxPlayerNameCharacters = 12;
+        const panelEl = document.createElement('a-entity');
+
+        // Background panel fades in on load
+        const panelBackgroundEl = document.createElement('a-plane');
+        panelBackgroundEl.setAttribute('width', '1.12');
+        panelBackgroundEl.setAttribute('height', '0.98');
+        panelBackgroundEl.setAttribute('material', 'color: #000020; opacity: 0; transparent: true; shader: flat');
+        panelBackgroundEl.setAttribute('animation__fadein', 'property: material.opacity; from: 0; to: 0.8; dur: 600; easing: easeOutSine');
+        panelEl.appendChild(panelBackgroundEl);
+
+        // Title
+        const titleTextEl = document.createElement('a-text');
+        titleTextEl.setAttribute('value', panelTitle);
+        titleTextEl.setAttribute('position', '0 0.38 0.002');
+        titleTextEl.setAttribute('color', '#FFFFFF');
+        titleTextEl.setAttribute('align', 'center');
+        titleTextEl.setAttribute('width', '1.02');
+        titleTextEl.setAttribute('opacity', '0');
+        titleTextEl.setAttribute('animation__fadein', 'property: text.opacity; from: 0; to: 1; dur: 600; easing: easeOutSine');
+        panelEl.appendChild(titleTextEl);
+
+        // Subtitle (e.g. "Standard Run" or "Power Run")
+        const subtitleTextEl = document.createElement('a-text');
+        subtitleTextEl.setAttribute('value', subtitle);
+        subtitleTextEl.setAttribute('position', '0 0.320 0.002');
+        subtitleTextEl.setAttribute('color', '#FFFFFF');
+        subtitleTextEl.setAttribute('align', 'center');
+        subtitleTextEl.setAttribute('width', '0.86');
+        subtitleTextEl.setAttribute('opacity', '0');
+        subtitleTextEl.setAttribute('animation__fadein', 'property: text.opacity; from: 0; to: 1; dur: 600; easing: easeOutSine');
+        panelEl.appendChild(subtitleTextEl);
+
+        // Column headings
+        const headingTextEl = document.createElement('a-text');
+        headingTextEl.setAttribute('value', `DURATION     PLAYER        DATE`);
+        headingTextEl.setAttribute('position', '-0.032 0.245 0.002');
+        headingTextEl.setAttribute('color', '#FFFFFF');
+        headingTextEl.setAttribute('align', 'center');
+        headingTextEl.setAttribute('width', '1.03');
+        headingTextEl.setAttribute('font', 'sourcecodepro');
+        headingTextEl.setAttribute('opacity', '0');
+        headingTextEl.setAttribute('animation__fadein', 'property: text.opacity; from: 0; to: 1; dur: 600; easing: easeOutSine');
+        panelEl.appendChild(headingTextEl);
+
+        const allPanelTextEls = [titleTextEl, subtitleTextEl, headingTextEl];
+
+        // Ten score rows - each shows how long it took to complete, the player name, and date
+        for (let rankIndex = 0; rankIndex < 10; rankIndex++) {
+            const score = scores[rankIndex] || null;
+            const playerName = playerNames[rankIndex] || '';
+            const rowText = this.formatLeaderboardRow(rankIndex, score, playerName, maxPlayerNameCharacters, fallbackDateDisplay);
+            const rowYPosition = (0.175 - rankIndex * 0.052).toFixed(3);
+            const rowXPosition = rankIndex === 9 ? '-0.013' : '0';
+            const isPlayerEntry = rankIndex === playerRankIndex; // Player made the top 10
+            // Create the text element
+            const rowTextEl = document.createElement('a-text');
+            rowTextEl.setAttribute('value', rowText);
+            rowTextEl.setAttribute('position', `${rowXPosition} ${rowYPosition} 0.002`);
+            rowTextEl.setAttribute('color', isPlayerEntry ? '#5CFDCA' : '#FFFFFF');
+            rowTextEl.setAttribute('align', 'center');
+            rowTextEl.setAttribute('width', '1.03');
+            rowTextEl.setAttribute('font', 'sourcecodepro');
+            rowTextEl.setAttribute('opacity', '0');
+            rowTextEl.setAttribute('animation__fadein', 'property: text.opacity; from: 0; to: 1; dur: 600; easing: easeOutSine');
+            panelEl.appendChild(rowTextEl);
+            allPanelTextEls.push(rowTextEl);
+        }
+
+        // Highlight the player's score with a "YOUR SCORE" label at bottom, or show the all-time guidance message
+        const footerTextEl = document.createElement('a-text');
+        footerTextEl.setAttribute('value', footerText !== undefined ? footerText : `${this.formatTime(playerTimeMs)}  YOUR SCORE`); // It's undefined for the monthly board, so YOUR SCORE is displayed there instead of default message
+        footerTextEl.setAttribute('position', `0 ${footerY || '-0.39'} 0.002`);
+        footerTextEl.setAttribute('color', footerColor || '#5CFDCA');
+        footerTextEl.setAttribute('align', 'center');
+        footerTextEl.setAttribute('width', footerWidth || '0.94');
+        footerTextEl.setAttribute('font', 'sourcecodepro');
+        footerTextEl.setAttribute('opacity', '0');
+        if (isFooterSmall) {
+            footerTextEl.setAttribute('wrap-count', '39');
+        }
+        footerTextEl.setAttribute('animation__fadein', 'property: text.opacity; from: 0; to: 1; dur: 600; easing: easeOutSine');
+        panelEl.appendChild(footerTextEl);
+        allPanelTextEls.push(footerTextEl);
+
+        return {
+            panelEl,
+            panelBackgroundEl,
+            textEls: allPanelTextEls,
+        };
     },
 
     /**
@@ -516,19 +1232,35 @@ const orbCollectionMinigame = {
      * Saves the player's completion time, fades out the HUD, builds and displays a leaderboard in front of the camera, highlights the player's entry, then fades and removes the leaderboard after a short delay.
      *
      * @param {number} playerTimeMs - The player's completion time in milliseconds to save and display on the leaderboard.
+     * @param {object} [saveResult] - Object containing the results from saving the player's score, including the updated scores list, the player's rank index, and the sanitized player name (if in top 10).
      * @returns {void} Does not return a value.
      */
-    showLeaderboard: function (playerTimeMs) {
-        const leaderboardTitle = this.usedRegularMovementControls
-            ? 'STANDARD RUN LEADERBOARD'
-            : 'POWER RUN LEADERBOARD';
-        const scores = this.saveScoreToLeaderboard(playerTimeMs);
-        const playerRankIndex = scores.findIndex(s => s.timeMs === playerTimeMs);
+    showLeaderboard: async function (playerTimeMs, saveResult) {
+        // Return early with warning if no savedResult is provided
+        if (!saveResult) {
+            console.warn('orb-collection-minigame: No save result provided to showLeaderboard, cannot display player name or rank on the leaderboard.');
+            return;
+        }
+        // Gather some data for building the leaderboard
+        const subtitle = this.usedRegularMovementControls ? 'Standard Run' : 'Power Run';
+        const monthlyScores = saveResult.monthlyScores;
+        const allTimeScores = saveResult.allTimeScores;
+        const monthlyPlayerNames = this.getLeaderboardPlayerNames(monthlyScores, 10);
+        const allTimePlayerNames = this.getLeaderboardPlayerNames(allTimeScores, 10);
+        const monthlyPlayerRankIndex = saveResult.monthlyPlayerRankIndex;
+        const allTimePlayerRankIndex = saveResult.allTimePlayerRankIndex;
         const cameraEl = this.el.sceneEl.camera.el;
+
+        // Remove the name input UI
+        if (this.nameInputEl && this.nameInputEl.parentNode) {
+            this.nameInputEl.parentNode.removeChild(this.nameInputEl);
+        }
+        this.nameInputEl = null;
 
         // Fade the HUD out first, then show the leaderboard once it's gone
         const hudFadeOutDurationMs = 500;
         if (this.hudEl) {
+            this.hudEl.setAttribute('visible', true); // Workaround to fix clipping issue with the HUD
             this.hudEl.setAttribute('animation__fadeout', `property: object3D.visible; dur: ${hudFadeOutDurationMs}`);
             // Fade out opacity on the panel child
             const hudChildren = this.hudEl.querySelectorAll('[material], a-text');
@@ -540,86 +1272,54 @@ const orbCollectionMinigame = {
         }
 
         // Wait for HUD to finish fading before building the leaderboard
+        const showLeaderboardTime = this.data.debug ? 1500000 : 15000; // 15 secs or 25 mins for debugging
         window.setTimeout(() => {
             if (this.hudEl) this.hudEl.setAttribute('visible', false);
 
             const leaderboardContainerEl = document.createElement('a-entity');
-            leaderboardContainerEl.setAttribute('position', '0 0.05 -1.5');
+            leaderboardContainerEl.setAttribute('position', '0 0.05 -1.7');
 
-            // Background panel fades in on load
-            const leaderboardPanelEl = document.createElement('a-plane');
-            leaderboardPanelEl.setAttribute('width', '0.9');
-            leaderboardPanelEl.setAttribute('height', '0.9');
-            leaderboardPanelEl.setAttribute('material', 'color: #000020; opacity: 0; transparent: true; shader: flat');
-            leaderboardPanelEl.setAttribute('animation__fadein', 'property: material.opacity; from: 0; to: 0.8; dur: 600; easing: easeOutSine');
-            leaderboardContainerEl.appendChild(leaderboardPanelEl);
+            // Build the monthly leaderboard on the left
+            const monthlyPanel = this.createLeaderboardPanel({
+                panelTitle: 'Monthly Leaderboard',
+                subtitle,
+                scores: monthlyScores,
+                playerNames: monthlyPlayerNames,
+                playerRankIndex: monthlyPlayerRankIndex,
+                playerTimeMs,
+                fallbackDateDisplay: this.getCurrentUtcMonthStartDateDisplay(), // e.g. "2026-06-01"
+                footerText: `${this.formatTime(playerTimeMs)}  YOUR SCORE`,
+                footerWidth: '0.94',
+                footerY: '-0.39',
+                footerColor: '#5CFDCA',
+                isFooterSmall: false,
+            });
+            monthlyPanel.panelEl.setAttribute('position', '-0.62 0 0');
+            leaderboardContainerEl.appendChild(monthlyPanel.panelEl);
 
-            // Title
-            const titleTextEl = document.createElement('a-text');
-            titleTextEl.setAttribute('value', leaderboardTitle);
-            titleTextEl.setAttribute('position', '0 0.38 0.002');
-            titleTextEl.setAttribute('color', '#FFFFFF');
-            titleTextEl.setAttribute('align', 'center');
-            titleTextEl.setAttribute('width', '0.85');
-            titleTextEl.setAttribute('opacity', '0');
-            titleTextEl.setAttribute('animation__fadein', 'property: text.opacity; from: 0; to: 1; dur: 600; easing: easeOutSine');
-            leaderboardContainerEl.appendChild(titleTextEl);
+            // Build the all-time leaderboard on the right
+            const allTimeFooterText = this.usedRegularMovementControls
+                ? 'Try using arm-swing locomotion only to make it onto the Power Run leaderboard.'
+                : '';
+            const allTimePanel = this.createLeaderboardPanel({
+                panelTitle: 'All-Time Leaderboard',
+                subtitle,
+                scores: allTimeScores,
+                playerNames: allTimePlayerNames,
+                playerRankIndex: allTimePlayerRankIndex,
+                playerTimeMs,
+                fallbackDateDisplay: this.getCurrentUtcMonthStartDateDisplay(),
+                footerText: allTimeFooterText,
+                footerWidth: this.usedRegularMovementControls ? '0.78' : '0.94',
+                footerY: '-0.39',
+                footerColor: '#5CFDCA',
+                isFooterSmall: this.usedRegularMovementControls,
+            });
+            allTimePanel.panelEl.setAttribute('position', '0.62 0 0');
+            leaderboardContainerEl.appendChild(allTimePanel.panelEl);
 
-            // Column headings
-            const headingTextEl = document.createElement('a-text');
-            headingTextEl.setAttribute('value', 'DURATION          DATE');
-            headingTextEl.setAttribute('position', '-0.030 0.275 0.002');
-            headingTextEl.setAttribute('color', '#FFFFFF');
-            headingTextEl.setAttribute('align', 'center');
-            headingTextEl.setAttribute('width', '0.85');
-            headingTextEl.setAttribute('font', 'sourcecodepro');
-            headingTextEl.setAttribute('opacity', '0');
-            headingTextEl.setAttribute('animation__fadein', 'property: text.opacity; from: 0; to: 1; dur: 600; easing: easeOutSine');
-            leaderboardContainerEl.appendChild(headingTextEl);
-
-            // Keep refs to all text elements so we can fade them out together later
-            const allLeaderboardTextEls = [titleTextEl, headingTextEl];
-
-            // Ten score rows — each shows how long it took to complete and when
-            for (let rankIndex = 0; rankIndex < 10; rankIndex++) {
-                const score = scores[rankIndex];
-                const isPlayerEntry = rankIndex === playerRankIndex;
-                const durationDisplay = score ? this.formatTime(score.timeMs) : '00:00';
-                const dateDisplay = score && score.date ? score.date : '2015-10-21'; // Default date is Back to the Future day
-                const rowText = `${String(rankIndex + 1).padStart(2)}.  ${durationDisplay}       ${dateDisplay}`;
-                const rowYPosition = (0.215 - rankIndex * 0.055).toFixed(3);
-
-                const rowTextEl = document.createElement('a-text');
-                rowTextEl.setAttribute('value', rowText);
-                // Slight nudge to the left for the 10th place entry so the text doesn't look off-center with the extra digit
-                if (rankIndex === 9) {
-                    rowTextEl.setAttribute('position', `-0.01 ${rowYPosition} 0.002`);
-                } else {
-                    rowTextEl.setAttribute('position', `0 ${rowYPosition} 0.002`);
-                }
-                rowTextEl.setAttribute('color', isPlayerEntry ? '#5CFDCA' : '#FFFFFF');
-                rowTextEl.setAttribute('align', 'center');
-                rowTextEl.setAttribute('width', '0.85');
-                rowTextEl.setAttribute('font', 'sourcecodepro');
-                rowTextEl.setAttribute('opacity', '0');
-                rowTextEl.setAttribute('animation__fadein', 'property: text.opacity; from: 0; to: 1; dur: 600; easing: easeOutSine');
-                leaderboardContainerEl.appendChild(rowTextEl);
-                allLeaderboardTextEls.push(rowTextEl);
-            }
-
-            // Highlight the player's score with a "YOUR SCORE" label at bottom
-            const yourScoreRowText = `${this.formatTime(playerTimeMs)}       YOUR SCORE`;
-            const yourScoreRowTextEl = document.createElement('a-text');
-            yourScoreRowTextEl.setAttribute('value', yourScoreRowText);
-            yourScoreRowTextEl.setAttribute('position', '0.042 -0.370 0.002');
-            yourScoreRowTextEl.setAttribute('color', '#5CFDCA');
-            yourScoreRowTextEl.setAttribute('align', 'center');
-            yourScoreRowTextEl.setAttribute('width', '0.85');
-            yourScoreRowTextEl.setAttribute('font', 'sourcecodepro');
-            yourScoreRowTextEl.setAttribute('opacity', '0');
-            yourScoreRowTextEl.setAttribute('animation__fadein', 'property: text.opacity; from: 0; to: 1; dur: 600; easing: easeOutSine');
-            leaderboardContainerEl.appendChild(yourScoreRowTextEl);
-            allLeaderboardTextEls.push(yourScoreRowTextEl);
+            const allLeaderboardPanelEls = [monthlyPanel.panelBackgroundEl, allTimePanel.panelBackgroundEl];
+            const allLeaderboardTextEls = monthlyPanel.textEls.concat(allTimePanel.textEls);
 
             cameraEl.appendChild(leaderboardContainerEl);
             this.leaderboardEl = leaderboardContainerEl;
@@ -628,7 +1328,9 @@ const orbCollectionMinigame = {
             const fadeOutDurationMs = 800;
             window.setTimeout(() => {
                 if (!this.leaderboardEl) return;
-                leaderboardPanelEl.setAttribute('animation__fadeout', `property: material.opacity; from: 0.8; to: 0; dur: ${fadeOutDurationMs}; easing: easeInSine`);
+                allLeaderboardPanelEls.forEach(panelEl => {
+                    panelEl.setAttribute('animation__fadeout', `property: material.opacity; from: 0.8; to: 0; dur: ${fadeOutDurationMs}; easing: easeInSine`);
+                });
                 allLeaderboardTextEls.forEach(textEl => {
                     textEl.setAttribute('animation__fadeout', `property: text.opacity; from: 1; to: 0; dur: ${fadeOutDurationMs}; easing: easeInSine`);
                 });
@@ -638,7 +1340,7 @@ const orbCollectionMinigame = {
                         this.leaderboardEl = null;
                     }
                 }, fadeOutDurationMs + 100);
-            }, 15000);
+            }, showLeaderboardTime); // 15 seconds or 25 mins for debugging
         }, hudFadeOutDurationMs + 100);
     },
 
@@ -718,7 +1420,7 @@ const orbCollectionMinigame = {
                     this.hudTimerTextEl.setAttribute('value', this.formatTime(finalTimeMs));
                 }
                 // Show the leaderboard with the player's final time
-                this.showLeaderboard(finalTimeMs);
+                this.promptForLeaderboardName(finalTimeMs);
                 // Play all collected sound if specified
                 if (this.data.allCollectedSound) {
                     const allCollectedSoundEl = document.querySelector(this.data.allCollectedSound);
@@ -753,6 +1455,11 @@ const orbCollectionMinigame = {
         if (this.leaderboardEl && this.leaderboardEl.parentNode) {
             this.leaderboardEl.parentNode.removeChild(this.leaderboardEl);
             this.leaderboardEl = null;
+        }
+        // Remove name input if it exists
+        if (this.nameInputEl && this.nameInputEl.parentNode) {
+            this.nameInputEl.parentNode.removeChild(this.nameInputEl);
+            this.nameInputEl = null;
         }
     }
 };
