@@ -98,7 +98,7 @@ function get_placeholders(string $category): array {
 function maintain_leaderboards(array &$scores): bool {
     $categories = ['standard-all-time', 'standard-monthly', 'power-all-time', 'power-monthly'];
     $currentMonth = gmdate('Y-m'); // E.g. '2024-06'
-    $monthStartTimestamp = strtotime(gmdate('Y-m-01 00:00:00')) * 1000; // Start of the current month in UTC
+    $monthStartTimestamp = gmmktime(0, 0, 0, gmdate('n'), 1, gmdate('Y')) * 1000; // Start of the current month in UTC
     $modified = false;
 
     foreach ($categories as $category) {
