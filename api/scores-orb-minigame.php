@@ -1,9 +1,5 @@
 <?php
 header('Content-Type: application/json');
-// header('Access-Control-Allow-Origin: *'); // Any domain
-header('Access-Control-Allow-Origin: https://makingspidersense.com, https://www.makingspidersense.com, http://makingspidersense.test'); // Specific domains
-header('Access-Control-Allow-Methods: GET, POST');
-header('Access-Control-Allow-Headers: Content-Type');
 
 $file = __DIR__ . '/scores-orb-minigame.json';
 
