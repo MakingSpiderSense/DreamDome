@@ -57,7 +57,7 @@ function setupMotionSensors() {
 window.addEventListener('DOMContentLoaded', setupMotionSensors);
 
 
-/*
+/**
  * Add performance statistics if on development environment
  */
 document.addEventListener("DOMContentLoaded", function () {
@@ -71,7 +71,7 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 
-/*
+/**
  * Use fuse cursor on tablets too
  *
  * Note: The fuse is supposed to be the default on mobile devices, but on tablets seem to be considered desktop devices. They should behave like mobile devices, so this is a workaround.
@@ -83,3 +83,26 @@ document.addEventListener('DOMContentLoaded', function () {
         reticle.setAttribute('cursor', 'fuse', 'true');
     }
 });
+
+
+/**
+ * Fix for this error from touch-controls
+ *
+ * Error: "Unable to preventDefault inside passive event listener invocation."
+ *
+ * This completely overrides the addEventListeners function of the touch-controls component. It's the same method, just changing passive to false. Having passive to true is basically saying, "I won't interfere with the default behavior". But since we are trying calling preventDefault in the touch event handlers, it makes more sense to have passive set to false.
+ */
+AFRAME.components["touch-controls"].Component.prototype.addEventListeners = function () {
+    const sceneEl = this.el.sceneEl;
+    const canvasEl = sceneEl.canvas;
+    if (!canvasEl) {
+        sceneEl.addEventListener("render-target-loaded", this.addEventListeners.bind(this));
+        return;
+    }
+    canvasEl.addEventListener("touchstart", this.onTouchStart, { passive: false });
+    canvasEl.addEventListener("touchend", this.onTouchEnd, { passive: false });
+    const vrModeUI = sceneEl.getAttribute("vr-mode-ui");
+    if (vrModeUI && vrModeUI.cardboardModeEnabled) {
+        sceneEl.addEventListener("enter-vr", this.onEnterVR);
+    }
+};
