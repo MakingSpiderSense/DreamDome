@@ -49,6 +49,7 @@
             <audio id="footsteps" src="assets/footsteps-v1.mp3"></audio>
             <audio id="whoosh" src="assets/whoosh.mp3"></audio>
             <audio id="static-brief" src="assets/static-brief.mp3"></audio>
+            <audio id="atmosphere" src="assets/atmosphere.mp3"></audio>
             <img id="billboard-slide-1" src="assets/dream-dome-billboard.png">
             <img id="billboard-slide-2" src="assets/slide-elevator.png">
             <img id="billboard-static-1" src="assets/static-1.jpg">
@@ -61,6 +62,7 @@
 
         <!-- Environment -->
         <a-entity class="env-dream" environment="preset: dream; groundColor: #445; grid: cross; fog: 0; skyType: none; seed: 3;"></a-entity>
+        <a-entity id="ambient-atmosphere" sound="src: #atmosphere; volume: .2; loop: true; autoplay: true; positional: false;"></a-entity>
         <!-- Particle System -->
         <a-entity class="dome-particles" position="0 2.25 -15" particle-system="preset: dust; positionSpread: 300 300 300;"></a-entity>
         <!-- Navigation Mesh -->
