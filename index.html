@@ -48,6 +48,7 @@
             <audio id="button-a" src="assets/button-a.mp3"></audio>
             <audio id="footsteps" src="assets/footsteps-v1.mp3"></audio>
             <audio id="whoosh" src="assets/whoosh.mp3"></audio>
+            <audio id="static-brief" src="assets/static-brief.mp3"></audio>
             <img id="billboard-slide-1" src="assets/dream-dome-billboard.png">
             <img id="billboard-slide-2" src="assets/slide-elevator.png">
             <img id="billboard-static-1" src="assets/static-1.jpg">
@@ -141,7 +142,10 @@
                 slideDuration: 15000;
                 staticLoops: 2;
                 staticFrameDuration: 30;
+                soundID: #sound-static-brief;
             "></a-image>
+            <!-- Static Sound -->
+            <a-entity id="sound-static-brief" position="-.75 7.42 0" sound="src: #static-brief; volume: .1; refDistance: 5;"></a-entity>
         </a-entity>
 
         <!-- Elevator -->

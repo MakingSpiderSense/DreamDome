@@ -9,7 +9,8 @@ const billboardSlideshow = {
         staticFrames: { type: "array", default: [] }, // Static frame IDs from <a-assets>
         slideDuration: { type: "number", default: 5000 }, // Duration each slide is shown in milliseconds
         staticLoops: { type: "number", default: 3 }, // Number of times to loop through all static frames during transition
-        staticFrameDuration: { type: "number", default: 60 } // Duration each static frame is shown in milliseconds
+        staticFrameDuration: { type: "number", default: 60 }, // Duration each static frame is shown in milliseconds
+        soundID: { type: "selector" } // Entity with sound component to play during transition
     },
     init: function () {
         this.currentSlideIndex = 0;
@@ -48,6 +49,11 @@ const billboardSlideshow = {
         if (this.isTransitioning || !this.data.staticFrames.length) {
             this.showNextSlide();
             return;
+        }
+        // Play sound if available
+        if (this.data.soundID && this.data.soundID.components.sound) {
+            this.data.soundID.components.sound.stopSound();
+            this.data.soundID.components.sound.playSound();
         }
         this.isTransitioning = true;
         const totalStaticFrames = this.data.staticFrames.length * this.data.staticLoops;
