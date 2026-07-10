@@ -55,6 +55,7 @@ const orbCollectionMinigame = {
         this.originalMovementSpeedModifierSettings = null; // Store original settings to restore later
         this.usedRegularMovementControls = false; // True once any keyboard key or left joystick movement is used during the run
         this.cachedPlaceholderNames = { standard: null, power: null }; // To store 10 generated names
+        this.decoyBall = null; // Store the decoy physics ball
 
         // Set up listeners and bindings
         this.blockShiftDuringMinigame = this.blockShiftDuringMinigame.bind(this);
@@ -130,13 +131,13 @@ const orbCollectionMinigame = {
         const surfaceRaycaster = new THREE.Raycaster();
         const downwardRayDirection = new THREE.Vector3(0, -1, 0);
         const rayOrigin = new THREE.Vector3();
-        const targetOrbCount = this.data.count;
+        const targetOrbCount = this.data.count + 1; // Add 1 for the decoy ball
         const orbHeightOffset = this.data.height;
         const minSpacingSquared = this.data.minDistance * this.data.minDistance;
         const placedOrbPositions = [];
         let spawnAttempts = 0;
 
-        // Attempt to place all orbs
+        // Attempt to place all orbs and the decoy ball
         while (placedOrbPositions.length < targetOrbCount && spawnAttempts < targetOrbCount * 150) {
             spawnAttempts++; // Keep track to prevent infinite loop if nav mesh is too small or minDistance too large
 
@@ -180,14 +181,36 @@ const orbCollectionMinigame = {
             placedOrbPositions.push(candidateOrbPosition);
         }
 
-        // Send warning if we weren't able to place the target number of orbs
+        // Send warning if we weren't able to place the target number of objects
         if (placedOrbPositions.length < targetOrbCount) {
-            console.warn(`orb-collection-minigame: placed ${placedOrbPositions.length}/${targetOrbCount} orbs — nav mesh may be too small or minDistance too large`);
+            console.warn(`orb-collection-minigame: placed ${placedOrbPositions.length}/${targetOrbCount} objects — nav mesh may be too small or minDistance too large`);
         }
 
-        // Create and place orbs at the valid positions we found
+        // Create and place orbs and the decoy ball at the valid positions we found
         const orbColors = ['#96fffe', '#3DFFA0', '#FFE45E', '#d7ffe7'];
-        placedOrbPositions.forEach(orbPosition => {
+        const decoyBallIndex = Math.floor(Math.random() * placedOrbPositions.length); // Pick a random position for the decoy ball
+
+        placedOrbPositions.forEach((orbPosition, index) => {
+
+            // Create and place the decoy ball at the randomly selected index
+            if (index === decoyBallIndex) {
+                // Create the decoy ball
+                const ball = document.createElement('a-sphere');
+                const bobStartY = (orbPosition.y - 0.05).toFixed(3);
+                const bobEndY = (orbPosition.y + 0.05).toFixed(3);
+                ball.setAttribute('class', 'ball');
+                ball.setAttribute('radius', 0.5);
+                ball.setAttribute('position', `${orbPosition.x} ${orbPosition.y} ${orbPosition.z}`);
+                ball.setAttribute('color', '#53e4e1');
+                // Initial hovering bobbing animation
+                ball.setAttribute('animation__float', `property: position; from: ${orbPosition.x} ${bobStartY} ${orbPosition.z}; to: ${orbPosition.x} ${bobEndY} ${orbPosition.z}; dir: alternate; dur: 2200; easing: easeInOutSine; loop: true;`);
+
+                this.el.sceneEl.appendChild(ball);
+                this.decoyBall = { el: ball, pos: orbPosition.clone(), active: true };
+                return;
+            }
+
+            // Create and place a collectible orb at the valid position
             const orb = document.createElement('a-sphere');
             const randomAnimationDelay = Math.floor(Math.random() * 4001);
             const randomStartingColorIndex = Math.floor(Math.random() * orbColors.length);
@@ -1361,6 +1384,36 @@ const orbCollectionMinigame = {
 
         const collectRadiusSquared = this.data.collectRadius * this.data.collectRadius;
 
+        // Check proximity for the decoy ball
+        if (this.decoyBall && this.decoyBall.active) {
+            const ballDeltaX = this.cameraWorldPosition.x - this.decoyBall.pos.x;
+            const ballDeltaY = this.cameraWorldPosition.y - this.decoyBall.pos.y;
+            const ballDeltaZ = this.cameraWorldPosition.z - this.decoyBall.pos.z;
+            const ballDistanceSquared = ballDeltaX * ballDeltaX + ballDeltaY * ballDeltaY + ballDeltaZ * ballDeltaZ;
+
+            // If in range, deactivate the decoy ball and apply physics to it so it flies away from the player
+            if (ballDistanceSquared <= collectRadiusSquared) {
+                // Deactivate decoy state
+                this.decoyBall.active = false;
+                const ballEl = this.decoyBall.el;
+                // Stop the bobbing animation
+                ballEl.removeAttribute('animation__float');
+                // Add physics
+                ballEl.setAttribute('ammo-body', 'type: dynamic; restitution: 1; mass: 1;');
+                ballEl.setAttribute('ammo-shape', 'type: sphere; fit: manual; sphereRadius: 0.5');
+                // Apply an "impact" force away from the player
+                const forceDirection = new THREE.Vector3(-ballDeltaX, -ballDeltaY, -ballDeltaZ).normalize();
+                const impulsePower = 5;
+                const impulse = forceDirection.multiplyScalar(impulsePower);
+                // Wait for the Ammo body to be ready before applying the impulse
+                ballEl.addEventListener('body-loaded', () => {
+                    if (ballEl.body && ballEl.body.applyImpulse) {
+                        ballEl.body.applyImpulse(new Ammo.btVector3(impulse.x, impulse.y, impulse.z), new Ammo.btVector3(0, 0, 0));
+                    }
+                }, { once: true });
+            }
+        }
+
         // Update HUD timer while the game is in progress
         if (this.gameStartTime !== null && this.hudTimerTextEl) {
             this.hudTimerTextEl.setAttribute('value', this.formatTime(Date.now() - this.gameStartTime));
@@ -1446,6 +1499,11 @@ const orbCollectionMinigame = {
             if (orb.el && orb.el.parentNode) orb.el.parentNode.removeChild(orb.el);
         });
         this.orbs = [];
+        // Remove decoy ball
+        if (this.decoyBall && this.decoyBall.el && this.decoyBall.el.parentNode) {
+            this.decoyBall.el.parentNode.removeChild(this.decoyBall.el);
+            this.decoyBall = null;
+        }
         this.hasCollectedAllOrbs = false;
         // Remove HUD and leaderboard if they exist
         if (this.hudEl && this.hudEl.parentNode) {
