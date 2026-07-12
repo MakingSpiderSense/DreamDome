@@ -199,7 +199,7 @@ const orbCollectionMinigame = {
                 const bobStartY = (orbPosition.y - 0.05).toFixed(3);
                 const bobEndY = (orbPosition.y + 0.05).toFixed(3);
                 ball.setAttribute('class', 'ball');
-                ball.setAttribute('radius', 0.5);
+                ball.setAttribute('radius', this.data.orbRadius);
                 ball.setAttribute('position', `${orbPosition.x} ${orbPosition.y} ${orbPosition.z}`);
                 ball.setAttribute('color', '#53e4e1');
                 // Initial hovering bobbing animation
@@ -1400,7 +1400,7 @@ const orbCollectionMinigame = {
                 ballEl.removeAttribute('animation__float');
                 // Add physics
                 ballEl.setAttribute('ammo-body', 'type: dynamic; restitution: 1; mass: 1;');
-                ballEl.setAttribute('ammo-shape', 'type: sphere; fit: manual; sphereRadius: 0.5');
+                ballEl.setAttribute('ammo-shape', `type: sphere; fit: manual; sphereRadius: ${this.data.orbRadius}`);
                 // Apply an "impact" force away from the player
                 const forceDirection = new THREE.Vector3(-ballDeltaX, -ballDeltaY, -ballDeltaZ).normalize();
                 const impulsePower = 5;
