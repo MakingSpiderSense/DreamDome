@@ -27,7 +27,8 @@
         raycaster-manager
         vr-mode-detect
         physics="driver: ammo; debug: false;"
-        orb-collection-minigame="navMeshEl: #my-nav-mesh-entity; collectSound: #orb-collect-sound; allCollectedSound: #all-collected-sound"
+        orb-collection-minigame="navMeshEl: #my-nav-mesh-entity; collectSound: #orb-collect-sound;"
+        global-leaderboard="apiUrl: https://makingspidersense.com/vr/dream-dome/leaderboard.php"
     >
 
         <!-- Asset Management System -->
@@ -50,6 +51,10 @@
             <audio id="whoosh" src="assets/whoosh.mp3"></audio>
             <audio id="static-brief" src="assets/static-brief.mp3"></audio>
             <audio id="atmosphere" src="assets/atmosphere.mp3"></audio>
+            <audio id="orb-minigame-layer-1" src="assets/orb-minigame-music/test-layer-1.mp3"></audio>
+            <audio id="orb-minigame-layer-2" src="assets/orb-minigame-music/test-layer-2.mp3"></audio>
+            <audio id="orb-minigame-layer-3" src="assets/orb-minigame-music/test-layer-3.mp3"></audio>
+            <audio id="orb-minigame-layer-4" src="assets/orb-minigame-music/test-layer-4.mp3"></audio>
             <img id="billboard-slide-1" src="assets/dream-dome-billboard.png">
             <img id="billboard-slide-2" src="assets/slide-elevator.png">
             <img id="billboard-static-1" src="assets/static-1.jpg">
@@ -76,6 +81,19 @@
         <a-entity id="orb-collect-sound" sound="src: #button-a; volume: .1; positional: false;"></a-entity>
         <a-entity id="speed-boost-sound" sound="src: #whoosh; volume: .5; positional: false;"></a-entity>
         <a-entity id="all-collected-sound" sound="src: #skybox-theme; volume: .3; positional: false;"></a-entity>
+        <!-- Orb Collection Music -->
+        <a-entity id="orb-minigame-music-manager" music-layer-manager="
+            layers: #orb-minigame-layer-1, #orb-minigame-layer-2, #orb-minigame-layer-3, #orb-minigame-layer-4;
+            fadeDuration: 2000;
+            eventName: minigame-orb-collected;
+            eventTarget: a-scene;
+            eventThresholds: 1:0, 7:1, 13:2, 17:3;
+            stopEventName: minigame-leaderboard-closed;
+            stopDelay: 5000;
+            finalLayer: #all-collected-sound;
+            finalEventName: minigame-all-collected;
+            finalFadeDuration: 1000;
+        "></a-entity>
 
         <!-- Sky -->
         <a-sky src="#neon-sky" rotation="0 -90 0"></a-sky>

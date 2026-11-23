@@ -1361,6 +1361,8 @@ const orbCollectionMinigame = {
                     if (this.leaderboardEl && this.leaderboardEl.parentNode) {
                         this.leaderboardEl.parentNode.removeChild(this.leaderboardEl);
                         this.leaderboardEl = null;
+                        // Emit leaderboard closed event for external components (like music layering)
+                        this.el.emit('minigame-leaderboard-closed');
                     }
                 }, fadeOutDurationMs + 100);
             }, showLeaderboardTime); // 15 seconds or 25 mins for debugging
@@ -1432,7 +1434,8 @@ const orbCollectionMinigame = {
             orb.collected = true;
             orb.el.setAttribute('visible', false);
             this.collected++;
-
+            // Emit orb collected event for external components (like music layering)
+            this.el.emit('minigame-orb-collected', { count: this.collected });
             // On the first orb: start the timer and show the HUD
             if (this.collected === 1) {
                 // Retry controller lookup once when the run starts in case it loaded after init.
@@ -1474,6 +1477,8 @@ const orbCollectionMinigame = {
                 }
                 // Show the leaderboard with the player's final time
                 this.promptForLeaderboardName(finalTimeMs);
+                // Emit all collected event
+                this.el.emit('minigame-all-collected');
                 // Play all collected sound if specified
                 if (this.data.allCollectedSound) {
                     const allCollectedSoundEl = document.querySelector(this.data.allCollectedSound);
