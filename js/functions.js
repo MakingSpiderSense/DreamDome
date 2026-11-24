@@ -67,6 +67,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if (currentUrl.includes('/dream-dome/')) {
         // Add stats attribute which displays performance statistics
         scene.setAttribute('stats', '');
+        scene.setAttribute('extended-stats', '');
     }
 });
 
