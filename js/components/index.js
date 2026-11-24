@@ -13,3 +13,4 @@ import './orb-collection-minigame.js';
 import './music-layer-manager.js';
 import './vr-keyboard.js';
 import './desktop-modal-input.js';
+import './extended-stats.js';
